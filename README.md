@@ -1,3 +1,4 @@
+```
 src/
 ├── assets/                  # Tài nguyên tĩnh: hình ảnh, font, icon...
 │   ├── images/
@@ -56,3 +57,4 @@ src/
 │   └── validator.js         # Kiểm tra tính hợp lệ của dữ liệu
 ├── App.jsx                  # Component gốc, nơi chứa Router
 └── main.jsx                 # Entry point của ứng dụng
+```
