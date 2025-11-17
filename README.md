@@ -1,88 +1,60 @@
-# AuctionHub - React + Vite + Tailwind CSS
-
-Một ứng dụng đấu giá trực tuyến hiện đại được xây dựng với React, Vite và Tailwind CSS.
-
-## 🚀 Cài đặt và Chạy Project
-
-### Bước 1: Cài đặt dependencies
-```bash
-npm install
 ```
-
-### Bước 2: Chạy development server
-```bash
-npm run dev
+src/
+├── assets/                  # Tài nguyên tĩnh: hình ảnh, font, icon...
+│   ├── images/
+│   ├── fonts/
+│   └── styles/              # CSS/SCSS toàn cục (index.css, main.scss)
+├── components/              # Các Component UI có thể tái sử dụng
+│   ├── common/              # Các UI cơ bản: Button, Input, Modal, Form/reCaptcha
+│   │   ├── Button.jsx
+│   │   ├── Input.jsx
+│   │   └── Modal.jsx
+│   ├── layout/              # Cấu trúc trang (Header, Footer, Navigation)
+│   │   ├── Header.jsx       # Chứa Menu & Danh mục 2 cấp
+│   │   ├── Footer.jsx
+│   │   └── AuthLayout.jsx   # Layout riêng cho Login/Register
+│   └── product/             # Các Component liên quan đến Sản phẩm
+│       ├── ProductCard.jsx  # Hiển thị sản phẩm trong danh sách
+│       ├── BidHistory.jsx   # Lịch sử ra giá
+│       ├── ProductImages.jsx
+│       └── Timer.jsx        # Component đếm ngược thời gian còn lại
+├── contexts/                # Quản lý State toàn cục (Authentication, System Config)
+│   ├── AuthContext.jsx      # Chứa logic đăng nhập, đăng xuất, thông tin user
+│   └── ConfigContext.jsx    # Lưu các tham số cấu hình: 5 phút gia hạn, 10 phút gia hạn
+├── hooks/                   # Các Custom Hook tái sử dụng
+│   ├── useAuth.js
+│   ├── useApi.js            # Hook xử lý việc gọi API
+│   ├── useBidTimer.js       # Logic tính toán thời gian còn lại (relative time)
+│   └── useFullTextSearch.js
+├── pages/                   # Các View (Trang) chính của ứng dụng - Phân chia theo Phân hệ
+│   ├── Guest/               # Phân hệ 1: Người dùng nặc danh
+│   │   ├── HomePage.jsx
+│   │   ├── CategoryPage.jsx
+│   │   ├── SearchPage.jsx
+│   │   └── ProductDetailPage.jsx
+│   ├── Auth/                # Đăng ký / Đăng nhập
+│   │   ├── Login.jsx
+│   │   └── Register.jsx     # Xử lý OTP, reCaptcha
+│   ├── Bidder/              # Phân hệ 2: Người mua đã đăng nhập
+│   │   ├── WatchListPage.jsx
+│   │   ├── ProfilePage.jsx
+│   │   └── CompleteOrderPage.jsx # Quy trình Thanh toán
+│   ├── Seller/              # Phân hệ 3: Người bán
+│   │   ├── SellerDashboard.jsx
+│   │   ├── ProductForm.jsx  # Đăng/Sửa sản phẩm (sử dụng QuillJS/TinyMCE)
+│   │   └── SellerOrders.jsx # Quản lý đơn hàng đã thắng
+│   └── Admin/               # Phân hệ 4: Quản trị viên
+│       ├── AdminDashboard.jsx
+│       ├── UserManagement.jsx
+│       └── CategoryManagement.jsx
+├── services/                # Logic gọi API (Kết nối với Backend RESTful API)
+│   ├── authService.js
+│   ├── productService.js
+│   ├── bidService.js
+│   └── adminService.js
+├── utils/                   # Các hàm tiện ích
+│   ├── formatter.js         # Định dạng tiền tệ, ngày tháng
+│   └── validator.js         # Kiểm tra tính hợp lệ của dữ liệu
+├── App.jsx                  # Component gốc, nơi chứa Router
+└── main.jsx                 # Entry point của ứng dụng
 ```
-
-Ứng dụng sẽ tự động mở tại `http://localhost:3000`
-
-### Bước 3: Build cho production
-```bash
-npm run build
-```
-
-### Bước 4: Preview production build
-```bash
-npm run preview
-```
-
-## 📦 Công nghệ sử dụng
-
-- **React 18** - Thư viện UI
-- **Vite** - Build tool nhanh và hiện đại
-- **React Router DOM** - Routing
-- **Tailwind CSS** - Styling
-- **Lucide React** - Icons
-
-## 📁 Cấu trúc thư mục
-
-```
-code (1)/
-├── src/
-│   ├── App.jsx          # Main app component với routing
-│   └── main.jsx         # Entry point
-├── app/
-│   ├── page.jsx         # Home page
-│   ├── auth/
-│   │   ├── login/
-│   │   └── signup/
-│   ├── products/        # Products listing
-│   ├── product/[id]/    # Product detail
-│   ├── dashboard/       # User dashboard
-│   └── profile/         # User profile
-├── components/
-│   ├── navigation.jsx
-│   ├── featured-products.jsx
-│   └── category-nav.jsx
-├── public/              # Static assets
-├── index.html
-├── vite.config.js
-├── tailwind.config.js
-└── package.json
-```
-
-## ✨ Tính năng
-
-- 🏠 Trang chủ với sản phẩm nổi bật
-- 🔐 Authentication (Login/Signup)
-- 🛍️ Danh sách sản phẩm với filter & search
-- 📱 Responsive design
-- 🎨 Modern UI với Tailwind CSS
-- ⚡ Fast development với Vite
-
-## 🛠️ Scripts
-
-- `npm run dev` - Chạy development server
-- `npm run build` - Build production
-- `npm run preview` - Preview production build
-- `npm run lint` - Chạy ESLint
-
-## 📝 Lưu ý
-
-Project này đã được chuyển đổi từ Next.js sang React + Vite. Tất cả các tính năng Next.js-specific như:
-- `'use client'` directives đã được loại bỏ
-- `next/link` → `react-router-dom`
-- `next/navigation` → `react-router-dom`
-- Next.js routing → React Router
-
-đã được thay thế bằng các giải pháp tương đương trong React Router.
