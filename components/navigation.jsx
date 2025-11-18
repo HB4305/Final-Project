@@ -1,11 +1,25 @@
+import React, { useState } from "react";
+import {
+  Heart,
+  Search,
+  User,
+  LogOut,
+  LogIn,
+  Menu,
+  X,
+  ShoppingCart,
+  Bell,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
-import React, { useState } from 'react';
-import { Heart, Search, User, LogOut, LogIn, Menu, X, ShoppingCart, Bell } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-
-export default function Navigation({ isLoggedIn, setIsLoggedIn, currentUser, setCurrentUser }) {
+export default function Navigation({
+  isLoggedIn,
+  setIsLoggedIn,
+  currentUser,
+  setCurrentUser,
+}) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -15,7 +29,7 @@ export default function Navigation({ isLoggedIn, setIsLoggedIn, currentUser, set
   };
 
   const handleLogin = () => {
-    navigate('/auth/login');
+    navigate("/auth/login");
     setIsMobileMenuOpen(false);
   };
 
@@ -35,11 +49,16 @@ export default function Navigation({ isLoggedIn, setIsLoggedIn, currentUser, set
             <div className="w-8 h-8 bg-white rounded flex items-center justify-center font-bold text-primary text-lg">
               ⚡
             </div>
-            <span className="font-bold text-lg hidden sm:inline">AuctionHub</span>
+            <span className="font-bold text-lg hidden sm:inline">
+              Online Auction
+            </span>
           </Link>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 max-w-xl bg-white rounded-sm ml-4">
+          <form
+            onSubmit={handleSearch}
+            className="hidden md:flex items-center flex-1 max-w-xl bg-white rounded-sm ml-4"
+          >
             <input
               type="text"
               value={searchQuery}
@@ -60,11 +79,13 @@ export default function Navigation({ isLoggedIn, setIsLoggedIn, currentUser, set
                 <span className="absolute top-0 right-0 w-2 h-2 bg-yellow-300 rounded-full"></span>
               </button>
             )}
-            
+
             {isLoggedIn ? (
               <div className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/20 transition cursor-pointer">
                 <User className="w-4 h-4" />
-                <span className="text-sm font-medium hidden sm:inline">{currentUser?.name || 'User'}</span>
+                <span className="text-sm font-medium hidden sm:inline">
+                  {currentUser?.name || "User"}
+                </span>
               </div>
             ) : (
               <button
@@ -76,8 +97,15 @@ export default function Navigation({ isLoggedIn, setIsLoggedIn, currentUser, set
             )}
 
             {/* Mobile Menu Button */}
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2">
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </button>
           </div>
         </div>
@@ -87,18 +115,30 @@ export default function Navigation({ isLoggedIn, setIsLoggedIn, currentUser, set
       <div className="hidden md:block bg-white border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between text-sm">
           <div className="flex gap-6">
-            <Link to="/products" className="text-foreground hover:text-primary transition font-medium">
+            <Link
+              to="/products"
+              className="text-foreground hover:text-primary transition font-medium"
+            >
               Auctions
             </Link>
-            <Link to="/categories" className="text-foreground hover:text-primary transition font-medium">
+            <Link
+              to="/categories"
+              className="text-foreground hover:text-primary transition font-medium"
+            >
               Categories
             </Link>
             {isLoggedIn && (
               <>
-                <Link to="/watchlist" className="text-foreground hover:text-primary transition font-medium flex items-center gap-1">
+                <Link
+                  to="/watchlist"
+                  className="text-foreground hover:text-primary transition font-medium flex items-center gap-1"
+                >
                   <Heart className="w-4 h-4" /> Wishlist
                 </Link>
-                <Link to="/dashboard" className="text-foreground hover:text-primary transition font-medium">
+                <Link
+                  to="/dashboard"
+                  className="text-foreground hover:text-primary transition font-medium"
+                >
                   My Purchases
                 </Link>
               </>
@@ -119,7 +159,10 @@ export default function Navigation({ isLoggedIn, setIsLoggedIn, currentUser, set
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-border">
           <div className="flex flex-col p-4 gap-3">
-            <form onSubmit={handleSearch} className="flex items-center bg-muted rounded mb-2">
+            <form
+              onSubmit={handleSearch}
+              className="flex items-center bg-muted rounded mb-2"
+            >
               <input
                 type="text"
                 value={searchQuery}
@@ -131,18 +174,30 @@ export default function Navigation({ isLoggedIn, setIsLoggedIn, currentUser, set
                 <Search className="w-4 h-4" />
               </button>
             </form>
-            <Link to="/products" className="text-foreground hover:text-primary transition font-medium">
+            <Link
+              to="/products"
+              className="text-foreground hover:text-primary transition font-medium"
+            >
               Auctions
             </Link>
-            <Link to="/categories" className="text-foreground hover:text-primary transition font-medium">
+            <Link
+              to="/categories"
+              className="text-foreground hover:text-primary transition font-medium"
+            >
               Categories
             </Link>
             {isLoggedIn && (
               <>
-                <Link to="/watchlist" className="text-foreground hover:text-primary transition font-medium flex items-center gap-2">
+                <Link
+                  to="/watchlist"
+                  className="text-foreground hover:text-primary transition font-medium flex items-center gap-2"
+                >
                   <Heart className="w-4 h-4" /> Wishlist
                 </Link>
-                <Link to="/dashboard" className="text-foreground hover:text-primary transition font-medium">
+                <Link
+                  to="/dashboard"
+                  className="text-foreground hover:text-primary transition font-medium"
+                >
                   My Purchases
                 </Link>
                 <button
