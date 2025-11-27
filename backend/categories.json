@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "Electronics",
+    "description": "Electronic devices and gadgets",
+    "createdAt": "2025-11-26T15:22:06.668Z"
+  },
+  {
+    "id": 2,
+    "name": "Fashion",
+    "description": "Clothing and accessories",
+    "createdAt": "2025-11-26T15:22:06.669Z"
+  },
+  {
+    "id": 3,
+    "name": "Collectibles",
+    "description": "Rare and collectible items",
+    "createdAt": "2025-11-26T15:22:06.669Z"
+  },
+  {
+    "id": 4,
+    "name": "Home & Garden",
+    "description": "Home decor and garden items",
+    "createdAt": "2025-11-26T15:22:06.669Z"
+  }
+]

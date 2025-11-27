@@ -1,22 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Filter, ChevronDown, Heart } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Filter, ChevronDown, Heart, Plus, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navigation from '../../components/navigation';
-
-const allProducts = [
-  { id: 1, name: 'Vintage Rolex Watch', category: 'Collectibles', price: 2450, bids: 24, timeLeft: '2h 15m', image: '/vintage-rolex.jpg', rating: 4.8 },
-  { id: 2, name: 'MacBook Pro 16"', category: 'Electronics', price: 1200, bids: 18, timeLeft: '5h 30m', image: '/macbook-pro-laptop.jpg', rating: 4.9 },
-  { id: 3, name: 'Designer Handbag', category: 'Fashion', price: 450, bids: 12, timeLeft: '1h 45m', image: '/designer-handbag-luxury.jpg', rating: 4.7 },
-  { id: 4, name: 'Gaming PC Setup', category: 'Electronics', price: 1850, bids: 31, timeLeft: '8h 20m', image: '/gaming-pc.jpg', rating: 4.9 },
-  { id: 5, name: 'Vintage Camera', category: 'Collectibles', price: 320, bids: 8, timeLeft: '3h 10m', image: '/vintage-film-camera.jpg', rating: 4.6 },
-  { id: 6, name: 'Antique Desk Lamp', category: 'Home & Garden', price: 180, bids: 5, timeLeft: '12h 30m', image: '/antique-brass-desk-lamp.jpg', rating: 4.5 },
-  { id: 7, name: 'Designer Jacket', category: 'Fashion', price: 380, bids: 9, timeLeft: '4h 15m', image: '/designer-handbag-luxury.jpg', rating: 4.8 },
-  { id: 8, name: 'Sony Headphones', category: 'Electronics', price: 220, bids: 14, timeLeft: '6h 45m', image: '/gaming-pc-setup-rgb.jpg', rating: 4.7 },
-  { id: 9, name: 'Pottery Vase', category: 'Home & Garden', price: 150, bids: 3, timeLeft: '18h 20m', image: '/antique-brass-desk-lamp.jpg', rating: 4.4 },
-  { id: 10, name: 'Trading Card Collection', category: 'Collectibles', price: 890, bids: 22, timeLeft: '9h 50m', image: '/vintage-film-camera.jpg', rating: 4.9 },
-  { id: 11, name: 'Leather Shoes', category: 'Fashion', price: 120, bids: 5, timeLeft: '2h 30m', image: '/designer-handbag-luxury.jpg', rating: 4.6 },
-  { id: 12, name: 'iPhone 14 Pro', category: 'Electronics', price: 650, bids: 27, timeLeft: '7h 10m', image: '/gaming-pc-setup-rgb.jpg', rating: 4.8 },
-];
 
 const sortOptions = [
   { label: 'Newest', value: 'newest' },
@@ -35,6 +20,50 @@ export default function ProductsPage() {
   const [priceRange, setPriceRange] = useState([0, 3000]);
   const [showFilters, setShowFilters] = useState(false);
   const [watchlist, setWatchlist] = useState(new Set());
+  const [allProducts, setAllProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch products from API
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      console.log("🔄 Fetching products from API...");
+      const response = await fetch('http://localhost:3000/api/products', {
+        cache: 'no-cache', // Disable cache
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log("✅ Products fetched:", result.count, "products");
+        // Transform API data to match UI format
+        const transformedProducts = result.data.map(product => ({
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          price: product.startingBid,
+          bids: 0, // TODO: implement bid tracking
+          timeLeft: 'Active',
+          image: product.images?.[0] || '/placeholder.svg',
+          rating: 4.5,
+          images: product.images,
+          description: product.description,
+          createdAt: product.createdAt
+        }));
+        setAllProducts(transformedProducts);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error("❌ Error fetching products:", error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const categories = ['All', 'Electronics', 'Fashion', 'Collectibles', 'Home & Garden'];
 
@@ -95,7 +124,24 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="pt-24 pb-8 bg-muted border-b border-border">
         <div className="max-w-6xl mx-auto px-4">
-          <h1 className="text-4xl font-bold mb-4 mt-4">Browse Products</h1>
+          <div className="flex justify-between items-center mb-4 mt-4">
+            <h1 className="text-4xl font-bold">Browse Auctions</h1>
+            <div className="flex gap-2">
+              <button 
+                onClick={fetchProducts}
+                className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2 font-medium"
+                title="Refresh products"
+              >
+                <RefreshCw className="w-5 h-5" />
+                Refresh
+              </button>
+              <Link to="/products/create">
+                <button className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 font-medium">
+                  <Plus className="w-5 h-5" /> Create Auction
+                </button>
+              </Link>
+            </div>
+          </div>
           
           {/* Search Bar */}
           <div className="flex gap-2">
@@ -213,7 +259,12 @@ export default function ProductsPage() {
             </div>
 
             {/* Products */}
-            {filteredProducts.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                <p className="text-muted-foreground text-lg mt-4">Loading products...</p>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredProducts.map((product) => (
                   <Link key={product.id} to={`/product/${product.id}`}>

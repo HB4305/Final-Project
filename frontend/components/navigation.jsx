@@ -127,6 +127,18 @@ export default function Navigation({
             >
               Categories
             </Link>
+            <Link
+              to="/admin/categories"
+              className="text-orange-600 hover:text-orange-700 transition font-medium"
+            >
+              Admin: Categories
+            </Link>
+            <Link
+              to="/admin/products"
+              className="text-orange-600 hover:text-orange-700 transition font-medium"
+            >
+              Admin: Products
+            </Link>
             {isLoggedIn && (
               <>
                 <Link
