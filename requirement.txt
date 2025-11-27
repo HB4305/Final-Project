@@ -1,0 +1,5 @@
+API & UI (1.6): Đăng ký tài khoản (bao gồm reCaptcha, check trùng Email, gửi/xác thực OTP).
+API & UI (5.1, 5.2): Đăng nhập (Tự cài đặt/PassportJS, có thể tích hợp Google/FB) và Cập nhật thông tin cá nhân (Họ tên, email, ngày sinh).
+API & UI (5.3, 5.4): Đổi mật khẩu và Quên mật khẩu (sử dụng OTP).
+API & UI (2.5, 3.5): Xây dựng các trang Quản lý Hồ sơ cá nhân (xem điểm đánh giá, xem danh sách đánh giá chi tiết).
+Nền tảng: Phụ trách chính logic mã hóa mật khẩu (bcrypt/scrypt) và JWT (JSON Web Token) cho toàn bộ hệ thống.
