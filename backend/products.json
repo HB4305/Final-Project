@@ -1,19 +1,5 @@
 [
   {
-    "id": 1764168746452,
-    "name": "Testing",
-    "category": "Electronics",
-    "startingBid": 50000,
-    "description": "<p>aaaaaaaaaaaaaaaaaaaaa</p>",
-    "images": [
-      "http://localhost:3000/uploads/1764168746229-DSCF1512.JPG",
-      "http://localhost:3000/uploads/1764168746320-DSCF0772.JPG",
-      "http://localhost:3000/uploads/1764168746379-DSCF9203.JPG"
-    ],
-    "createdAt": "2025-11-26T14:52:26.452Z",
-    "status": "active"
-  },
-  {
     "id": 1764171474609,
     "name": "IOT",
     "category": "Electronics",
