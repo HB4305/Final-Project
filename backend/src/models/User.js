@@ -111,9 +111,8 @@ userSchema.index({ roles: 1 });
 userSchema.index({ 'ratingSummary.score': -1 });
 
 // Update updatedAt on save
-userSchema.pre('save', function(next) {
+userSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 export default mongoose.model('User', userSchema);

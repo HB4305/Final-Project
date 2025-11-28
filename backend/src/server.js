@@ -7,6 +7,9 @@ import authRoutes from './routes/auth.js';
 import bidRoutes from './routes/bid.js';
 import auctionRoutes from './routes/auction.js';
 import ratingRoutes from './routes/rating.js';
+// API 1.1 - 1.5: Product & Category Routes
+import categoryRoutes from './routes/category.js';
+import productRoutes from './routes/product.js';
 
 dotenv.config();
 
@@ -23,6 +26,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/bids', bidRoutes);
 app.use('/api/auctions', auctionRoutes);
 app.use('/api/ratings', ratingRoutes);
+// API 1.1 - 1.5: Product & Category endpoints
+app.use('/api/categories', categoryRoutes);
+app.use('/api/products', productRoutes);
 
 // 404 Handler
 app.use(notFoundHandler);
@@ -31,7 +37,11 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start Server
-app.listen(PORT, async () => {
-  console.log(`Server is running on port ${PORT}`);
+async function startServer() {
   await connectDB();
-});
+  app.listen(PORT, () => {
+    console.log(`Local host: http://localhost:${PORT}`);
+  });
+}
+
+startServer();
