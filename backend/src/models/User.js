@@ -1,81 +1,119 @@
-const mongoose = require("mongoose");
+import mongoose from 'mongoose';
 
-// Khai báo Schema với tên biến là UserSchema (U hoa)
-const UserSchema = new mongoose.Schema(
-  {
-    fullName: {
-      type: String,
-      required: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    address: {
-      type: String,
-    },
-    dob: {
-      type: Date, // Ngày sinh [cite: 176]
-    },
-    role: {
-      type: String,
-      default: "bidder", // bidder, seller, admin
-      enum: ["bidder", "seller", "admin"],
-    },
-    isVerified: {
-      type: Boolean,
-      default: false, // Mặc định chưa kích hoạt
-    },
-    otp: {
-      type: String, // Mã OTP 6 số
-    },
-    otpExpiry: {
-      type: Date, // Thời hạn OTP
-    },
-    // Danh sách sản phẩm yêu thích (Watch List) [cite: 65]
-    watchList: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "product",
-      },
-    ],
-    // Lưu lịch sử đánh giá để tính điểm uy tín [cite: 71, 87]
-    ratings: [
-      {
-        fromUser: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
-        point: { type: Number, enum: [1, -1] }, // +1 (tốt) hoặc -1 (xấu)
-        comment: { type: String },
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
-    date: {
-      type: Date,
-      default: Date.now,
-    },
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 30
   },
-  {
-    toJSON: { virtuals: true }, // Quan trọng: Cho phép hiện virtual field khi convert sang JSON
-    toObject: { virtuals: true },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerifiedAt: {
+    type: Date,
+    default: null
+  },
+  passwordHash: {
+    type: String,
+    required: true
+  },
+  fullName: {
+    type: String,
+    trim: true
+  },
+  contactPhone: {
+    type: String,
+    default: null
+  },
+  address: {
+    street: String,
+    city: String,
+    region: String,
+    postalCode: String,
+    country: String,
+    _id: false
+  },
+  roles: {
+    type: [String],
+    enum: ['bidder', 'seller', 'admin', 'superadmin'],
+    default: ['bidder']
+  },
+  ratingSummary: {
+    countPositive: {
+      type: Number,
+      default: 0
+    },
+    countNegative: {
+      type: Number,
+      default: 0
+    },
+    totalCount: {
+      type: Number,
+      default: 0
+    },
+    score: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 1
+    },
+    _id: false
+  },
+  ratingDetailsRef: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Rating',
+    default: null
+  },
+  socialIds: {
+    googleId: String,
+    facebookId: String,
+    githubId: String,
+    _id: false
+  },
+  otp: {
+    code: String,
+    expiresAt: Date,
+    _id: false
+  },
+  profileImageUrl: {
+    type: String,
+    default: null
+  },
+  status: {
+    type: String,
+    enum: ['active', 'suspended', 'banned'],
+    default: 'active'
+  },
+  metadata: mongoose.Schema.Types.Mixed,
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
-);
-
-// SỬA LỖI Ở ĐÂY: Dùng đúng tên biến UserSchema (U hoa)
-// Tính điểm uy tín (Reputation) dựa trên % đánh giá tốt [cite: 70, 71]
-UserSchema.virtual("reputation").get(function () {
-  if (!this.ratings || this.ratings.length === 0) {
-    return 0; // Chưa có đánh giá nào
-  }
-
-  const positiveRatings = this.ratings.filter((r) => r.point === 1).length;
-  const totalRatings = this.ratings.length;
-
-  // Trả về tỷ lệ phần trăm (Ví dụ: 80 nghĩa là 80%)
-  return (positiveRatings / totalRatings) * 100;
 });
 
-module.exports = mongoose.model("user", UserSchema);
+// Indexes (email và username đã có unique: true trong schema, không cần định nghĩa lại)
+userSchema.index({ roles: 1 });
+userSchema.index({ 'ratingSummary.score': -1 });
+
+// Update updatedAt on save
+userSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+export default mongoose.model('User', userSchema);

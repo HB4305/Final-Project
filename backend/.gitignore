@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -26,3 +27,7 @@ dist-ssr
 *.sw?
 
 package-lock.json
+=======
+node_modules
+.env
+>>>>>>> c99b01d06ad0d7f7b3901d77c882a7fa06447179
