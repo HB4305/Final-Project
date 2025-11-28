@@ -45,7 +45,17 @@ export class BidService {
       throw new AppError('Người dùng không tồn tại', 404);
     }
 
-    // 6. Tính giá tối thiểu được phép đặt
+    // 6. Kiểm tra rating phải lớn hơn 80%
+    const ratingPercentage = bidder.ratingSummary?.score * 100 || 0;
+    if (ratingPercentage < 80) {
+      throw new AppError(
+        `Điểm đánh giá của bạn (${ratingPercentage}%) phải >= 80% để đặt giá`,
+        403,
+        ERROR_CODES.RATING_TOO_LOW
+      );
+    }
+
+    // 7. Tính giá tối thiểu được phép đặt
     const minAllowedBid = auction.currentPrice + auction.priceStep;
     if (bidAmount < minAllowedBid) {
       throw new AppError(
@@ -55,12 +65,12 @@ export class BidService {
       );
     }
 
-    // 7. Tạo session để đảm bảo atomic operation
+    // 8. Tạo session để đảm bảo atomic operation
     const session = await Auction.startSession();
     session.startTransaction();
 
     try {
-      // 7a. Tạo record bid mới
+      // 8a. Tạo record bid mới
       const newBid = await Bid.create([{
         auctionId,
         productId: auction.productId,
@@ -69,7 +79,7 @@ export class BidService {
         isAuto: false
       }], { session });
 
-      // 7b. Update auction (chỉ update nếu giá vẫn còn hợp lệ - optimistic concurrency)
+      // 8b. Update auction (chỉ update nếu giá vẫn còn hợp lệ - optimistic concurrency)
       const updated = await Auction.findOneAndUpdate(
         {
           _id: auctionId,
@@ -91,7 +101,7 @@ export class BidService {
         throw new AppError('Có người đặt giá cao hơn bạn rồi', 409);
       }
 
-      // 7c. Kiểm tra auto-extend
+      // 8c. Kiểm tra auto-extend
       if (auction.autoExtendEnabled) {
         await this._checkAndExtendAuction(updated, session);
       }
