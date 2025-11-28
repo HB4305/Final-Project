@@ -111,10 +111,8 @@ async function seedData() {
     console.log('[SEED] Created 10 child categories');
 
     // 4. Tạo 20 sản phẩm
-    // ✅ FIX: Thêm try-catch để debug lỗi validation
     let products;
     try {
-      // ✅ FIX: ordered: false cho phép insert các products khác ngay cả khi có lỗi
       products = await Product.insertMany([
         // Điện thoại (6 sản phẩm)
         {
@@ -143,7 +141,7 @@ async function seedData() {
           condition: 'Mới 100%',
           specs: { storage: '256GB', color: 'Space Black', processor: 'A17 Pro' }
         },
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 ngày trước
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
       },
       {
         sellerId: seller._id,
@@ -409,7 +407,7 @@ async function seedData() {
         metadata: { brand: 'HarperCollins', condition: 'Mới', specs: { author: 'Paulo Coelho', pages: 224 } },
         createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
       }
-      ], { ordered: false }); // ✅ FIX: ordered: false để insert dù có lỗi
+      ], { ordered: false }); // FIX: ordered: false để insert dù có lỗi
       console.log(`[SEED] Created ${products.length} products`);
     } catch (error) {
       console.error('[SEED] ❌ Lỗi khi tạo products:', error.message);
@@ -421,12 +419,12 @@ async function seedData() {
 
     // Kiểm tra số lượng products
     if (!products || products.length === 0) {
-      throw new Error(`❌ Lỗi: Không tạo được product nào!`);
+      throw new Error(`Lỗi: Không tạo được product nào!`);
     }
-    console.log(`[SEED] ✅ Tạo ${products.length}/20 products thành công (${20 - products.length} lỗi)`);
+    console.log(`[SEED] Tạo ${products.length}/20 products thành công (${20 - products.length} lỗi)`);
 
     // 5. Tạo phiên đấu giá cho các sản phẩm đã tạo thành công
-    // ✅ FIX: Chỉ tạo auctions cho products có sẵn
+    // FIX: Chỉ tạo auctions cho products có sẵn
     const now = new Date();
     const auctionConfigs = [
       // Điện thoại - 6 phiên (tối đa)
@@ -446,7 +444,7 @@ async function seedData() {
 
     const auctions = [];
     for (const config of auctionConfigs) {
-      // ✅ FIX: Check product tồn tại
+      // FIX: Check product tồn tại
       if (config.productIndex >= products.length) break;
       
       auctions.push({
@@ -469,7 +467,7 @@ async function seedData() {
     const createdAuctions = await Auction.insertMany(auctions, { ordered: false });
     console.log(`[SEED] Created ${createdAuctions.length} auctions`);
 
-    // 6. ✅ FIX: Tạo bids dựa trên auctions thực tế từ DB
+    // 6. FIX: Tạo bids dựa trên auctions thực tế từ DB
     const bids = [];
     for (let i = 0; i < createdAuctions.length; i++) {
       const auctionBidCount = createdAuctions[i].bidCount;
@@ -492,7 +490,7 @@ async function seedData() {
     await Bid.insertMany(bids, { ordered: false });
     console.log(`[SEED] Created ${bids.length} bids`);
 
-    console.log('[SEED] ✅ Seed data completed successfully!');
+    console.log('[SEED] Seed data completed successfully!');
     console.log(`\n📊 Summary:
     - Users: 1 seller + 2 bidders
     - Categories: 5 parent + 10 child

@@ -101,23 +101,33 @@ export class ProductService {
       if (!category) {
         throw new AppError('Danh mục không tồn tại', 404, 'CATEGORY_NOT_FOUND');
       }
-      console.log('[PRODUCT SERVICE] Category found:', category.name);
+      console.log('[PRODUCT SERVICE] Category found:', category.name, 'Level:', category.level);
 
       const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
       
+      // FIX: If parent category (level 1), get all child categories
+      let categoryIds = [categoryObjectId];
+      if (category.level === 1) {
+        console.log('[PRODUCT SERVICE] Parent category detected, finding child categories...');
+        const childCategories = await Category.find({ parentId: categoryObjectId });
+        console.log('[PRODUCT SERVICE] Found', childCategories.length, 'child categories');
+        categoryIds = childCategories.map(cat => new mongoose.Types.ObjectId(cat._id));
+        categoryIds.unshift(categoryObjectId);
+      }
+      
       const skip = (page - 1) * limit;
 
-      let sortStage = { createdAt: -1 }; // mặc định: mới nhất
+      let sortStage = { createdAt: -1 };
       if (sortBy === 'price_asc') sortStage = { 'auction.currentPrice': 1 };
       if (sortBy === 'price_desc') sortStage = { 'auction.currentPrice': -1 };
       if (sortBy === 'ending_soon') sortStage = { 'auction.endAt': 1 };
       if (sortBy === 'most_bids') sortStage = { 'auction.bidCount': -1 };
 
       const pipeline = [
-        // Stage 1: Match products in category
+        // Stage 1: Match products in category (or child categories if parent)
         {
           $match: {
-            categoryId: categoryObjectId,
+            categoryId: { $in: categoryIds },
             isActive: true
           }
         },
@@ -207,7 +217,7 @@ export class ProductService {
       const totalPipeline = [
         {
           $match: {
-            categoryId: categoryObjectId,
+            categoryId: { $in: categoryIds },
             isActive: true
           }
         },
