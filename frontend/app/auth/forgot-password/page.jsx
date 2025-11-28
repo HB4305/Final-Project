@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
       });
 
       // Thành công -> Chuyển về trang login
-      navigate("/auth/signin");
+      navigate("/auth/login");
       alert("Password reset successfully! Please login.");
     } catch (err) {
       console.error(err);

@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
 
+// ========================================
+// Product Schema (API 1.3, 1.4, 1.5)
+// Đại diện cho sản phẩm trong hệ thống đấu giá
+// ========================================
+
 const productSchema = new mongoose.Schema({
   sellerId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -11,6 +16,7 @@ const productSchema = new mongoose.Schema({
     ref: 'Category',
     required: true
   },
+  // API 1.4: Tên sản phẩm (dùng cho full-text search)
   title: {
     type: String,
     required: true,
@@ -22,6 +28,7 @@ const productSchema = new mongoose.Schema({
     required: true,
     lowercase: true
   },
+  // API 1.5: Lịch sử mô tả sản phẩm
   descriptionHistory: [
     {
       text: String,
@@ -36,10 +43,12 @@ const productSchema = new mongoose.Schema({
       _id: false
     }
   ],
+  // API 1.3, 1.5: Hình ảnh chính
   primaryImageUrl: {
     type: String,
     required: true
   },
+  // API 1.3, 1.5: Danh sách ảnh bổ sung
   imageUrls: {
     type: [String],
     validate: {
@@ -70,6 +79,7 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: 'VND'
   },
+  // API 1.5: Metadata sản phẩm
   metadata: {
     brand: String,
     model: String,
@@ -86,10 +96,17 @@ const productSchema = new mongoose.Schema({
   }
 });
 
-// Indexes
+// ========================================
+// INDEXES (Quan trọng cho performance)
+// ========================================
+// API 1.4: Text index cho full-text search
 productSchema.index({ title: 'text', 'metadata.brand': 'text' });
+// API 1.3: Query theo danh mục + thời gian
 productSchema.index({ categoryId: 1, createdAt: -1 });
+// Lọc theo người bán
 productSchema.index({ sellerId: 1 });
+// Lọc theo trạng thái active
+productSchema.index({ isActive: 1 });
 
 // Update updatedAt on save
 productSchema.pre('save', function(next) {

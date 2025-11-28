@@ -1,48 +1,37 @@
-<<<<<<< HEAD
-const mongoose = require('mongoose');
-
-const categorySchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-        trim: true
-    },
-
-    // Trường parent dùng để xác định cấp danh mục
-    // - Nếu parent = null hoặc không có: Là danh mục CHA (Cấp 1 - VD: Điện tử)
-    // - Nếu parent có giá trị ID: Là danh mục CON (Cấp 2 - VD: Điện thoại)
-    parent: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category',
-        default: null
-    }
-}, { timestamps: true });
-
-module.exports = mongoose.model('Category', categorySchema);
-=======
 import mongoose from 'mongoose';
 
+// ========================================
+// Category Schema (API 1.1)
+// Đại diện cho danh mục sản phẩm (2 cấp)
+// Cấp 1 (parentId = null), Cấp 2 (parentId = category._id)
+// ========================================
+
 const categorySchema = new mongoose.Schema({
+  // API 1.1: Tên danh mục
   name: {
     type: String,
     required: true,
     trim: true
   },
+  // API 1.1: Slug cho URL friendly
   slug: {
     type: String,
     required: true,
     unique: true,
     lowercase: true
   },
+  // API 1.1: ID danh mục cha (null nếu là level 1)
   parentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
     default: null
   },
+  // Đường dẫn từ root (tree structure)
   path: {
     type: [mongoose.Schema.Types.ObjectId],
     default: []
   },
+  // API 1.1: Cấp bậc (1 = cha, 2 = con)
   level: {
     type: Number,
     enum: [1, 2],
@@ -58,9 +47,14 @@ const categorySchema = new mongoose.Schema({
   }
 });
 
-// Indexes (slug đã có unique: true trong schema, không cần định nghĩa lại)
+// ========================================
+// INDEXES (Quan trọng cho performance)
+// ========================================
+// API 1.1: Query danh mục con theo parentId
 categorySchema.index({ parentId: 1 });
+// Query theo tree path
 categorySchema.index({ path: 1 });
+// slug đã có unique: true trong schema, không cần định nghĩa lại
 
 // Update updatedAt on save
 categorySchema.pre('save', function(next) {
@@ -69,4 +63,3 @@ categorySchema.pre('save', function(next) {
 });
 
 export default mongoose.model('Category', categorySchema);
->>>>>>> c99b01d06ad0d7f7b3901d77c882a7fa06447179

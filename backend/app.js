@@ -51,7 +51,7 @@ app.use(
       // Cho phép kết nối API (fetch/axios) tới localhost và Google
       "connect-src": [
         "'self'",
-        "http://localhost:3000",
+        "http://localhost:5001",
         "https://www.google.com",
         "https://www.gstatic.com",
       ],
@@ -77,7 +77,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
