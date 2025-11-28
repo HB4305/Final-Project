@@ -353,10 +353,40 @@ export class ProductService {
         pipeline.push({ $sort: { score: -1 } });
       }
 
-      const products = await Product.aggregate(pipeline);
-      const total = await Product.countDocuments(query);
+      // Đếm tổng số sản phẩm từ aggregation pipeline (để khớp với dữ liệu thực tế)
+      const countPipeline = [
+        { $match: query },
+        {
+          $lookup: {
+            from: 'auctions',
+            localField: '_id',
+            foreignField: 'productId',
+            as: 'auction'
+          }
+        },
+        { $unwind: '$auction' },
+        { $match: { 'auction.status': 'active' } },
+        
+        // Lọc theo khoảng giá (phải khớp với pipeline lấy dữ liệu)
+        ...(filters.minPrice || filters.maxPrice
+          ? [
+              {
+                $match: {
+                  ...(filters.minPrice && { 'auction.currentPrice': { $gte: filters.minPrice } }),
+                  ...(filters.maxPrice && { 'auction.currentPrice': { $lte: filters.maxPrice } })
+                }
+              }
+            ]
+          : []),
+        
+        { $count: 'total' }
+      ];
 
-      console.log(`[PRODUCT SERVICE] Tìm kiếm hoàn tất, tìm được ${products.length} kết quả`);
+      const products = await Product.aggregate(pipeline);
+      const totalResult = await Product.aggregate(countPipeline);
+      const total = totalResult.length > 0 ? totalResult[0].total : 0;
+
+      console.log(`[PRODUCT SERVICE] Tìm kiếm hoàn tất, tìm được ${products.length}/${total} kết quả`);
 
       return {
         data: products,
