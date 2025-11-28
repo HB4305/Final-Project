@@ -1,142 +1,129 @@
-const fs = require("fs");
-const path = require("path");
+const Category = require("../src/models/Category");
+const Product = require("../src/models/Product");
 
-const DB_FILE = path.join(__dirname, "..", "categories.json");
-const PRODUCTS_FILE = path.join(__dirname, "..", "products.json");
-
-// Initialize database file if not exists
-const initDB = () => {
-  if (!fs.existsSync(DB_FILE)) {
-    const defaultCategories = [
-      { id: 1, name: "Electronics", description: "Electronic devices and gadgets", createdAt: new Date().toISOString() },
-      { id: 2, name: "Fashion", description: "Clothing and accessories", createdAt: new Date().toISOString() },
-      { id: 3, name: "Collectibles", description: "Rare and collectible items", createdAt: new Date().toISOString() },
-      { id: 4, name: "Home & Garden", description: "Home decor and garden items", createdAt: new Date().toISOString() }
-    ];
-    fs.writeFileSync(DB_FILE, JSON.stringify(defaultCategories, null, 2));
-    console.log("📁 Created categories.json with default categories");
+// Initialize default categories
+const initDefaultCategories = async () => {
+  try {
+    const count = await Category.countDocuments();
+    if (count === 0) {
+      const defaultCategories = [
+        { name: "Electronics", description: "Electronic devices and gadgets" },
+        { name: "Fashion", description: "Clothing and accessories" },
+        { name: "Collectibles", description: "Rare and collectible items" },
+        { name: "Home & Garden", description: "Home decor and garden items" }
+      ];
+      await Category.insertMany(defaultCategories);
+      console.log("📁 Created default categories in MongoDB");
+    }
+  } catch (error) {
+    console.error("Error initializing categories:", error);
   }
 };
 
-// Read categories from file
-const readCategories = () => {
-  try {
-    initDB();
-    const data = fs.readFileSync(DB_FILE, "utf8");
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Error reading categories:", error);
-    return [];
-  }
-};
+// Call init on module load
+initDefaultCategories();
 
-// Write categories to file
-const writeCategories = (categories) => {
+// Get all categories
+exports.getAll = async () => {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(categories, null, 2));
+    const categories = await Category.find().sort({ createdAt: 1 });
+    return categories;
   } catch (error) {
-    console.error("Error writing categories:", error);
+    console.error("Error fetching categories:", error);
     throw error;
   }
 };
 
-// Check if category is used by any product
-const isCategoryUsed = (categoryName) => {
-  try {
-    if (!fs.existsSync(PRODUCTS_FILE)) return false;
-    const products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf8"));
-    return products.some(p => p.category === categoryName);
-  } catch (error) {
-    console.error("Error checking category usage:", error);
-    return false;
-  }
-};
-
-// Get all categories
-exports.getAll = async () => {
-  return readCategories();
-};
-
 // Get category by ID
 exports.getById = async (id) => {
-  const categories = readCategories();
-  return categories.find(c => c.id === parseInt(id));
+  try {
+    const category = await Category.findById(id);
+    return category;
+  } catch (error) {
+    console.error("Error fetching category:", error);
+    throw error;
+  }
 };
 
 // Create new category
 exports.create = async (data) => {
-  const categories = readCategories();
-  
-  // Check if category name already exists
-  const exists = categories.find(c => c.name.toLowerCase() === data.name.toLowerCase());
-  if (exists) {
-    throw new Error("Category name already exists");
+  try {
+    // Check if category name already exists
+    const exists = await Category.findOne({ 
+      name: { $regex: new RegExp(`^${data.name}$`, 'i') } 
+    });
+    
+    if (exists) {
+      throw new Error("Category name already exists");
+    }
+    
+    const newCategory = new Category({
+      name: data.name,
+      description: data.description || ""
+    });
+
+    const savedCategory = await newCategory.save();
+    console.log(`✅ Category created in MongoDB: ${savedCategory.name}`);
+    return savedCategory;
+  } catch (error) {
+    console.error("Error creating category:", error);
+    throw error;
   }
-  
-  const newCategory = {
-    id: Date.now(),
-    name: data.name,
-    description: data.description || "",
-    createdAt: new Date().toISOString()
-  };
-
-  categories.push(newCategory);
-  writeCategories(categories);
-
-  console.log(`✅ Category created: ${newCategory.name}`);
-  return newCategory;
 };
 
 // Update category
 exports.update = async (id, data) => {
-  const categories = readCategories();
-  const index = categories.findIndex(c => c.id === parseInt(id));
-  
-  if (index === -1) {
-    throw new Error("Category not found");
-  }
-  
-  // Check if new name conflicts with existing category
-  if (data.name) {
-    const exists = categories.find(c => 
-      c.id !== parseInt(id) && 
-      c.name.toLowerCase() === data.name.toLowerCase()
-    );
-    if (exists) {
-      throw new Error("Category name already exists");
+  try {
+    // Check if new name conflicts with existing category
+    if (data.name) {
+      const exists = await Category.findOne({
+        _id: { $ne: id },
+        name: { $regex: new RegExp(`^${data.name}$`, 'i') }
+      });
+      
+      if (exists) {
+        throw new Error("Category name already exists");
+      }
     }
+    
+    const updatedCategory = await Category.findByIdAndUpdate(
+      id,
+      { ...data, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedCategory) {
+      throw new Error("Category not found");
+    }
+    
+    console.log(`✅ Category updated in MongoDB: ${updatedCategory.name}`);
+    return updatedCategory;
+  } catch (error) {
+    console.error("Error updating category:", error);
+    throw error;
   }
-  
-  categories[index] = {
-    ...categories[index],
-    ...data,
-    updatedAt: new Date().toISOString()
-  };
-  
-  writeCategories(categories);
-  console.log(`✅ Category updated: ${categories[index].name}`);
-  return categories[index];
 };
 
 // Delete category
 exports.delete = async (id) => {
-  const categories = readCategories();
-  const index = categories.findIndex(c => c.id === parseInt(id));
-  
-  if (index === -1) {
-    throw new Error("Category not found");
+  try {
+    const category = await Category.findById(id);
+    
+    if (!category) {
+      throw new Error("Category not found");
+    }
+    
+    // Check if category is being used by products (using ObjectId reference)
+    const productCount = await Product.countDocuments({ category: id });
+    if (productCount > 0) {
+      throw new Error("Cannot delete category that is being used by products");
+    }
+    
+    const deletedCategory = await Category.findByIdAndDelete(id);
+    console.log(`🗑️ Category deleted from MongoDB: ${deletedCategory.name}`);
+    return deletedCategory;
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    throw error;
   }
-  
-  const category = categories[index];
-  
-  // Check if category is being used by products
-  if (isCategoryUsed(category.name)) {
-    throw new Error("Cannot delete category that is being used by products");
-  }
-  
-  const deleted = categories.splice(index, 1)[0];
-  writeCategories(categories);
-  
-  console.log(`✅ Category deleted: ${deleted.name}`);
-  return deleted;
 };

@@ -17,11 +17,29 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
-  const [priceRange, setPriceRange] = useState([0, 3000]);
+  const [priceRange, setPriceRange] = useState([0, Infinity]);
   const [showFilters, setShowFilters] = useState(false);
   const [watchlist, setWatchlist] = useState(new Set());
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState(['All']);
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/categories');
+        const result = await response.json();
+        if (result.success) {
+          const categoryNames = result.data.map(cat => cat.name);
+          setCategories(['All', ...categoryNames]);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Fetch products from API
   const fetchProducts = async () => {
@@ -38,20 +56,38 @@ export default function ProductsPage() {
       
       if (result.success) {
         console.log("✅ Products fetched:", result.count, "products");
+        console.log("📊 Raw data sample:", result.data[0]);
+        
         // Transform API data to match UI format
-        const transformedProducts = result.data.map(product => ({
-          id: product.id,
-          name: product.name,
-          category: product.category,
-          price: product.startingBid,
-          bids: 0, // TODO: implement bid tracking
-          timeLeft: 'Active',
-          image: product.images?.[0] || '/placeholder.svg',
-          rating: 4.5,
-          images: product.images,
-          description: product.description,
-          createdAt: product.createdAt
-        }));
+        const transformedProducts = result.data.map(product => {
+          // Calculate time left
+          const endDate = new Date(product.endDate);
+          const now = new Date();
+          const timeLeft = endDate > now 
+            ? `${Math.ceil((endDate - now) / (1000 * 60 * 60 * 24))} days`
+            : 'Ended';
+          
+          return {
+            id: product.id,
+            name: product.name,
+            category: product.category?.name || product.category || 'Uncategorized',
+            price: product.currentPrice || product.startPrice || 0,
+            bids: 0, // TODO: implement bid tracking
+            timeLeft: timeLeft,
+            image: product.images?.[0] || '/placeholder.svg',
+            rating: 4.5,
+            images: product.images,
+            description: product.description,
+            startPrice: product.startPrice,
+            stepPrice: product.stepPrice,
+            buyNowPrice: product.buyNowPrice,
+            endDate: product.endDate,
+            createdAt: product.createdAt
+          };
+        });
+        
+        console.log("✅ Transformed products:", transformedProducts.length);
+        console.log("📊 Transformed sample:", transformedProducts[0]);
         setAllProducts(transformedProducts);
       }
       setLoading(false);
@@ -65,10 +101,14 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
-  const categories = ['All', 'Electronics', 'Fashion', 'Collectibles', 'Home & Garden'];
-
   // Filter and sort products
   const filteredProducts = useMemo(() => {
+    console.log("🔍 Starting filter process...");
+    console.log("All products count:", allProducts.length);
+    console.log("Search query:", searchQuery);
+    console.log("Selected category:", selectedCategory);
+    console.log("Price range:", priceRange);
+    
     let products = allProducts;
 
     // Filter by search query
@@ -76,15 +116,28 @@ export default function ProductsPage() {
       products = products.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
+      console.log("After search filter:", products.length);
     }
 
     // Filter by category
     if (selectedCategory !== 'All') {
-      products = products.filter(p => p.category === selectedCategory);
+      products = products.filter(p => {
+        const categoryName = typeof p.category === 'string' ? p.category : p.category?.name;
+        return categoryName === selectedCategory;
+      });
+      console.log("After category filter:", products.length);
     }
 
     // Filter by price range
-    products = products.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
+    const beforePriceFilter = products.length;
+    products = products.filter(p => {
+      const inRange = p.price >= priceRange[0] && p.price <= priceRange[1];
+      if (!inRange) {
+        console.log(`Product "${p.name}" filtered out: price ${p.price} not in range [${priceRange[0]}, ${priceRange[1]}]`);
+      }
+      return inRange;
+    });
+    console.log(`After price filter: ${products.length} (filtered out ${beforePriceFilter - products.length})`);
 
     // Sort products
     switch (sortBy) {
@@ -105,8 +158,10 @@ export default function ProductsPage() {
         break;
     }
 
+    console.log("✅ Final filtered products:", products.length);
+    console.log("📊 Products to display:", products);
     return products;
-  }, [searchQuery, selectedCategory, sortBy, priceRange]);
+  }, [allProducts, searchQuery, selectedCategory, sortBy, priceRange]);
 
   const toggleWatchlist = (productId) => {
     const newWatchlist = new Set(watchlist);
@@ -201,19 +256,20 @@ export default function ProductsPage() {
                   <div className="flex gap-2">
                     <input
                       type="number"
-                      value={priceRange[0]}
-                      onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
+                      value={priceRange[0] === Infinity ? '' : priceRange[0]}
+                      onChange={(e) => setPriceRange([parseInt(e.target.value) || 0, priceRange[1]])}
                       placeholder="Min"
                       className="flex-1 w-4 px-3 py-2 border border-border rounded-lg bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                     <input
                       type="number"
-                      value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+                      value={priceRange[1] === Infinity ? '' : priceRange[1]}
+                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value) || Infinity])}
                       placeholder="Max"
                       className="flex-1 w-4 px-3 py-2 border border-border rounded-lg bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground">Leave empty for no limit</p>
                 </div>
               </div>
 
@@ -240,7 +296,7 @@ export default function ProductsPage() {
                   setSearchQuery('');
                   setSelectedCategory('All');
                   setSortBy('newest');
-                  setPriceRange([0, 3000]);
+                  setPriceRange([0, Infinity]);
                 }}
                 className="w-full mt-6 px-4 py-2 border border-border rounded-lg hover:bg-muted transition text-sm font-medium"
               >
@@ -255,8 +311,16 @@ export default function ProductsPage() {
             <div className="mb-6 flex justify-between items-center">
               <p className="text-muted-foreground text-sm">
                 Showing <span className="font-semibold">{filteredProducts.length}</span> results
+                <span className="ml-2 text-xs">(Total products: {allProducts.length})</span>
               </p>
             </div>
+
+            {/* Debug Info */}
+            {!loading && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
+                <strong>Debug:</strong> Loading: {loading.toString()} | All Products: {allProducts.length} | Filtered: {filteredProducts.length} | Price Range: [{priceRange[0]}, {priceRange[1]}]
+              </div>
+            )}
 
             {/* Products */}
             {loading ? (

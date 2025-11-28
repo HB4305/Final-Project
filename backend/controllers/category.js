@@ -4,10 +4,19 @@ const service = require("../services/category");
 exports.getAllCategories = async (req, res) => {
   try {
     const categories = await service.getAll();
+    
+    // Transform MongoDB _id to id for frontend compatibility
+    const transformedCategories = categories.map(cat => ({
+      id: cat._id,
+      name: cat.name,
+      description: cat.description,
+      createdAt: cat.createdAt
+    }));
+    
     res.json({
       success: true,
-      count: categories.length,
-      data: categories
+      count: transformedCategories.length,
+      data: transformedCategories
     });
   } catch (err) {
     res.status(500).json({ 
@@ -27,9 +36,18 @@ exports.getCategoryById = async (req, res) => {
         message: "Category not found" 
       });
     }
+    
+    // Transform MongoDB _id to id for frontend compatibility
+    const categoryData = {
+      id: category._id,
+      name: category.name,
+      description: category.description,
+      createdAt: category.createdAt
+    };
+    
     res.json({
       success: true,
-      data: category
+      data: categoryData
     });
   } catch (err) {
     res.status(500).json({ 

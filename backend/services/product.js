@@ -1,104 +1,124 @@
-const fs = require("fs");
-const path = require("path");
+const Product = require("../src/models/Product");
+const Category = require("../src/models/Category");
+const User = require("../src/models/User");
 
-const DB_FILE = path.join(__dirname, "..", "products.json");
-
-// Initialize database file if not exists
-const initDB = () => {
-  if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2));
-    console.log("📁 Created products.json database file");
-  }
-};
-
-// Read products from file
-const readProducts = () => {
+// Create product
+exports.create = async (data) => {
   try {
-    initDB();
-    const data = fs.readFileSync(DB_FILE, "utf8");
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Error reading products:", error);
-    return [];
-  }
-};
+    const newProduct = new Product({
+      name: data.name,
+      category: data.category,
+      seller: data.seller,
+      startPrice: data.startPrice,
+      currentPrice: data.currentPrice || data.startPrice,
+      stepPrice: data.stepPrice,
+      buyNowPrice: data.buyNowPrice,
+      endDate: data.endDate,
+      isAutoRenew: data.isAutoRenew || false,
+      description: data.description,
+      images: data.images || [],
+      status: 'active'
+    });
 
-// Write products to file
-const writeProducts = (products) => {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(products, null, 2));
+    const savedProduct = await newProduct.save();
+
+    // Console log the created product
+    console.log("\n" + "=".repeat(60));
+    console.log("✅ NEW AUCTION CREATED IN MONGODB");
+    console.log("=".repeat(60));
+    console.log("Product ID:", savedProduct._id);
+    console.log("Name:", savedProduct.name);
+    console.log("Category:", savedProduct.category);
+    console.log("Seller:", savedProduct.seller);
+    console.log("Start Price: $" + savedProduct.startPrice);
+    console.log("Step Price: $" + savedProduct.stepPrice);
+    console.log("Buy Now Price: $" + (savedProduct.buyNowPrice || 'N/A'));
+    console.log("End Date:", savedProduct.endDate);
+    console.log("Auto Renew:", savedProduct.isAutoRenew);
+    console.log("Images:", savedProduct.images?.length || 0, "image(s)");
+    console.log("Created At:", new Date().toLocaleString());
+    console.log("💾 Saved to MongoDB");
+    console.log("=".repeat(60) + "\n");
+
+    return savedProduct;
   } catch (error) {
-    console.error("Error writing products:", error);
+    console.error("Error creating product:", error);
     throw error;
   }
 };
 
-exports.create = async (data) => {
-  const products = readProducts();
-  
-  const newProduct = {
-    id: Date.now(),
-    ...data,
-    createdAt: new Date().toISOString(),
-    status: 'active'
-  };
-
-  products.push(newProduct);
-  writeProducts(products);
-
-  // Console log the created product
-  console.log("\n" + "=".repeat(60));
-  console.log("✅ NEW AUCTION CREATED");
-  console.log("=".repeat(60));
-  console.log("Product ID:", newProduct.id);
-  console.log("Name:", newProduct.name);
-  console.log("Category:", newProduct.category);
-  console.log("Starting Bid: $" + newProduct.startingBid);
-  console.log("Images:", newProduct.images?.length || 0, "image(s)");
-  console.log("Created At:", new Date().toLocaleString());
-  console.log("Total Products:", products.length);
-  console.log("💾 Saved to products.json");
-  console.log("=".repeat(60) + "\n");
-
-  return newProduct;
-};
-
+// Get all products
 exports.getAll = async () => {
-  return readProducts();
+  try {
+    const products = await Product.find({ status: 'active' })
+      .populate('category', 'name')
+      .populate('seller', 'fullName email')
+      .sort({ createdAt: -1 });
+    console.log(`📦 Fetched ${products.length} products from MongoDB`);
+    return products;
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw error;
+  }
 };
 
+// Get product by ID
 exports.getById = async (id) => {
-  const products = readProducts();
-  return products.find(p => p.id === parseInt(id));
+  try {
+    const product = await Product.findById(id)
+      .populate('category', 'name')
+      .populate('seller', 'fullName email')
+      .populate('highestBidder', 'fullName email');
+    
+    console.log('📊 Product fetched with populate:', {
+      id: product?._id,
+      name: product?.name,
+      categoryType: typeof product?.category,
+      category: product?.category,
+      hasPopulatedCategory: product?.category?._id ? true : false
+    });
+    
+    return product;
+  } catch (error) {
+    console.error("Error fetching product by ID:", error);
+    throw error;
+  }
 };
 
+// Update product
 exports.update = async (id, data) => {
-  const products = readProducts();
-  const index = products.findIndex(p => p.id === parseInt(id));
-  
-  if (index === -1) {
-    throw new Error("Product not found");
+  try {
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      { ...data, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedProduct) {
+      throw new Error("Product not found");
+    }
+    
+    console.log(`✅ Product ${id} updated in MongoDB`);
+    return updatedProduct;
+  } catch (error) {
+    console.error("Error updating product:", error);
+    throw error;
   }
-  
-  products[index] = {
-    ...products[index],
-    ...data,
-    updatedAt: new Date().toISOString()
-  };
-  
-  writeProducts(products);
-  return products[index];
 };
 
+// Delete product
 exports.delete = async (id) => {
-  const products = readProducts();
-  const index = products.findIndex(p => p.id === parseInt(id));
-  
-  if (index === -1) {
-    throw new Error("Product not found");
+  try {
+    const deletedProduct = await Product.findByIdAndDelete(id);
+    
+    if (!deletedProduct) {
+      throw new Error("Product not found");
+    }
+    
+    console.log(`🗑️ Product ${id} deleted from MongoDB`);
+    return deletedProduct;
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    throw error;
   }
-  
-  const deleted = products.splice(index, 1)[0];
-  writeProducts(products);
-  return deleted;
 };

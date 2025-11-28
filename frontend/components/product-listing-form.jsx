@@ -22,21 +22,39 @@ import { zodResolver } from "@hookform/resolvers/zod";
  * - Product details with WYSIWYG editor
  * - Minimum 3 images
  * - Auto-renewal option
+ * 
+ * Form fields aligned with Product MongoDB schema:
+ * - name, category (ObjectId), seller (ObjectId)
+ * - startPrice, currentPrice, stepPrice, buyNowPrice
+ * - endDate (calculated from auctionDays), isAutoRenew
+ * - images (array of URLs), description (HTML)
+ * 
+ * TODO: Replace hardcoded seller ID with authenticated user's ID from auth context
  */
 export default function ProductListingForm({ onSubmit, initialData = null }) {
   const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   // Fetch categories from API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+        setLoadingCategories(true);
+        console.log('📥 Fetching categories from API...');
         const response = await fetch('http://localhost:3000/api/categories');
         const result = await response.json();
+        console.log('📊 Categories response:', result);
+        
         if (result.success) {
           setCategories(result.data);
+          console.log(`✅ Loaded ${result.data.length} categories:`, result.data.map(c => c.name));
+        } else {
+          console.error('❌ Failed to fetch categories:', result.message);
         }
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('❌ Error fetching categories:', error);
+      } finally {
+        setLoadingCategories(false);
       }
     };
     fetchCategories();
@@ -45,7 +63,11 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   const schema = z.object({
     name: z.string().min(3, "Product name is required"),
     category: z.string().min(1, "Category is required"),
-    startingBid: z.number().positive("Starting bid must be > 0"),
+    startPrice: z.number().positive("Starting price must be > 0"),
+    stepPrice: z.number().positive("Step price must be > 0"),
+    buyNowPrice: z.number().optional(),
+    auctionDays: z.number().min(1, "Auction duration must be at least 1 day").max(30, "Maximum 30 days"),
+    isAutoRenew: z.boolean().optional(),
     description: z
       .string()
       .min(10, "Description must be at least 10 characters"),
@@ -63,7 +85,11 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
     defaultValues: {
       name: "",
       category: "",
-      startingBid: 0,
+      startPrice: 0,
+      stepPrice: 0,
+      buyNowPrice: 0,
+      auctionDays: 7,
+      isAutoRenew: false,
       description: "",
       images: [],
     },
@@ -100,10 +126,22 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
         console.log("✅ All images uploaded:", uploadImageUrls);
       }
 
-      // Create product
+      // Create product with properly formatted data
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + data.auctionDays);
+      
       const payload = {
-        ...data,
+        name: data.name,
+        category: data.category,
+        startPrice: data.startPrice,
+        currentPrice: data.startPrice, // Initially same as start price
+        stepPrice: data.stepPrice,
+        buyNowPrice: data.buyNowPrice || undefined,
+        endDate: endDate.toISOString(),
+        isAutoRenew: data.isAutoRenew || false,
+        description: data.description,
         images: uploadImageUrls,
+        seller: "674766b5867cfd97aa73fccf" // TODO: Get from authenticated user
       };
 
       console.log("📦 Creating product with payload:", payload);
@@ -128,7 +166,9 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
         console.log("Product Details:", {
           name: result.data.name,
           category: result.data.category,
-          startingBid: `$${result.data.startingBid}`,
+          startPrice: `$${result.data.startPrice}`,
+          stepPrice: `$${result.data.stepPrice}`,
+          endDate: result.data.endDate,
           description: result.data.description?.substring(0, 100) + "...",
           imageCount: result.data.images?.length || 0,
           timestamp: result.data.createdAt
@@ -219,14 +259,23 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               <select 
                 {...register("category")} 
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                disabled={loadingCategories}
               >
-                <option value="">Select a category</option>
+                <option value="">
+                  {loadingCategories ? 'Loading categories...' : 'Select a category'}
+                </option>
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.name}>
+                  <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>
                 ))}
               </select>
+              {loadingCategories && (
+                <p className="text-blue-500 text-sm mt-1">Loading categories from database...</p>
+              )}
+              {!loadingCategories && categories.length === 0 && (
+                <p className="text-yellow-600 text-sm mt-1">⚠️ No categories available. Please contact admin.</p>
+              )}
               {errors.category && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
@@ -235,28 +284,107 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               )}
             </div>
 
-            {/* Starting Bid */}
+            {/* Starting Price */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <DollarSign className="inline w-4 h-4 mr-1" />
-                Starting Bid *
+                Starting Price *
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-3 text-gray-500">$</span>
                 <input 
                   type="number"
                   step="0.01"
-                  {...register("startingBid", { valueAsNumber: true })}
+                  {...register("startPrice", { valueAsNumber: true })}
                   placeholder="0.00"
                   className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
               </div>
-              {errors.startingBid && (
+              {errors.startPrice && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
-                  {errors.startingBid.message}
+                  {errors.startPrice.message}
                 </p>
               )}
+            </div>
+
+            {/* Step Price */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <DollarSign className="inline w-4 h-4 mr-1" />
+                Step Price * (Minimum bid increment)
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3 text-gray-500">$</span>
+                <input 
+                  type="number"
+                  step="0.01"
+                  {...register("stepPrice", { valueAsNumber: true })}
+                  placeholder="0.00"
+                  className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+              </div>
+              {errors.stepPrice && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <X className="w-4 h-4 mr-1" />
+                  {errors.stepPrice.message}
+                </p>
+              )}
+            </div>
+
+            {/* Buy Now Price (Optional) */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <DollarSign className="inline w-4 h-4 mr-1" />
+                Buy Now Price (Optional)
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3 text-gray-500">$</span>
+                <input 
+                  type="number"
+                  step="0.01"
+                  {...register("buyNowPrice", { valueAsNumber: true })}
+                  placeholder="0.00"
+                  className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+              </div>
+              <p className="text-sm text-gray-500 mt-1">Leave empty if not applicable</p>
+            </div>
+
+            {/* Auction Duration */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <Clock className="inline w-4 h-4 mr-1" />
+                Auction Duration (Days) *
+              </label>
+              <input 
+                type="number"
+                min="1"
+                max="30"
+                {...register("auctionDays", { valueAsNumber: true })}
+                placeholder="7"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+              {errors.auctionDays && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <X className="w-4 h-4 mr-1" />
+                  {errors.auctionDays.message}
+                </p>
+              )}
+              <p className="text-sm text-gray-500 mt-1">Auction will end in the specified number of days</p>
+            </div>
+
+            {/* Auto Renew */}
+            <div className="flex items-center">
+              <input 
+                type="checkbox"
+                {...register("isAutoRenew")}
+                id="autoRenew"
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="autoRenew" className="ml-2 text-sm font-medium text-gray-700">
+                Auto-renew auction if no bids received
+              </label>
             </div>
 
             {/* Description */}
