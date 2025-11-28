@@ -1,0 +1,102 @@
+// MIDDLEWARE: Role-Based Access Control (RBAC)
+
+import { AppError } from '../utils/errors.js';
+import { ERROR_CODES } from '../lib/constants.js';
+
+/**
+ * Middleware kiểm tra xem user có role được phép không
+ * Sử dụng: authorize('seller', 'admin')
+ */
+export const authorize = (...allowedRoles) => {
+  return (req, res, next) => {
+    try {
+      if (!req.user) {
+        return next(new AppError('Vui lòng đăng nhập', 401, ERROR_CODES.UNAUTHORIZED));
+      }
+
+      // Kiểm tra nếu user có một trong các role được phép
+      const hasRole = allowedRoles.some(role => req.user.roles?.includes(role));
+
+      if (!hasRole) {
+        return next(new AppError('Bạn không có quyền thực hiện hành động này', 403, ERROR_CODES.FORBIDDEN));
+      }
+
+      next();
+    } catch (error) {
+      console.error('[AUTHORIZE MIDDLEWARE] Lỗi kiểm tra quyền:', error);
+      next(error);
+    }
+  };
+};
+
+/**
+ * Middleware chỉ cho phép seller hoặc admin thao tác trên sản phẩm của họ
+ * Kiểm tra xem user có phải là chủ sản phẩm không
+ */
+export const isProductOwner = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const { Product } = await import('../models/index.js');
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return next(new AppError('Sản phẩm không tồn tại', 404));
+    }
+
+    // Nếu không phải seller chủ sản phẩm và không phải admin
+    if (!product.sellerId.equals(req.user._id) && !req.user.roles?.includes('admin')) {
+      return next(new AppError('Bạn không có quyền chỉnh sửa sản phẩm này', 403, ERROR_CODES.FORBIDDEN));
+    }
+
+    req.product = product;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Middleware chỉ cho phép user xem/sửa profile của chính họ (ngoại trừ admin)
+ */
+export const isUserOwner = (req, res, next) => {
+  try {
+    const { userId } = req.params;
+
+    if (req.user._id !== userId && !req.user.roles?.includes('admin')) {
+      return next(new AppError('Bạn không có quyền truy cập profile này', 403, ERROR_CODES.FORBIDDEN));
+    }
+
+    next();
+  } catch (error) {
+    console.error('[USER OWNER MIDDLEWARE] Lỗi kiểm tra chủ sở hữu user:', error);
+    next(error);
+  }
+};
+
+/**
+ * Middleware kiểm tra xem order có liên quan đến user không
+ * (user là buyer hoặc seller)
+ */
+export const isOrderParticipant = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const { Order } = await import('../models/index.js');
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return next(new AppError('Đơn hàng không tồn tại', 404));
+    }
+
+    // Chỉ buyer, seller hoặc admin mới được xem
+    if (!order.buyerId.equals(req.user._id) && 
+        !order.sellerId.equals(req.user._id) && 
+        !req.user.roles?.includes('admin')) {
+      return next(new AppError('Bạn không có quyền xem đơn hàng này', 403, ERROR_CODES.FORBIDDEN));
+    }
+
+    req.order = order;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
