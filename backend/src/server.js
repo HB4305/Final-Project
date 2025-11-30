@@ -10,6 +10,8 @@ import ratingRoutes from './routes/rating.js';
 // API 1.1 - 1.5: Product & Category Routes
 import categoryRoutes from './routes/category.js';
 import productRoutes from './routes/product.js';
+import questionRoutes from './routes/question.js';
+import { verifyEmailConfiguration } from './utils/email.js';
 
 dotenv.config();
 
@@ -29,6 +31,7 @@ app.use('/api/ratings', ratingRoutes);
 // API 1.1 - 1.5: Product & Category endpoints
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/questions', questionRoutes);
 
 // 404 Handler
 app.use(notFoundHandler);
@@ -39,6 +42,7 @@ app.use(errorHandler);
 // Start Server
 async function startServer() {
   await connectDB();
+  await verifyEmailConfiguration();
   app.listen(PORT, () => {
     console.log(`Local host: http://localhost:${PORT}`);
   });
