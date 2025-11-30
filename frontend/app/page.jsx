@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Heart,
   Search,
@@ -15,17 +15,9 @@ import FeaturedProducts from "../components/featured-products";
 import CategoryNav from "../components/category-nav";
 
 export default function Home() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation
-        isLoggedIn={isLoggedIn}
-        setIsLoggedIn={setIsLoggedIn}
-        currentUser={currentUser}
-        setCurrentUser={setCurrentUser}
-      />
+      <Navigation />
 
       <main className="pt-32">
         {/* Category Navigation */}

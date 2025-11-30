@@ -23,7 +23,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-
-# *.pdf
-# *.txt
+.env
+package-lock.json

@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
-
+import Toast from "../../../components/Toast";
 import authService from "../../services/authService";
 
 export default function SignupPage() {
   const [step, setStep] = useState(1); // 1: Register Form, 2: OTP Form
+  const [toast, setToast] = useState(null);
   const [formData, setFormData] = useState({
+    username: "",
     fullName: "",
     email: "",
     password: "",
@@ -30,6 +32,9 @@ export default function SignupPage() {
   const validateForm = () => {
     const newErrors = {};
 
+    if (!formData.username.trim()) newErrors.username = "Username is required";
+    if (formData.username.length < 3 || formData.username.length > 30)
+      newErrors.username = "Username must be 3-30 characters";
     if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
     if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
       newErrors.email = "Valid email is required";
@@ -73,9 +78,18 @@ export default function SignupPage() {
     setErrors({});
 
     try {
+      console.log("[SIGNUP] Sending data:", {
+        username: formData.username,
+        fullName: formData.fullName,
+        email: formData.email,
+        hasPassword: !!formData.password,
+        hasRecaptcha: !!recaptchaToken,
+      });
+
       // Gửi data kèm recaptchaToken xuống backend
       await authService.signup({
-        name: formData.fullName,
+        username: formData.username,
+        fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
         recaptchaToken: recaptchaToken,
@@ -83,22 +97,43 @@ export default function SignupPage() {
 
       // Thành công -> Chuyển sang bước nhập OTP
       setIsLoading(false);
-      setStep(2);
+      setToast({
+        message: "Registration successful! Please check your email for OTP.",
+        type: "success",
+      });
+      setTimeout(() => {
+        setToast(null);
+        setStep(2);
+      }, 2000);
     } catch (err) {
       setIsLoading(false);
-      if (err.response && err.response.data && err.response.data.errors) {
-        const apiErrors = {};
-        err.response.data.errors.forEach((error) => {
-          // Xử lý lỗi trả về từ express-validator
-          if (error.path)
-            apiErrors[error.path] = error.msg; // express-validator v7
-          else if (error.param) apiErrors[error.param] = error.msg; // cũ
-          else apiErrors.general = error.msg;
-        });
-        setErrors(apiErrors);
+      console.error("[SIGNUP] Error:", err.response?.data || err.message);
+
+      if (err.response && err.response.data) {
+        // Check for direct message
+        if (err.response.data.message) {
+          setErrors({ general: err.response.data.message });
+        }
+        // Check for errors array (express-validator)
+        else if (err.response.data.errors) {
+          const apiErrors = {};
+          err.response.data.errors.forEach((error) => {
+            if (error.path) apiErrors[error.path] = error.msg;
+            else if (error.param) apiErrors[error.param] = error.msg;
+            else apiErrors.general = error.msg;
+          });
+          setErrors(apiErrors);
+        }
+        // Fallback
+        else {
+          setErrors({
+            general:
+              err.response?.data?.msg || JSON.stringify(err.response.data),
+          });
+        }
       } else {
         setErrors({
-          general: err.response?.data?.msg || "An unexpected error occurred.",
+          general: "An unexpected error occurred.",
         });
       }
     }
@@ -122,16 +157,30 @@ export default function SignupPage() {
 
       setIsLoading(false);
       // OTP đúng -> Chuyển hướng sang trang Login
-      alert("Account verified successfully! Please login.");
-      navigate("/auth/login");
+      setToast({
+        message: "Account verified successfully! Please login.",
+        type: "success",
+      });
+      setTimeout(() => {
+        navigate("/auth/login");
+      }, 2000);
     } catch (err) {
       setIsLoading(false);
-      setErrors({ otp: err.response?.data?.msg || "Verification failed" });
+      const errorMsg = err.response?.data?.msg || "Verification failed";
+      setErrors({ otp: errorMsg });
+      setToast({ message: errorMsg, type: "error" });
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div className="w-full max-w-md">
         <div className="bg-background border border-border rounded-lg p-8 shadow-sm">
           {/* HEADER */}
@@ -152,6 +201,26 @@ export default function SignupPage() {
           {/* --- VIEW 1: SIGNUP FORM --- */}
           {step === 1 && (
             <form onSubmit={handleSignupSubmit} className="space-y-4">
+              {/* Username */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="johndoe"
+                  className={`w-full px-4 py-2 border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary transition ${
+                    errors.username ? "border-red-500" : "border-border"
+                  }`}
+                />
+                {errors.username && (
+                  <p className="text-xs text-red-500 mt-1">{errors.username}</p>
+                )}
+              </div>
+
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-medium mb-2">

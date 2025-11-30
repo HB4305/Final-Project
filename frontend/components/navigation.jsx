@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Heart,
   Search,
@@ -11,21 +11,37 @@ import {
   Bell,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../app/context/AuthContext";
 
-export default function Navigation({
-  isLoggedIn,
-  setIsLoggedIn,
-  currentUser,
-  setCurrentUser,
-}) {
+export default function Navigation() {
+  const { isLoggedIn, currentUser, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const userMenuRef = useRef(null);
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentUser(null);
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    if (isUserMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
+
+  const handleLogout = async () => {
+    await logout();
     setIsMobileMenuOpen(false);
+    navigate("/");
   };
 
   const handleLogin = () => {
@@ -81,11 +97,53 @@ export default function Navigation({
             )}
 
             {isLoggedIn ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/20 transition cursor-pointer">
-                <User className="w-4 h-4" />
-                <span className="text-sm font-medium hidden sm:inline">
-                  {currentUser?.name || "User"}
-                </span>
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/20 transition cursor-pointer"
+                >
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium hidden sm:inline">
+                    {currentUser?.fullName || currentUser?.username || "User"}
+                  </span>
+                </button>
+
+                {/* User Dropdown Menu */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-border overflow-hidden z-50">
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
+                    >
+                      Profile
+                    </Link>
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      to="/profile/settings"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
+                    >
+                      Settings
+                    </Link>
+                    <hr className="border-border" />
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button
@@ -156,14 +214,6 @@ export default function Navigation({
               </>
             )}
           </div>
-          {isLoggedIn && (
-            <button
-              onClick={handleLogout}
-              className="text-muted-foreground hover:text-primary transition text-sm"
-            >
-              Logout
-            </button>
-          )}
         </div>
       </div>
 

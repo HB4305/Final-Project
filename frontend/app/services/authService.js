@@ -1,35 +1,103 @@
 import api from "./api";
 
-// userData bao gồm: { name, email, password, recaptchaToken }
+/**
+ * Đăng ký tài khoản mới
+ * @param {Object} userData - { username, fullName, email, password, recaptchaToken }
+ */
 const signup = (userData) => {
-  return api.post("/auth/signup", userData);
+  return api.post("/auth/register", {
+    username: userData.username || userData.name,
+    fullName: userData.fullName || userData.name,
+    email: userData.email,
+    password: userData.password,
+    recaptchaToken: userData.recaptchaToken,
+  });
 };
 
-// Hàm mới: Xác thực OTP để kích hoạt tài khoản
+/**
+ * Xác thực OTP để kích hoạt tài khoản
+ * @param {Object} data - { email, otp }
+ */
 const verifyOtp = (data) => {
-  // data bao gồm: { email, otp }
   return api.post("/auth/verify-otp", data);
 };
 
+/**
+ * Đăng nhập
+ * @param {Object} userData - { email, password }
+ */
 const signin = (userData) => {
-  return api.post("/auth/signin", userData);
+  return api.post("/auth/login", userData);
 };
 
+/**
+ * Đăng xuất
+ */
+const signout = () => {
+  return api.post("/auth/logout");
+};
+
+const logout = () => {
+  return api.post("/auth/logout");
+};
+
+/**
+ * Lấy thông tin user hiện tại
+ */
+const getCurrentUser = () => {
+  return api.get("/auth/me");
+};
+
+/**
+ * Gửi OTP để reset mật khẩu
+ * @param {string} email
+ */
 const forgotPassword = (email) => {
-  return api.post("/auth/forgotpassword", { email });
+  return api.post("/auth/forgot-password", { email });
 };
 
-// Cập nhật lại logic Reset Password theo luồng OTP
+/**
+ * Reset mật khẩu với OTP
+ * @param {Object} data - { email, otp, newPassword }
+ */
 const resetPassword = (data) => {
-  // data bao gồm: { email, otp, newPassword }
-  // Backend đổi từ PUT /:token sang POST /resetpassword
-  return api.post("/auth/resetpassword", data);
+  return api.post("/auth/reset-password", data);
+};
+
+/**
+ * Đổi mật khẩu
+ * @param {Object} data - { oldPassword, newPassword }
+ */
+const changePassword = (data) => {
+  return api.post("/auth/change-password", data);
+};
+
+/**
+ * Cập nhật thông tin cá nhân
+ * @param {Object} data - { fullName, dateOfBirth, contactPhone, address, profileImageUrl }
+ */
+const updateProfile = (data) => {
+  return api.put("/auth/profile", data);
+};
+
+/**
+ * Cập nhật email (cần verify lại)
+ * @param {string} newEmail
+ */
+const updateEmail = (newEmail) => {
+  return api.put("/auth/email", { newEmail });
 };
 
 export default {
   signup,
-  verifyOtp, // Nhớ export hàm này
+  verifyOtp,
   signin,
+  signout,
+  logout,
+  getCurrentUser,
   forgotPassword,
   resetPassword,
+  changePassword,
+  updateProfile,
+  updateEmail,
 };

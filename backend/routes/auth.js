@@ -3,7 +3,6 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-// --- QUAN TRỌNG: PHẢI CÓ DÒNG NÀY ---
 const axios = require("axios");
 // ------------------------------------
 const { body, validationResult } = require("express-validator");
@@ -147,11 +146,11 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
-// @route   POST api/auth/signin
+// @route   POST api/auth/login
 // @desc    Login
 // @access  Public
 router.post(
-  "/signin",
+  "/login",
   [
     body("email", "Please include a valid email").isEmail(),
     body("password", "Password is required").exists(),

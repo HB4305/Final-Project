@@ -1,169 +1,593 @@
-import React, { useState } from 'react';
-import { Heart, Gavel, CheckCircle, Clock, TrendingUp } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import Navigation from '../../components/navigation';
+import React, { useState, useEffect } from "react";
+import {
+  Heart,
+  Gavel,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  ShoppingBag,
+  PackageCheck,
+  XCircle,
+} from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import Navigation from "../../components/navigation";
+import watchlistService from "../services/watchlistService";
+import auctionService from "../services/auctionService";
+import transactionService from "../services/transactionService";
+import { useAuth } from "../context/AuthContext";
 
-const dashboardTabs = ['My Bids', 'Watchlist', 'Won Items', 'Selling'];
-
-const mockBids = [
-  {
-    id: 1,
-    name: 'Vintage Rolex Watch',
-    currentBid: 2450,
-    yourBid: 2450,
-    timeLeft: '2h 15m',
-    image: '/vintage-rolex.jpg'
-  },
-  {
-    id: 2,
-    name: 'Gaming PC',
-    currentBid: 1850,
-    yourBid: 1700,
-    timeLeft: '5h 30m',
-    image: '/gaming-pc.jpg'
-  }
-];
-
-const mockWatchlist = [
-  { id: 3, name: 'Designer Handbag', currentBid: 450, timeLeft: '1h 45m' },
-  { id: 4, name: 'Antique Lamp', currentBid: 180, timeLeft: '12h 30m' }
+const dashboardTabs = [
+  { key: "participating", label: "Participating", icon: Gavel },
+  { key: "watchlist", label: "Watchlist", icon: Heart },
+  { key: "won", label: "Won", icon: CheckCircle },
+  { key: "selling", label: "Selling", icon: ShoppingBag },
+  { key: "sold", label: "Sold", icon: PackageCheck },
 ];
 
 export default function DashboardPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [currentUser, setCurrentUser] = useState({ name: 'John Doe' });
-  const [activeTab, setActiveTab] = useState('My Bids');
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { isLoggedIn, currentUser, loginWithToken } = useAuth();
+  const [activeTab, setActiveTab] = useState("participating");
+
+  // Data states
+  const [participatingAuctions, setParticipatingAuctions] = useState([]);
+  const [watchlist, setWatchlist] = useState([]);
+  const [wonAuctions, setWonAuctions] = useState([]);
+  const [sellingAuctions, setSellingAuctions] = useState([]);
+  const [soldAuctions, setSoldAuctions] = useState([]);
+
+  // Loading and error states
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Stats
+  const [stats, setStats] = useState({
+    activeBids: 0,
+    watchlistCount: 0,
+    wonCount: 0,
+    sellingCount: 0,
+  });
+
+  // Handle OAuth callback token
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token) {
+      // Login with token from OAuth
+      loginWithToken(token)
+        .then(() => {
+          // Remove token from URL
+          searchParams.delete("token");
+          setSearchParams(searchParams);
+        })
+        .catch((error) => {
+          console.error("OAuth login failed:", error);
+          navigate("/auth/login?error=oauth_failed");
+        });
+    }
+  }, [searchParams]);
+
+  // Load data based on active tab
+  useEffect(() => {
+    loadTabData();
+  }, [activeTab]);
+
+  const loadTabData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      switch (activeTab) {
+        case "participating":
+          const participatingData =
+            await auctionService.getParticipatingAuctions({
+              page: 1,
+              limit: 10,
+            });
+          setParticipatingAuctions(participatingData.data.auctions);
+          setStats((prev) => ({
+            ...prev,
+            activeBids: participatingData.data.pagination.total,
+          }));
+          break;
+
+        case "watchlist":
+          const watchlistData = await watchlistService.getWatchlist({
+            page: 1,
+            limit: 10,
+          });
+          setWatchlist(watchlistData.data.watchlist);
+          setStats((prev) => ({
+            ...prev,
+            watchlistCount: watchlistData.data.pagination.total,
+          }));
+          break;
+
+        case "won":
+          const wonData = await auctionService.getWonAuctions({
+            page: 1,
+            limit: 10,
+          });
+          setWonAuctions(wonData.data.auctions);
+          setStats((prev) => ({
+            ...prev,
+            wonCount: wonData.data.pagination.total,
+          }));
+          break;
+
+        case "selling":
+          const sellingData = await auctionService.getSellingAuctions({
+            page: 1,
+            limit: 10,
+          });
+          setSellingAuctions(sellingData.data.auctions);
+          setStats((prev) => ({
+            ...prev,
+            sellingCount: sellingData.data.pagination.total,
+          }));
+          break;
+
+        case "sold":
+          const soldData = await auctionService.getSoldAuctions({
+            page: 1,
+            limit: 10,
+          });
+          setSoldAuctions(soldData.data.auctions);
+          break;
+      }
+    } catch (err) {
+      console.error("Error loading data:", err);
+      setError(err.response?.data?.message || "Không thể tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveFromWatchlist = async (productId) => {
+    try {
+      await watchlistService.removeFromWatchlist(productId);
+      loadTabData(); // Reload data
+    } catch (err) {
+      alert("Không thể xoá khỏi danh sách yêu thích");
+    }
+  };
+
+  const handleCancelTransaction = async (auctionId) => {
+    if (
+      !confirm(
+        "Bạn có chắc muốn hủy giao dịch này? Người mua sẽ bị đánh giá -1."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await transactionService.cancelTransaction(
+        auctionId,
+        "Người thắng không thanh toán"
+      );
+      alert("Đã hủy giao dịch thành công");
+      loadTabData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể hủy giao dịch");
+    }
+  };
+
+  const formatTimeLeft = (endAt) => {
+    const now = new Date();
+    const end = new Date(endAt);
+    const diff = end - now;
+
+    if (diff <= 0) return "Đã kết thúc";
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      return `${days} ngày`;
+    }
+    return `${hours}h ${minutes}m`;
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} currentUser={currentUser} setCurrentUser={setCurrentUser} />
+      <Navigation />
       <div className="pt-24">
-      <div className="max-w-6xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">My Dashboard</h1>
-          <p className="text-muted-foreground">Manage your auctions and bids</p>
-        </div>
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="mb-10">
+            <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+              My Dashboard
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Manage your auctions and bids
+            </p>
+          </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-          <div className="bg-background border border-border rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Active Bids</p>
-                <p className="text-3xl font-bold">2</p>
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-600 text-sm font-medium mb-2">
+                    Active Bids
+                  </p>
+                  <p className="text-4xl font-bold text-blue-700">
+                    {stats.activeBids}
+                  </p>
+                </div>
+                <div className="bg-blue-100 p-3 rounded-lg">
+                  <Gavel className="w-8 h-8 text-blue-600" />
+                </div>
               </div>
-              <Gavel className="w-8 h-8 text-primary opacity-50" />
+            </div>
+            <div className="bg-gradient-to-br from-pink-50 to-white border border-pink-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-pink-600 text-sm font-medium mb-2">
+                    Watchlist
+                  </p>
+                  <p className="text-4xl font-bold text-pink-700">
+                    {stats.watchlistCount}
+                  </p>
+                </div>
+                <div className="bg-pink-100 p-3 rounded-lg">
+                  <Heart className="w-8 h-8 text-pink-600" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-green-50 to-white border border-green-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-600 text-sm font-medium mb-2">
+                    Won Auctions
+                  </p>
+                  <p className="text-4xl font-bold text-green-700">
+                    {stats.wonCount}
+                  </p>
+                </div>
+                <div className="bg-green-100 p-3 rounded-lg">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-orange-50 to-white border border-orange-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-600 text-sm font-medium mb-2">
+                    Selling
+                  </p>
+                  <p className="text-4xl font-bold text-orange-700">
+                    {stats.sellingCount}
+                  </p>
+                </div>
+                <div className="bg-orange-100 p-3 rounded-lg">
+                  <ShoppingBag className="w-8 h-8 text-orange-600" />
+                </div>
+              </div>
             </div>
           </div>
-          <div className="bg-background border border-border rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Watchlist</p>
-                <p className="text-3xl font-bold">5</p>
-              </div>
-              <Heart className="w-8 h-8 text-primary opacity-50" />
-            </div>
-          </div>
-          <div className="bg-background border border-border rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Won</p>
-                <p className="text-3xl font-bold">3</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-primary opacity-50" />
-            </div>
-          </div>
-          <div className="bg-background border border-border rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Seller Rating</p>
-                <p className="text-3xl font-bold">4.8</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-primary opacity-50" />
-            </div>
-          </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-4 border-b border-border mb-8 overflow-x-auto pb-4">
-          {dashboardTabs.map((tab) => (
-            <button 
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${
-                activeTab === tab 
-                  ? 'border-primary text-primary' 
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        <div className="bg-background border border-border rounded-lg p-6">
-          {activeTab === 'My Bids' && (
-            <div className="space-y-4">
-              {mockBids.map((item) => (
-                <Link 
-                  key={item.id}
-                  to={`/product/${item.id}`}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted transition"
+          {/* Tabs */}
+          <div className="flex gap-4 border-b border-border mb-8 overflow-x-auto pb-4">
+            {dashboardTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-2 px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${
+                    activeTab === tab.key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <div className="flex items-center gap-4">
-                    <img src={item.image || "/placeholder.svg"} alt={item.name} className="w-20 h-20 rounded-lg object-cover" />
-                    <div>
-                      <h3 className="font-semibold mb-1">{item.name}</h3>
-                      <div className="flex gap-4 text-sm text-muted-foreground">
-                        <span>Current: ${item.currentBid}</span>
-                        <span className="text-primary font-semibold">Your Bid: ${item.yourBid}</span>
-                      </div>
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Content */}
+          <div className="bg-background border border-border rounded-lg p-6">
+            {loading && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="text-center py-8">
+                <p className="text-red-500">{error}</p>
+                <button
+                  onClick={loadTabData}
+                  className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
+                >
+                  Thử lại
+                </button>
+              </div>
+            )}
+
+            {!loading && !error && (
+              <>
+                {/* Đang Tham Gia */}
+                {activeTab === "participating" && (
+                  <div className="space-y-4">
+                    {participatingAuctions.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Bạn chưa tham gia đấu giá nào
+                      </p>
+                    ) : (
+                      participatingAuctions.map((auction) => (
+                        <Link
+                          key={auction._id}
+                          to={`/product/${auction.productId?._id}`}
+                          className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted transition"
+                        >
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={
+                                auction.productId?.primaryImageUrl ||
+                                "/placeholder.svg"
+                              }
+                              alt={auction.productId?.title}
+                              className="w-20 h-20 rounded-lg object-cover"
+                            />
+                            <div>
+                              <h3 className="font-semibold mb-1">
+                                {auction.productId?.title}
+                              </h3>
+                              <div className="flex gap-4 text-sm text-muted-foreground">
+                                <span>
+                                  Giá hiện tại:{" "}
+                                  {auction.currentPrice?.toLocaleString()} VNĐ
+                                </span>
+                                <span className="text-primary font-semibold">
+                                  Giá của bạn:{" "}
+                                  {auction.userHighestBid?.amount?.toLocaleString()}{" "}
+                                  VNĐ
+                                </span>
+                                {auction.isWinning && (
+                                  <span className="text-green-600 font-semibold">
+                                    🏆 Đang dẫn đầu
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-blue-500 font-semibold">
+                              {formatTimeLeft(auction.endAt)}
+                            </p>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* Yêu Thích */}
+                {activeTab === "watchlist" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {watchlist.length === 0 ? (
+                      <p className="col-span-2 text-center text-muted-foreground py-8">
+                        Danh sách yêu thích trống
+                      </p>
+                    ) : (
+                      watchlist.map((item) => (
+                        <div
+                          key={item._id}
+                          className="p-4 border border-border rounded-lg"
+                        >
+                          <Link to={`/product/${item.productId?._id}`}>
+                            <img
+                              src={
+                                item.productId?.primaryImageUrl ||
+                                "/placeholder.svg"
+                              }
+                              alt={item.productId?.title}
+                              className="w-full h-40 object-cover rounded-lg mb-3"
+                            />
+                            <h3 className="font-semibold mb-2">
+                              {item.productId?.title}
+                            </h3>
+                          </Link>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(item.watchedAt).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </span>
+                            <button
+                              onClick={() =>
+                                handleRemoveFromWatchlist(item.productId?._id)
+                              }
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              <XCircle className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* Đã Thắng */}
+                {activeTab === "won" && (
+                  <div className="space-y-4">
+                    {wonAuctions.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Bạn chưa thắng auction nào
+                      </p>
+                    ) : (
+                      wonAuctions.map((auction) => (
+                        <div
+                          key={auction._id}
+                          className="flex items-center justify-between p-4 border border-border rounded-lg"
+                        >
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={
+                                auction.productId?.primaryImageUrl ||
+                                "/placeholder.svg"
+                              }
+                              alt={auction.productId?.title}
+                              className="w-20 h-20 rounded-lg object-cover"
+                            />
+                            <div>
+                              <h3 className="font-semibold mb-1">
+                                {auction.productId?.title}
+                              </h3>
+                              <div className="flex gap-4 text-sm">
+                                <span className="text-green-600 font-semibold">
+                                  Giá thắng:{" "}
+                                  {auction.currentPrice?.toLocaleString()} VNĐ
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Trạng thái: {auction.transactionStatus}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Người bán: {auction.sellerId?.username}
+                              </p>
+                            </div>
+                          </div>
+                          <Link
+                            to={`/transactions/${auction._id}`}
+                            className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
+                          >
+                            Xem Chi Tiết
+                          </Link>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* Đang Bán */}
+                {activeTab === "selling" && (
+                  <div>
+                    <Link
+                      to="/products/create"
+                      className="inline-block px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium mb-4"
+                    >
+                      + Đăng Sản Phẩm Mới
+                    </Link>
+                    <div className="space-y-4 mt-4">
+                      {sellingAuctions.length === 0 ? (
+                        <p className="text-muted-foreground">
+                          Bạn chưa đăng sản phẩm nào
+                        </p>
+                      ) : (
+                        sellingAuctions.map((auction) => (
+                          <div
+                            key={auction._id}
+                            className="flex items-center justify-between p-4 border border-border rounded-lg"
+                          >
+                            <div className="flex items-center gap-4">
+                              <img
+                                src={
+                                  auction.productId?.primaryImageUrl ||
+                                  "/placeholder.svg"
+                                }
+                                alt={auction.productId?.title}
+                                className="w-20 h-20 rounded-lg object-cover"
+                              />
+                              <div>
+                                <h3 className="font-semibold mb-1">
+                                  {auction.productId?.title}
+                                </h3>
+                                <div className="flex gap-4 text-sm text-muted-foreground">
+                                  <span>
+                                    Giá hiện tại:{" "}
+                                    {auction.currentPrice?.toLocaleString()} VNĐ
+                                  </span>
+                                  <span>Lượt đặt: {auction.bidCount}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-blue-500 font-semibold">
+                                {formatTimeLeft(auction.endAt)}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-blue-500 font-semibold">{item.timeLeft}</p>
+                )}
+
+                {/* Đã Bán */}
+                {activeTab === "sold" && (
+                  <div className="space-y-4">
+                    {soldAuctions.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Chưa có sản phẩm nào đã bán
+                      </p>
+                    ) : (
+                      soldAuctions.map((auction) => (
+                        <div
+                          key={auction._id}
+                          className="flex items-center justify-between p-4 border border-border rounded-lg"
+                        >
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={
+                                auction.productId?.primaryImageUrl ||
+                                "/placeholder.svg"
+                              }
+                              alt={auction.productId?.title}
+                              className="w-20 h-20 rounded-lg object-cover"
+                            />
+                            <div>
+                              <h3 className="font-semibold mb-1">
+                                {auction.productId?.title}
+                              </h3>
+                              <div className="flex gap-4 text-sm">
+                                <span className="text-green-600 font-semibold">
+                                  Giá bán:{" "}
+                                  {auction.currentPrice?.toLocaleString()} VNĐ
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Trạng thái: {auction.transactionStatus}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Người mua: {auction.winnerId?.username}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {auction.transactionStatus === "pending" && (
+                              <button
+                                onClick={() =>
+                                  handleCancelTransaction(auction._id)
+                                }
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
+                              >
+                                Hủy Giao Dịch
+                              </button>
+                            )}
+                            <Link
+                              to={`/transactions/${auction._id}`}
+                              className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
+                            >
+                              Chi Tiết
+                            </Link>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {activeTab === 'Watchlist' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {mockWatchlist.map((item) => (
-                <Link 
-                  key={item.id}
-                  to={`/product/${item.id}`}
-                  className="p-4 border border-border rounded-lg hover:bg-muted transition"
-                >
-                  <h3 className="font-semibold mb-3">{item.name}</h3>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Current: ${item.currentBid}</span>
-                    <span className="text-primary font-semibold">{item.timeLeft}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {activeTab === 'Won Items' && (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No won items yet. Keep bidding!</p>
-            </div>
-          )}
-
-          {activeTab === 'Selling' && (
-            <div>
-              <button className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium mb-4">
-                + List New Item
-              </button>
-              <p className="text-muted-foreground">You haven't listed any items yet.</p>
-            </div>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );
