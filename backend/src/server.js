@@ -11,12 +11,10 @@ import auctionRoutes from "./routes/auction.js";
 import ratingRoutes from "./routes/rating.js";
 import userRoutes from "./routes/user.js";
 // API 1.1 - 1.5: Product & Category Routes
-import categoryRoutes from "./routes/category.js";
-import productRoutes from "./routes/product.js";
-// User Profile Management Routes
-import watchlistRoutes from "./routes/watchlist.js";
-import userAuctionRoutes from "./routes/userAuction.js";
-import transactionRoutes from "./routes/transaction.js";
+import categoryRoutes from './routes/category.js';
+import productRoutes from './routes/product.js';
+// Admin Routes
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -95,12 +93,10 @@ app.use("/api/auctions", auctionRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/users", userRoutes);
 // API 1.1 - 1.5: Product & Category endpoints
-app.use("/api/categories", categoryRoutes);
-app.use("/api/products", productRoutes);
-// User Profile Management Routes
-app.use("/api/watchlist", watchlistRoutes);
-app.use("/api/user/auctions", userAuctionRoutes);
-app.use("/api/transactions", transactionRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/products', productRoutes);
+// Admin routes (nếu muốn /api/settings thì đổi thành '/api')
+app.use('/api/admin', adminRoutes);
 
 // 404 Handler
 app.use(notFoundHandler);

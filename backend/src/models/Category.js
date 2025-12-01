@@ -57,9 +57,8 @@ categorySchema.index({ path: 1 });
 // slug đã có unique: true trong schema, không cần định nghĩa lại
 
 // Update updatedAt on save
-categorySchema.pre('save', function(next) {
+categorySchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 export default mongoose.model('Category', categorySchema);

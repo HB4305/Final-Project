@@ -109,9 +109,8 @@ productSchema.index({ sellerId: 1 });
 productSchema.index({ isActive: 1 });
 
 // Update updatedAt on save
-productSchema.pre('save', function(next) {
+productSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 export default mongoose.model('Product', productSchema);

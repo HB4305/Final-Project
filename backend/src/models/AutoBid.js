@@ -36,9 +36,8 @@ autoBidSchema.index({ bidderId: 1 });
 autoBidSchema.index({ auctionId: 1, bidderId: 1 }, { unique: true });
 
 // Update updatedAt on save
-autoBidSchema.pre('save', function(next) {
+autoBidSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 export default mongoose.model('AutoBid', autoBidSchema);

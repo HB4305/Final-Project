@@ -17,25 +17,10 @@ export const validateRegisterInput = (req, res, next) => {
   try {
     const { username, email, password, fullName, recaptchaToken } = req.body;
 
-    console.log("[VALIDATE REGISTER] Request body:", {
-      username,
-      email,
-      hasPassword: !!password,
-      fullName,
-      hasRecaptcha: !!recaptchaToken,
-    });
-
-    if (!username || !email || !password || !fullName || !recaptchaToken) {
-      const missing = [];
-      if (!username) missing.push("username");
-      if (!email) missing.push("email");
-      if (!password) missing.push("password");
-      if (!fullName) missing.push("fullName");
-      if (!recaptchaToken) missing.push("recaptchaToken");
-      console.log("[VALIDATE REGISTER] Missing fields:", missing);
+    if (!username || !email || !password || !passwordConfirm || !fullName) {
       return next(
         new AppError(
-          `Vui lòng cung cấp đầy đủ thông tin. Thiếu: ${missing.join(", ")}`,
+          "Vui lòng cung cấp đầy đủ thông tin",
           400,
           ERROR_CODES.INVALID_INPUT
         )
@@ -43,7 +28,6 @@ export const validateRegisterInput = (req, res, next) => {
     }
 
     if (!isValidUsername(username)) {
-      console.log("[VALIDATE REGISTER] Invalid username:", username);
       return next(
         new AppError(
           "Username phải từ 3-30 ký tự, chỉ chứa chữ, số và underscore",
@@ -54,14 +38,12 @@ export const validateRegisterInput = (req, res, next) => {
     }
 
     if (!isValidEmail(email)) {
-      console.log("[VALIDATE REGISTER] Invalid email:", email);
       return next(
         new AppError("Email không hợp lệ", 400, ERROR_CODES.INVALID_INPUT)
       );
     }
 
     if (!isValidPassword(password)) {
-      console.log("[VALIDATE REGISTER] Invalid password format");
       return next(
         new AppError(
           "Mật khẩu phải ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số",
@@ -71,46 +53,19 @@ export const validateRegisterInput = (req, res, next) => {
       );
     }
 
-    console.log("[VALIDATE REGISTER] Validation passed");
-    next();
-  } catch (error) {
-    console.error("[VALIDATE REGISTER] Lỗi validate đăng ký:", error);
-    next(error);
-  }
-};
-
-/**
- * Validate dữ liệu OTP
- */
-export const validateOtpInput = (req, res, next) => {
-  try {
-    const { email, otp } = req.body;
-
-    if (!email || !otp) {
+    if (password !== passwordConfirm) {
       return next(
         new AppError(
-          "Vui lòng cung cấp email và mã OTP",
+          "Mật khẩu xác nhận không khớp",
           400,
           ERROR_CODES.INVALID_INPUT
         )
       );
     }
 
-    if (!isValidEmail(email)) {
-      return next(
-        new AppError("Email không hợp lệ", 400, ERROR_CODES.INVALID_INPUT)
-      );
-    }
-
-    if (typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
-      return next(
-        new AppError("Mã OTP phải là 6 chữ số", 400, ERROR_CODES.INVALID_INPUT)
-      );
-    }
-
     next();
   } catch (error) {
-    console.error("[VALIDATE OTP] Lỗi validate OTP:", error);
+    console.error("[VALIDATE REGISTER] Lỗi validate đăng ký:", error);
     next(error);
   }
 };
@@ -211,9 +166,24 @@ export const validateProductInput = (req, res, next) => {
  */
 export const validateAuctionInput = (req, res, next) => {
   try {
-    const { startPrice, priceStep, startAt, endAt, buyNowPrice } = req.body;
+    const {
+      title,
+      description,
+      startPrice,
+      priceStep,
+      startAt,
+      endAt,
+      buyNowPrice,
+    } = req.body;
 
-    if (startPrice === undefined || !priceStep || !startAt || !endAt) {
+    if (
+      !title ||
+      !description ||
+      startPrice === undefined ||
+      !priceStep ||
+      !startAt ||
+      !endAt
+    ) {
       return next(
         new AppError(
           "Vui lòng cung cấp đầy đủ thông tin đấu giá",
