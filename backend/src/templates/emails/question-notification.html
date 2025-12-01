@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: Arial, sans-serif;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 20px 10px;">
+          <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+            
+            <!-- Header -->
+            <tr>
+              <td style="background: linear-gradient(to right, #2563eb, #9333ea); padding: 30px; text-align: center;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">
+                  New Question!
+                </h1>
+              </td>
+            </tr>
+
+            <!-- Content -->
+            <tr>
+              <td style="padding: 40px 30px;">
+                <p style="margin: 0 0 20px; font-size: 16px; color: #374151; line-height: 1.5;">
+                  Hello <strong style="color: #111827;">{{sellerName}}</strong>,
+                </p>
+
+                <p style="margin: 0 0 25px; font-size: 14px; color: #6b7280; line-height: 1.5;">
+                  You have received a new question about your product:
+                </p>
+
+                <!-- Product Info Box -->
+                <table role="presentation" style="width: 100%; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 25px;">
+                  <tr>
+                    <td style="padding: 25px;">
+                      <table role="presentation" style="width: 100%;">
+                        <tr>
+                          <td style="padding: 8px 0;">
+                            <span style="color: #4b5563; font-weight: 600; display: inline-block; width: 120px;">Product:</span>
+                            <span style="color: #111827;">{{productTitle}}</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 8px 0;">
+                            <span style="color: #4b5563; font-weight: 600; display: inline-block; width: 120px;">Asked by:</span>
+                            <span style="color: #111827;">{{buyerName}}</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 8px 0;">
+                            <span style="color: #4b5563; font-weight: 600; display: inline-block; width: 120px;">Time:</span>
+                            <span style="color: #111827;">{{timestamp}}</span>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Question Box -->
+                <table role="presentation" style="width: 100%; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 8px 8px 0; margin-bottom: 30px;">
+                  <tr>
+                    <td style="padding: 25px;">
+                      <p style="margin: 0 0 10px; font-size: 12px; color: #4b5563; font-weight: 600;">Question:</p>
+                      <p style="margin: 0; color: #1f2937; font-size: 14px; font-style: italic; line-height: 1.6;">
+                        "{{questionText}}"
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- CTA Button -->
+                <table role="presentation" style="width: 100%; margin: 30px 0;">
+                  <tr>
+                    <td style="text-align: center;">
+                      <a href="{{productUrl}}" style="display: inline-block; background-color: #16a34a; color: #ffffff; font-weight: bold; padding: 16px 32px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                        View & Reply Now
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Direct Link -->
+                <table role="presentation" style="width: 100%; background-color: #f9fafb; border-radius: 8px; margin-top: 25px;">
+                  <tr>
+                    <td style="padding: 15px;">
+                      <p style="margin: 0 0 8px; font-size: 12px; color: #4b5563;">
+                        Or copy this link to your browser:
+                      </p>
+                      <p style="margin: 0; font-size: 11px; word-break: break-all;">
+                        <a href="{{productUrl}}" style="color: #2563eb; text-decoration: underline;">{{productUrl}}</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background-color: #f3f4f6; padding: 25px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0 0 5px; font-size: 12px; color: #6b7280;">
+                  © 2025 Auction Platform. All rights reserved.
+                </p>
+                <p style="margin: 0; font-size: 11px; color: #9ca3af;">
+                  This email was sent automatically, please do not reply directly.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
