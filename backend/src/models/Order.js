@@ -72,9 +72,8 @@ orderSchema.index({ auctionId: 1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
 // Update updatedAt on save
-orderSchema.pre('save', function(next) {
+orderSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 export default mongoose.model('Order', orderSchema);

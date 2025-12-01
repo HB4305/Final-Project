@@ -10,6 +10,8 @@ import ratingRoutes from './routes/rating.js';
 // API 1.1 - 1.5: Product & Category Routes
 import categoryRoutes from './routes/category.js';
 import productRoutes from './routes/product.js';
+// Admin Routes
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -29,6 +31,8 @@ app.use('/api/ratings', ratingRoutes);
 // API 1.1 - 1.5: Product & Category endpoints
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+// Admin routes (nếu muốn /api/settings thì đổi thành '/api')
+app.use('/api/admin', adminRoutes);
 
 // 404 Handler
 app.use(notFoundHandler);

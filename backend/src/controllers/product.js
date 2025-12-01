@@ -8,6 +8,9 @@
 import { productService } from '../services/ProductService.js';
 import { AppError } from '../utils/errors.js';
 import { isValidObjectId } from '../utils/validators.js';
+import Product from '../models/Product.js';
+import Category from '../models/Category.js';
+import Auction from '../models/Auction.js';
 
 /**
  * API 1.2: Lấy Top 5 sản phẩm cho Trang Chủ
@@ -185,5 +188,382 @@ export const getProductDetail = async (req, res, next) => {
   } catch (error) {
     console.error('[PRODUCT CONTROLLER] Lỗi trong getProductDetail:', error);
     next(error);
+  }
+};
+
+/**
+ * ============================================
+ * API 3.1: Đăng sản phẩm đấu giá
+ * ============================================
+ */
+export const postProduct = async (req, res) => {
+  try {
+    console.log('[PRODUCT CONTROLLER] POST /api/products - Đăng sản phẩm mới');
+
+    // 1. Lấy dữ liệu từ request
+    const {
+      title,
+      description,
+      categoryId,
+      startPrice,
+      priceStep,
+      startTime,
+      endTime,
+      metadata
+    } = req.body;
+
+    // 2. Lấy files đã upload (từ multer middleware)
+    const uploadedFiles = req.files;
+
+    console.log(`[PRODUCT CONTROLLER] Số ảnh đã upload: ${uploadedFiles?.length || 0}`);
+
+    // ========================================
+    // 3. VALIDATE CÁC TRƯỜNG TEXT
+    // ========================================
+
+    // Validate title
+    if (!title || title.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên sản phẩm không được để trống'
+      });
+    }
+
+    if (title.length > 200) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên sản phẩm không được vượt quá 200 ký tự'
+      });
+    }
+
+    // Validate description
+    if (!description || description.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mô tả sản phẩm không được để trống'
+      });
+    }
+
+    if (description.length < 50) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mô tả sản phẩm phải có ít nhất 50 ký tự'
+      });
+    }
+
+    // Validate categoryId
+    if (!categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Danh mục sản phẩm là bắt buộc'
+      });
+    }
+
+    // Kiểm tra category tồn tại
+    const categoryExists = await Category.findById(categoryId);
+    if (!categoryExists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Danh mục không tồn tại'
+      });
+    }
+
+    // ========================================
+    // 4. VALIDATE GIÁ (startPrice & priceStep)
+    // ========================================
+
+    // Validate startPrice
+    if (!startPrice) {
+      return res.status(400).json({
+        success: false,
+        message: 'Giá khởi điểm là bắt buộc'
+      });
+    }
+
+    const numStartPrice = Number(startPrice);
+
+    if (isNaN(numStartPrice)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Giá khởi điểm phải là số hợp lệ'
+      });
+    }
+
+    if (!Number.isInteger(numStartPrice)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Giá khởi điểm phải là số nguyên'
+      });
+    }
+
+    if (numStartPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Giá khởi điểm phải lớn hơn 0'
+      });
+    }
+
+    if (numStartPrice < 10000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Giá khởi điểm tối thiểu là 10,000 VND'
+      });
+    }
+
+    // Validate priceStep
+    if (!priceStep) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bước giá là bắt buộc'
+      });
+    }
+
+    const numPriceStep = Number(priceStep);
+
+    if (isNaN(numPriceStep)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bước giá phải là số hợp lệ'
+      });
+    }
+
+    if (!Number.isInteger(numPriceStep)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bước giá phải là số nguyên'
+      });
+    }
+
+    if (numPriceStep <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bước giá phải lớn hơn 0'
+      });
+    }
+
+    if (numPriceStep < 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bước giá tối thiểu là 1,000 VND'
+      });
+    }
+
+    // ⭐ Validate priceStep < startPrice
+    if (numPriceStep >= numStartPrice) {
+      return res.status(400).json({
+        success: false,
+        message: `Bước giá (${numPriceStep.toLocaleString()} VND) phải nhỏ hơn giá khởi điểm (${numStartPrice.toLocaleString()} VND)`
+      });
+    }
+
+    // ========================================
+    // 5. VALIDATE THỜI GIAN
+    // ========================================
+    if (!startTime || !endTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thời gian bắt đầu và kết thúc là bắt buộc'
+      });
+    }
+
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+    const now = new Date();
+
+    if (isNaN(startDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thời gian bắt đầu không hợp lệ'
+      });
+    }
+
+    if (isNaN(endDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thời gian kết thúc không hợp lệ'
+      });
+    }
+
+    if (startDate <= now) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thời gian bắt đầu phải sau thời điểm hiện tại'
+      });
+    }
+
+    if (endDate <= startDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thời gian kết thúc phải sau thời gian bắt đầu'
+      });
+    }
+
+    const minDuration = 60 * 60 * 1000; // 1 hour
+    if (endDate - startDate < minDuration) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thời gian đấu giá phải ít nhất 1 giờ'
+      });
+    }
+
+    // ========================================
+    // 6. XỬ LÝ ẢNH
+    // ⚠️ KHÔNG VALIDATE Ở ĐÂY - ĐÃ VALIDATE Ở MIDDLEWARE
+    // ========================================
+    
+    let imageUrls;
+    let primaryImageUrl;
+
+    // Nếu có middleware upload (production)
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      console.log(`[PRODUCT CONTROLLER] Upload ${uploadedFiles.length} ảnh lên cloud storage...`);
+      
+      // TODO: Upload thực tế lên Cloudinary/S3
+      // const uploadPromises = uploadedFiles.map(file => uploadToCloudinary(file.buffer));
+      // imageUrls = await Promise.all(uploadPromises);
+      
+      // Tạm thời dùng fake URLs
+      imageUrls = uploadedFiles.map((file, index) => {
+        return `https://cloudinary.com/fake-url/${Date.now()}-${index}.jpg`;
+      });
+      
+      primaryImageUrl = imageUrls[0];
+      
+      console.log(`[PRODUCT CONTROLLER] ✓ Uploaded ${imageUrls.length} ảnh`);
+    } 
+    // Nếu không có middleware (test mode)
+    else {
+      console.log('[PRODUCT CONTROLLER] ⚠️ TEST MODE: Sử dụng fake image URLs');
+      
+      imageUrls = [
+        'https://via.placeholder.com/800x600/FF5733/FFFFFF?text=Product+Image+1',
+        'https://via.placeholder.com/800x600/33FF57/FFFFFF?text=Product+Image+2',
+        'https://via.placeholder.com/800x600/3357FF/FFFFFF?text=Product+Image+3'
+      ];
+      
+      primaryImageUrl = imageUrls[0];
+    }
+
+    // ========================================
+    // 7. TẠO SLUG
+    // ========================================
+    const slug = title
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    // ========================================
+    // 8. TẠO PRODUCT
+    // ========================================
+    const newProduct = new Product({
+      sellerId: '674b2d5e8f9a1b2c3d4e5f60', // TODO: req.user._id
+      categoryId,
+      title: title.trim(),
+      slug,
+      descriptionHistory: [
+        {
+          text: description.trim(),
+          createdAt: new Date(),
+          authorId: '674b2d5e8f9a1b2c3d4e5f60' // TODO: req.user._id
+        }
+      ],
+      primaryImageUrl,
+      imageUrls,
+      // Nếu gửi JSON: metadata đã là object
+      // Nếu gửi form-data: metadata là string, cần parse
+      metadata: typeof metadata === 'string' ? JSON.parse(metadata) : (metadata || {}),
+      baseCurrency: 'VND',
+      isActive: true,
+      flags: {
+        featured: false,
+        highlightedUntil: null,
+        isNewUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      }
+    });
+
+    const savedProduct = await newProduct.save();
+    console.log(`[PRODUCT CONTROLLER] Product created: ${savedProduct._id}`);
+
+    // ========================================
+    // 9. TẠO AUCTION SESSION
+    // ========================================
+    const newAuction = new Auction({
+      productId: savedProduct._id,
+      sellerId: '674b2d5e8f9a1b2c3d4e5f60', // TODO: req.user._id
+      startPrice: numStartPrice,
+      priceStep: numPriceStep,
+      currentPrice: numStartPrice,
+      startAt: startDate,  // ← Sửa từ startTime
+      endAt: endDate,      // ← Sửa từ endTime
+      status: startDate > now ? 'scheduled' : 'active', // ← Sửa 'pending' thành 'scheduled'
+      bidCount: 0,
+      autoExtendEnabled: true
+    });
+
+    const savedAuction = await newAuction.save();
+    console.log(`[PRODUCT CONTROLLER] Auction created: ${savedAuction._id}`);
+
+    // ========================================
+    // 10. TRẢ VỀ RESPONSE
+    // ========================================
+    await savedProduct.populate('categoryId', 'name slug');
+
+    const isTestMode = !uploadedFiles || uploadedFiles.length === 0;
+
+    return res.status(201).json({
+      success: true,
+      message: isTestMode 
+        ? '✅ TEST MODE: Đăng sản phẩm thành công (fake images)'
+        : 'Đăng sản phẩm đấu giá thành công',
+      data: {
+        product: {
+          _id: savedProduct._id,
+          title: savedProduct.title,
+          slug: savedProduct.slug,
+          category: savedProduct.categoryId,
+          primaryImageUrl: savedProduct.primaryImageUrl,
+          imageUrls: savedProduct.imageUrls,
+          description: savedProduct.descriptionHistory[0].text,
+          metadata: savedProduct.metadata,
+          createdAt: savedProduct.createdAt
+        },
+        auction: {
+          _id: savedAuction._id,
+          startPrice: savedAuction.startPrice,
+          priceStep: savedAuction.priceStep,
+          currentPrice: savedAuction.currentPrice,
+          startTime: savedAuction.startAt,  // ← Map từ startAt
+          endTime: savedAuction.endAt,      // ← Map từ endAt
+          status: savedAuction.status,
+          bidCount: savedAuction.bidCount
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in postProduct:', error);
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Dữ liệu không hợp lệ',
+        errors: Object.keys(error.errors).map(key => ({
+          field: key,
+          message: error.errors[key].message
+        }))
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi đăng sản phẩm',
+      error: error.message
+    });
   }
 };

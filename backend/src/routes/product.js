@@ -10,8 +10,15 @@ import {
   getTopProducts,
   getProductsByCategory,
   searchProducts,
-  getProductDetail
+  getProductDetail,
+  postProduct
 } from '../controllers/product.js';
+
+import {
+  uploadProductImages,
+  validateProductImages,
+  handleMulterError,
+} from '../middlewares/upload.js';
 
 const router = express.Router();
 
@@ -42,4 +49,15 @@ router.get('/category/:categoryId', getProductsByCategory);
  */
 router.get('/:productId', getProductDetail);
 
+/**
+ * API 3.1:  Đăng sản phẩm đấu giá
+ * POST /api/products
+ */
+
+router.post('/',
+  // uploadProductImages,  
+  // handleMulterError,        
+  // validateProductImages,   
+  postProduct
+);
 export default router;
