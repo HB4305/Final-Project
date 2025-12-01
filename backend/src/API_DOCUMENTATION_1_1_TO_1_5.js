@@ -105,8 +105,13 @@ Lấy 3 nhóm top 5 sản phẩm cho trang chủ:
 
 Lấy danh sách sản phẩm theo danh mục với phân trang
 
+**Tính năng:**
+- Hỗ trợ cả **parent category** (cấp 1) và **child category** (cấp 2)
+- Khi truyền parent category ID, tự động truy vấn tất cả child categories
+- Chỉ hiển thị sản phẩm có auction active
+
 **Query Parameters:**
-- `categoryId` (required): ID danh mục
+- `categoryId` (required): ID danh mục (parent hoặc child)
 - `page` (optional, default=1): Số trang
 - `limit` (optional, default=12): Số sản phẩm/trang
 - `sortBy` (optional, default='newest'): Cách sắp xếp
@@ -118,7 +123,11 @@ Lấy danh sách sản phẩm theo danh mục với phân trang
 
 **Example Request:**
 ```
+# Với parent category (tự động truy vấn tất cả child categories)
 GET /api/products/category/507f1f77bcf86cd799439011?page=1&limit=12&sortBy=price_desc
+
+# Với child category
+GET /api/products/category/507f1f77bcf86cd799439012?page=1&limit=12&sortBy=newest
 ```
 
 **Response:**
@@ -158,7 +167,15 @@ GET /api/products/category/507f1f77bcf86cd799439011?page=1&limit=12&sortBy=price
 - Controller: `backend/src/controllers/product.js` → `getProductsByCategory()`
 - Service: `backend/src/services/ProductService.js` → `getProductsByCategory()`
 - Route: `backend/src/routes/product.js`
-- Model: `backend/src/models/Product.js` (indexes for categoryId, createdAt)
+- Models: 
+  - `backend/src/models/Product.js` (indexes: categoryId, createdAt, isActive)
+  - `backend/src/models/Category.js` (for parent/child lookup)
+
+**Implementation Details:**
+- Nếu categoryId là parent (level=1): tìm tất cả child categories
+- Sử dụng `$in` operator để match products từ parent hoặc tất cả child categories
+- Chỉ hiển thị products với auction active (`auction.status === 'active'`)
+- Aggregation pipeline 10 stages: $match, $lookup, $unwind, $match (active auction), $lookup (seller), $unwind, $sort, $skip, $limit, $project
 
 ---
 
@@ -184,7 +201,14 @@ Tìm kiếm sản phẩm với full-text search, hỗ trợ lọc và sắp xế
 
 **Example Request:**
 ```
-GET /api/products/search?q=iPhone&categoryId=507f1f77bcf86cd799439011&minPrice=15000000&maxPrice=30000000&sortBy=price_desc&page=1&limit=12
+# Tìm kiếm "iPhone" với lọc danh mục, giá, sắp xếp
+GET /api/products/search?q=iPhone&categoryId=507f1f77bcf86cd799439012&minPrice=15000000&maxPrice=30000000&sortBy=price_desc&page=1&limit=12
+
+# Tìm kiếm đơn giản
+GET /api/products/search?q=iPhone&sortBy=price_desc
+
+# Tìm kiếm với lọc giá
+GET /api/products/search?q=iPhone&minPrice=10000000&maxPrice=30000000
 ```
 
 **Response:**
@@ -220,12 +244,20 @@ GET /api/products/search?q=iPhone&categoryId=507f1f77bcf86cd799439011&minPrice=1
 - Controller: `backend/src/controllers/product.js` → `searchProducts()`
 - Service: `backend/src/services/ProductService.js` → `searchProducts()`
 - Route: `backend/src/routes/product.js`
-- Model: `backend/src/models/Product.js` (text index on title + metadata.brand)
+- Model: `backend/src/models/Product.js` (text index on title)
+
+**Implementation Details:**
+- Full-text search sử dụng MongoDB text index trên trường `title`
+- Support $text operator để tìm kiếm và tính `score` (relevance)
+- Aggregation pipeline: $match (text search), $lookup (auction), $unwind, $match (active auction + price range), $sort, $skip, $limit, $project
+- Count pipeline đồng bộ với main pipeline để đảm bảo `total` chính xác (bao gồm tất cả filters)
+- Kết quả được sort theo score (relevance) nếu có text search
 
 **Performance Notes:**
 - Sử dụng MongoDB text index cho full-text search
-- Hỗ trợ aggregation pipeline để join với Auction
-- Có thể chậm nếu dataset lớn, cần thêm caching
+- Count sử dụng aggregation pipeline (không dùng countDocuments) để tính toán chính xác
+- Hỗ trợ lọc theo: danh mục, khoảng giá
+- Có thể chậm nếu dataset lớn, cần thêm caching (Redis)
 
 ---
 

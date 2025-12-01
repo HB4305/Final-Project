@@ -425,28 +425,37 @@ async function seedData() {
     }
     console.log(`[SEED] Tạo ${products.length}/20 products thành công (${20 - products.length} lỗi)`);
 
-    // 5. Tạo phiên đấu giá cho các sản phẩm đã tạo thành công
-    // FIX: Chỉ tạo auctions cho products có sẵn
+    // 5. Tạo phiên đấu giá cho tất cả sản phẩm
     const now = new Date();
     const auctionConfigs = [
-      // Điện thoại - 6 phiên (tối đa)
+      // Điện thoại - 6 phiên
       { productIndex: 0, startPrice: 20000000, currentPrice: 25000000, bidCount: 12, endHours: 10 },
       { productIndex: 1, startPrice: 18000000, currentPrice: 22500000, bidCount: 20, endHours: 30 },
       { productIndex: 2, startPrice: 12000000, currentPrice: 15500000, bidCount: 8, endHours: 48 },
       { productIndex: 3, startPrice: 16000000, currentPrice: 19200000, bidCount: 15, endHours: 5 },
       { productIndex: 4, startPrice: 14000000, currentPrice: 18300000, bidCount: 25, endHours: 72 },
       { productIndex: 5, startPrice: 15000000, currentPrice: 17800000, bidCount: 10, endHours: 20 },
-      // Laptop - 3 phiên
+      // Laptop - 4 phiên
       { productIndex: 6, startPrice: 30000000, currentPrice: 38500000, bidCount: 18, endHours: 3 },
       { productIndex: 7, startPrice: 25000000, currentPrice: 31200000, bidCount: 14, endHours: 40 },
       { productIndex: 8, startPrice: 18000000, currentPrice: 22800000, bidCount: 11, endHours: 60 },
-      // Khác
-      { productIndex: 9, startPrice: 200000, currentPrice: 450000, bidCount: 22, endHours: 15 }
+      { productIndex: 9, startPrice: 15000000, currentPrice: 19500000, bidCount: 9, endHours: 35 },
+      // Thời trang - 2 phiên
+      { productIndex: 10, startPrice: 500000, currentPrice: 750000, bidCount: 5, endHours: 24 },
+      { productIndex: 11, startPrice: 2000000, currentPrice: 3500000, bidCount: 8, endHours: 48 },
+      // Nhà cửa - 2 phiên
+      { productIndex: 12, startPrice: 5000000, currentPrice: 7200000, bidCount: 6, endHours: 36 },
+      { productIndex: 13, startPrice: 8000000, currentPrice: 11500000, bidCount: 10, endHours: 28 },
+      // Thể thao - 2 phiên
+      { productIndex: 14, startPrice: 300000, currentPrice: 550000, bidCount: 4, endHours: 72 },
+      { productIndex: 15, startPrice: 1500000, currentPrice: 2800000, bidCount: 7, endHours: 54 },
+      // Sách - 2 phiên
+      { productIndex: 16, startPrice: 150000, currentPrice: 280000, bidCount: 3, endHours: 60 },
+      { productIndex: 17, startPrice: 200000, currentPrice: 400000, bidCount: 5, endHours: 42 }
     ];
 
     const auctions = [];
     for (const config of auctionConfigs) {
-      // FIX: Check product tồn tại
       if (config.productIndex >= products.length) break;
 
       auctions.push({
@@ -455,7 +464,7 @@ async function seedData() {
         startPrice: config.startPrice,
         currentPrice: config.currentPrice,
         bidCount: config.bidCount,
-        buyNowPrice: config.currentPrice + 1000000,
+        buyNowPrice: config.currentPrice + Math.ceil(config.currentPrice * 0.05), // 5% markup
         priceStep: Math.floor(config.startPrice / 100),
         startAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
         endAt: new Date(now.getTime() + config.endHours * 60 * 60 * 1000),

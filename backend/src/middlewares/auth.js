@@ -1,8 +1,12 @@
 // MIDDLEWARE: Xác thực JWT và quản lý session
 
-import { verifyAccessToken, verifyRefreshToken, generateAccessToken } from '../utils/jwt.js';
-import { AppError } from '../utils/errors.js';
-import { ERROR_CODES } from '../lib/constants.js';
+import {
+  verifyAccessToken,
+  verifyRefreshToken,
+  generateAccessToken,
+} from "../utils/jwt.js";
+import { AppError } from "../utils/errors.js";
+import { ERROR_CODES } from "../lib/constants.js";
 
 /**
  * Middleware xác thực token từ header hoặc cookie
@@ -10,25 +14,35 @@ import { ERROR_CODES } from '../lib/constants.js';
  */
 export const authenticate = (req, res, next) => {
   try {
-    // Lấy token từ header Authorization hoặc cookie
-    const token = req.headers.authorization?.replace('Bearer ', '') || 
-                  req.cookies.accessToken;
+    // Lấy token từ header Authorization, x-auth-token, hoặc cookie
+    const token =
+      req.headers.authorization?.replace("Bearer ", "") ||
+      req.headers["x-auth-token"] ||
+      req.cookies.accessToken;
 
     if (!token) {
-      return next(new AppError('Vui lòng đăng nhập', 401, ERROR_CODES.UNAUTHORIZED));
+      return next(
+        new AppError("Vui lòng đăng nhập", 401, ERROR_CODES.UNAUTHORIZED)
+      );
     }
 
     // Verify token
     const decoded = verifyAccessToken(token);
     if (!decoded) {
-      return next(new AppError('Token không hợp lệ hoặc đã hết hạn', 401, ERROR_CODES.UNAUTHORIZED));
+      return next(
+        new AppError(
+          "Token không hợp lệ hoặc đã hết hạn",
+          401,
+          ERROR_CODES.UNAUTHORIZED
+        )
+      );
     }
 
     // Gán thông tin user vào request object
     req.user = decoded;
     next();
   } catch (error) {
-    console.error('[AUTH MIDDLEWARE] Lỗi xác thực:', error);
+    console.error("[AUTH MIDDLEWARE] Lỗi xác thực:", error);
     next(error);
   }
 };
@@ -41,12 +55,24 @@ export const refreshAccessToken = (req, res, next) => {
     const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
     if (!refreshToken) {
-      return next(new AppError('Refresh token không tồn tại', 401, ERROR_CODES.UNAUTHORIZED));
+      return next(
+        new AppError(
+          "Refresh token không tồn tại",
+          401,
+          ERROR_CODES.UNAUTHORIZED
+        )
+      );
     }
 
     const decoded = verifyRefreshToken(refreshToken);
     if (!decoded) {
-      return next(new AppError('Refresh token không hợp lệ hoặc đã hết hạn', 401, ERROR_CODES.UNAUTHORIZED));
+      return next(
+        new AppError(
+          "Refresh token không hợp lệ hoặc đã hết hạn",
+          401,
+          ERROR_CODES.UNAUTHORIZED
+        )
+      );
     }
 
     // Cấp token access mới
@@ -54,20 +80,20 @@ export const refreshAccessToken = (req, res, next) => {
       _id: decoded._id,
       email: decoded.email,
       username: decoded.username,
-      roles: decoded.roles
+      roles: decoded.roles,
     });
 
-    res.cookie('accessToken', newAccessToken, {
+    res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     req.user = decoded;
     next();
   } catch (error) {
-    console.error('[REFRESH TOKEN MIDDLEWARE] Lỗi refresh token:', error);
+    console.error("[REFRESH TOKEN MIDDLEWARE] Lỗi refresh token:", error);
     next(error);
   }
 };
@@ -77,11 +103,11 @@ export const refreshAccessToken = (req, res, next) => {
  */
 export const logout = (req, res, next) => {
   try {
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
     next();
   } catch (error) {
-    console.error('[LOGOUT MIDDLEWARE] Lỗi logout:', error);
+    console.error("[LOGOUT MIDDLEWARE] Lỗi logout:", error);
     next(error);
   }
 };
