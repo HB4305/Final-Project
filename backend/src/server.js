@@ -11,12 +11,10 @@ import auctionRoutes from "./routes/auction.js";
 import ratingRoutes from "./routes/rating.js";
 import userRoutes from "./routes/user.js";
 // API 1.1 - 1.5: Product & Category Routes
-import categoryRoutes from "./routes/category.js";
-import productRoutes from "./routes/product.js";
-// User Profile Management Routes
-import watchlistRoutes from "./routes/watchlist.js";
-import userAuctionRoutes from "./routes/userAuction.js";
-import transactionRoutes from "./routes/transaction.js";
+import categoryRoutes from './routes/category.js';
+import productRoutes from './routes/product.js';
+import questionRoutes from './routes/question.js';
+import { verifyEmailConfiguration } from './utils/email.js';
 
 dotenv.config();
 
@@ -95,12 +93,9 @@ app.use("/api/auctions", auctionRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/users", userRoutes);
 // API 1.1 - 1.5: Product & Category endpoints
-app.use("/api/categories", categoryRoutes);
-app.use("/api/products", productRoutes);
-// User Profile Management Routes
-app.use("/api/watchlist", watchlistRoutes);
-app.use("/api/user/auctions", userAuctionRoutes);
-app.use("/api/transactions", transactionRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/questions', questionRoutes);
 
 // 404 Handler
 app.use(notFoundHandler);
@@ -111,6 +106,7 @@ app.use(errorHandler);
 // Start Server
 async function startServer() {
   await connectDB();
+  await verifyEmailConfiguration();
   app.listen(PORT, () => {
     console.log(`Local host: http://localhost:${PORT}`);
   });

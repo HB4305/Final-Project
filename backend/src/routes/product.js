@@ -7,13 +7,29 @@
 
 import express from 'express';
 import {
+  getAllProducts,
   getTopProducts,
   getProductsByCategory,
   searchProducts,
-  getProductDetail
+  getProductDetail,
+  postProduct
 } from '../controllers/product.js';
 
+import {
+  uploadProductImages,
+  validateProductImages,
+  handleMulterError,
+} from '../middlewares/upload.js';
+
 const router = express.Router();
+
+/**
+ * API 1.1: Lấy tất cả sản phẩm (phân trang, không lọc)
+ * Hiển thị danh sách sản phẩm đang hoạt động với các tùy chọn sắp xếp
+ * - newest (mới nhất)
+ * GET /api/products?page=1&limit=12&sortBy=newest
+ */
+router.get('/', getAllProducts);
 
 /**
  * API 1.2: Lấy Top 5 sản phẩm (Trang chủ)
@@ -42,4 +58,15 @@ router.get('/category/:categoryId', getProductsByCategory);
  */
 router.get('/:productId', getProductDetail);
 
+/**
+ * API 3.1:  Đăng sản phẩm đấu giá
+ * POST /api/products
+ */
+
+router.post('/',
+  // uploadProductImages,  
+  // handleMulterError,        
+  // validateProductImages,   
+  postProduct
+);
 export default router;

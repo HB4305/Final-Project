@@ -44,7 +44,7 @@ const auctionSchema = new mongoose.Schema({
   priceStep: {
     type: Number,
     required: true,
-    min: 0,
+    min: 1000,
   },
   startAt: {
     type: Date,
@@ -56,27 +56,8 @@ const auctionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["scheduled", "active", "ended", "cancelled", "completed"],
+    enum: ["scheduled", "active", "ended", "cancelled"],
     default: "scheduled",
-  },
-  winnerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    default: null,
-  },
-  winningBidId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Bid",
-    default: null,
-  },
-  endedAt: {
-    type: Date,
-    default: null,
-  },
-  transactionStatus: {
-    type: String,
-    enum: ["pending", "paid", "shipped", "delivered", "cancelled", "disputed"],
-    default: "pending",
   },
   autoExtendEnabled: {
     type: Boolean,
@@ -102,6 +83,36 @@ const auctionSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  /**
+   * API 3.1: Tư động gia hạn
+   * Hệ thống tự động
+   */
+  autoExtendCount: {
+    type: Number,
+    default: 0,
+  },
+  autoExtendHistory: [
+    {
+      extendedAt: Date,
+      oldEndTime: Date,
+      newEndTime: Date,
+      triggeredByBidId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Bid",
+      },
+      _id: false,
+    },
+  ],
+
+  /**
+   * API 3.1: Tự động gia hạn
+   * Seller chủ động gia hạn
+   */
+  sellerExtendCount: {
+    type: Number,
+    initial: 0,
+    max: 3,
+  },
 });
 
 // Indexes
@@ -112,9 +123,8 @@ auctionSchema.index({ currentHighestBidderId: 1 });
 auctionSchema.index({ status: 1, endAt: 1, bidCount: -1 });
 
 // Update updatedAt on save
-auctionSchema.pre("save", function (next) {
+auctionSchema.pre("save", function () {
   this.updatedAt = Date.now();
-  next();
 });
 
 export default mongoose.model("Auction", auctionSchema);

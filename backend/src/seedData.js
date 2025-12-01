@@ -7,6 +7,7 @@ import Product from './models/Product.js';
 import Auction from './models/Auction.js';
 import Bid from './models/Bid.js';
 import User from './models/User.js';
+import bcrypt from 'bcryptjs'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,7 @@ async function seedData() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('[SEED] Connected to MongoDB');
+    const hashedPassword = await bcrypt.hash('password123', 10);
 
     // 1. Xóa dữ liệu cũ
     await Promise.all([
@@ -33,7 +35,7 @@ async function seedData() {
       username: 'seller_test_001',
       email: 'seller@test.com',
       emailVerified: true,
-      passwordHash: '$2b$10$hashedpassword', // bcrypt hash of 'password123'
+      passwordHash: hashedPassword, // bcrypt hash of 'password123'
       fullName: 'Người Bán Test',
       contactPhone: '+84912345678',
       roles: ['seller'],
@@ -51,7 +53,7 @@ async function seedData() {
       username: 'bidder_test_001',
       email: 'bidder1@test.com',
       emailVerified: true,
-      passwordHash: '$2b$10$hashedpassword',
+      passwordHash: hashedPassword,
       fullName: 'Người Mua Test 1',
       roles: ['bidder'],
       ratingSummary: {
@@ -67,7 +69,7 @@ async function seedData() {
       username: 'bidder_test_002',
       email: 'bidder2@test.com',
       emailVerified: true,
-      passwordHash: '$2b$10$hashedpassword',
+      passwordHash: hashedPassword,
       fullName: 'Người Mua Test 2',
       roles: ['bidder'],
       ratingSummary: {
@@ -127,286 +129,286 @@ async function seedData() {
               authorId: seller._id
             }
           ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=iPhone+15+Pro+Max',
-        imageUrls: [
-          'https://via.placeholder.com/300?text=iPhone+15+Pro+Max+1',
-          'https://via.placeholder.com/300?text=iPhone+15+Pro+Max+2',
-          'https://via.placeholder.com/300?text=iPhone+15+Pro+Max+3'
-        ],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: {
-          brand: 'Apple',
-          model: 'iPhone 15 Pro Max',
-          condition: 'Mới 100%',
-          specs: { storage: '256GB', color: 'Space Black', processor: 'A17 Pro' }
+          primaryImageUrl: 'https://via.placeholder.com/300?text=iPhone+15+Pro+Max',
+          imageUrls: [
+            'https://via.placeholder.com/300?text=iPhone+15+Pro+Max+1',
+            'https://via.placeholder.com/300?text=iPhone+15+Pro+Max+2',
+            'https://via.placeholder.com/300?text=iPhone+15+Pro+Max+3'
+          ],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: {
+            brand: 'Apple',
+            model: 'iPhone 15 Pro Max',
+            condition: 'Mới 100%',
+            specs: { storage: '256GB', color: 'Space Black', processor: 'A17 Pro' }
+          },
+          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
         },
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[0]._id,
-        title: 'Samsung Galaxy S24 Ultra',
-        slug: 'samsung-galaxy-s24-ultra',
-        descriptionHistory: [
-          { text: 'Samsung Galaxy S24 Ultra 512GB Titanium Black, mở hộp 1 lần, có bảo hành 2 năm', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Samsung+Galaxy+S24',
-        imageUrls: ['https://via.placeholder.com/300?text=Samsung+1', 'https://via.placeholder.com/300?text=Samsung+2', 'https://via.placeholder.com/300?text=Samsung+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: {
-          brand: 'Samsung',
-          model: 'Galaxy S24 Ultra',
-          condition: 'Như mới',
-          specs: { storage: '512GB', color: 'Titanium Black' }
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[0]._id,
+          title: 'Samsung Galaxy S24 Ultra',
+          slug: 'samsung-galaxy-s24-ultra',
+          descriptionHistory: [
+            { text: 'Samsung Galaxy S24 Ultra 512GB Titanium Black, mở hộp 1 lần, có bảo hành 2 năm', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Samsung+Galaxy+S24',
+          imageUrls: ['https://via.placeholder.com/300?text=Samsung+1', 'https://via.placeholder.com/300?text=Samsung+2', 'https://via.placeholder.com/300?text=Samsung+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: {
+            brand: 'Samsung',
+            model: 'Galaxy S24 Ultra',
+            condition: 'Như mới',
+            specs: { storage: '512GB', color: 'Titanium Black' }
+          },
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
         },
-        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[0]._id,
-        title: 'iPhone 14 Pro',
-        slug: 'iphone-14-pro',
-        descriptionHistory: [
-          { text: 'iPhone 14 Pro 128GB Gold, hàng chính hãng, đã sử dụng 3 tháng', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=iPhone+14+Pro',
-        imageUrls: ['https://via.placeholder.com/300?text=iPhone+14+1', 'https://via.placeholder.com/300?text=iPhone+14+2', 'https://via.placeholder.com/300?text=iPhone+14+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Apple', model: 'iPhone 14 Pro', condition: 'Đã dùng', specs: { storage: '128GB', color: 'Gold' } },
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[0]._id,
-        title: 'Google Pixel 8 Pro',
-        slug: 'google-pixel-8-pro',
-        descriptionHistory: [
-          { text: 'Google Pixel 8 Pro 256GB Obsidian, mới 100%', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Pixel+8+Pro',
-        imageUrls: ['https://via.placeholder.com/300?text=Pixel+1', 'https://via.placeholder.com/300?text=Pixel+2', 'https://via.placeholder.com/300?text=Pixel+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Google', model: 'Pixel 8 Pro', condition: 'Mới', specs: { storage: '256GB', color: 'Obsidian' } },
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[0]._id,
-        title: 'OnePlus 12',
-        slug: 'oneplus-12',
-        descriptionHistory: [
-          { text: 'OnePlus 12 256GB Silky Black, hàng chính hãng', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=OnePlus+12',
-        imageUrls: ['https://via.placeholder.com/300?text=OnePlus+1', 'https://via.placeholder.com/300?text=OnePlus+2', 'https://via.placeholder.com/300?text=OnePlus+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'OnePlus', model: '12', condition: 'Mới', specs: { storage: '256GB' } },
-        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[0]._id,
-        title: 'Xiaomi 14 Ultra',
-        slug: 'xiaomi-14-ultra',
-        descriptionHistory: [
-          { text: 'Xiaomi 14 Ultra 512GB Space Black, mới 100%', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Xiaomi+14+Ultra',
-        imageUrls: ['https://via.placeholder.com/300?text=Xiaomi+1', 'https://via.placeholder.com/300?text=Xiaomi+2', 'https://via.placeholder.com/300?text=Xiaomi+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Xiaomi', model: '14 Ultra', condition: 'Mới', specs: { storage: '512GB' } },
-        createdAt: new Date()
-      },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[0]._id,
+          title: 'iPhone 14 Pro',
+          slug: 'iphone-14-pro',
+          descriptionHistory: [
+            { text: 'iPhone 14 Pro 128GB Gold, hàng chính hãng, đã sử dụng 3 tháng', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=iPhone+14+Pro',
+          imageUrls: ['https://via.placeholder.com/300?text=iPhone+14+1', 'https://via.placeholder.com/300?text=iPhone+14+2', 'https://via.placeholder.com/300?text=iPhone+14+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Apple', model: 'iPhone 14 Pro', condition: 'Đã dùng', specs: { storage: '128GB', color: 'Gold' } },
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[0]._id,
+          title: 'Google Pixel 8 Pro',
+          slug: 'google-pixel-8-pro',
+          descriptionHistory: [
+            { text: 'Google Pixel 8 Pro 256GB Obsidian, mới 100%', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Pixel+8+Pro',
+          imageUrls: ['https://via.placeholder.com/300?text=Pixel+1', 'https://via.placeholder.com/300?text=Pixel+2', 'https://via.placeholder.com/300?text=Pixel+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Google', model: 'Pixel 8 Pro', condition: 'Mới', specs: { storage: '256GB', color: 'Obsidian' } },
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[0]._id,
+          title: 'OnePlus 12',
+          slug: 'oneplus-12',
+          descriptionHistory: [
+            { text: 'OnePlus 12 256GB Silky Black, hàng chính hãng', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=OnePlus+12',
+          imageUrls: ['https://via.placeholder.com/300?text=OnePlus+1', 'https://via.placeholder.com/300?text=OnePlus+2', 'https://via.placeholder.com/300?text=OnePlus+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'OnePlus', model: '12', condition: 'Mới', specs: { storage: '256GB' } },
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[0]._id,
+          title: 'Xiaomi 14 Ultra',
+          slug: 'xiaomi-14-ultra',
+          descriptionHistory: [
+            { text: 'Xiaomi 14 Ultra 512GB Space Black, mới 100%', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Xiaomi+14+Ultra',
+          imageUrls: ['https://via.placeholder.com/300?text=Xiaomi+1', 'https://via.placeholder.com/300?text=Xiaomi+2', 'https://via.placeholder.com/300?text=Xiaomi+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Xiaomi', model: '14 Ultra', condition: 'Mới', specs: { storage: '512GB' } },
+          createdAt: new Date()
+        },
 
-      // Laptop (4 sản phẩm)
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[1]._id,
-        title: 'MacBook Pro 16 M3 Max',
-        slug: 'macbook-pro-16-m3-max',
-        descriptionHistory: [
-          { text: 'MacBook Pro 16" M3 Max 48GB 1TB, hàng chính hãng Apple', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=MacBook+Pro+16',
-        imageUrls: ['https://via.placeholder.com/300?text=MacBook+1', 'https://via.placeholder.com/300?text=MacBook+2', 'https://via.placeholder.com/300?text=MacBook+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Apple', model: 'MacBook Pro 16', condition: 'Mới', specs: { cpu: 'M3 Max', ram: '48GB', storage: '1TB' } },
-        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[1]._id,
-        title: 'Dell XPS 15',
-        slug: 'dell-xps-15',
-        descriptionHistory: [
-          { text: 'Dell XPS 15 i7 RTX 4060, 32GB RAM, 1TB SSD', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Dell+XPS+15',
-        imageUrls: ['https://via.placeholder.com/300?text=Dell+1', 'https://via.placeholder.com/300?text=Dell+2', 'https://via.placeholder.com/300?text=Dell+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Dell', model: 'XPS 15', condition: 'Như mới', specs: { cpu: 'i7-13700H', ram: '32GB', storage: '1TB' } },
-        createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[1]._id,
-        title: 'HP Pavilion 15',
-        slug: 'hp-pavilion-15',
-        descriptionHistory: [
-          { text: 'HP Pavilion 15 i5 MX550, 16GB RAM, 512GB SSD', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=HP+Pavilion',
-        imageUrls: ['https://via.placeholder.com/300?text=HP+1', 'https://via.placeholder.com/300?text=HP+2', 'https://via.placeholder.com/300?text=HP+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'HP', model: 'Pavilion 15', condition: 'Đã dùng', specs: { cpu: 'i5-12450H', ram: '16GB', storage: '512GB' } },
-        createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[1]._id,
-        title: 'Lenovo ThinkPad X1 Carbon',
-        slug: 'lenovo-thinkpad-x1-carbon',
-        descriptionHistory: [
-          { text: 'Lenovo ThinkPad X1 Carbon i7, 16GB, 512GB', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Lenovo+X1',
-        imageUrls: ['https://via.placeholder.com/300?text=Lenovo+1', 'https://via.placeholder.com/300?text=Lenovo+2', 'https://via.placeholder.com/300?text=Lenovo+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Lenovo', model: 'ThinkPad X1', condition: 'Mới', specs: { cpu: 'i7-1365U', ram: '16GB', storage: '512GB' } },
-        createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
-      },
+        // Laptop (4 sản phẩm)
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[1]._id,
+          title: 'MacBook Pro 16 M3 Max',
+          slug: 'macbook-pro-16-m3-max',
+          descriptionHistory: [
+            { text: 'MacBook Pro 16" M3 Max 48GB 1TB, hàng chính hãng Apple', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=MacBook+Pro+16',
+          imageUrls: ['https://via.placeholder.com/300?text=MacBook+1', 'https://via.placeholder.com/300?text=MacBook+2', 'https://via.placeholder.com/300?text=MacBook+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Apple', model: 'MacBook Pro 16', condition: 'Mới', specs: { cpu: 'M3 Max', ram: '48GB', storage: '1TB' } },
+          createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[1]._id,
+          title: 'Dell XPS 15',
+          slug: 'dell-xps-15',
+          descriptionHistory: [
+            { text: 'Dell XPS 15 i7 RTX 4060, 32GB RAM, 1TB SSD', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Dell+XPS+15',
+          imageUrls: ['https://via.placeholder.com/300?text=Dell+1', 'https://via.placeholder.com/300?text=Dell+2', 'https://via.placeholder.com/300?text=Dell+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Dell', model: 'XPS 15', condition: 'Như mới', specs: { cpu: 'i7-13700H', ram: '32GB', storage: '1TB' } },
+          createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[1]._id,
+          title: 'HP Pavilion 15',
+          slug: 'hp-pavilion-15',
+          descriptionHistory: [
+            { text: 'HP Pavilion 15 i5 MX550, 16GB RAM, 512GB SSD', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=HP+Pavilion',
+          imageUrls: ['https://via.placeholder.com/300?text=HP+1', 'https://via.placeholder.com/300?text=HP+2', 'https://via.placeholder.com/300?text=HP+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'HP', model: 'Pavilion 15', condition: 'Đã dùng', specs: { cpu: 'i5-12450H', ram: '16GB', storage: '512GB' } },
+          createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[1]._id,
+          title: 'Lenovo ThinkPad X1 Carbon',
+          slug: 'lenovo-thinkpad-x1-carbon',
+          descriptionHistory: [
+            { text: 'Lenovo ThinkPad X1 Carbon i7, 16GB, 512GB', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Lenovo+X1',
+          imageUrls: ['https://via.placeholder.com/300?text=Lenovo+1', 'https://via.placeholder.com/300?text=Lenovo+2', 'https://via.placeholder.com/300?text=Lenovo+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Lenovo', model: 'ThinkPad X1', condition: 'Mới', specs: { cpu: 'i7-1365U', ram: '16GB', storage: '512GB' } },
+          createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
+        },
 
-      // Thời trang & Khác (10 sản phẩm khác)
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[2]._id,
-        title: 'Áo Thun Nike Dri-FIT',
-        slug: 'ao-thun-nike-dri-fit',
-        descriptionHistory: [
-          { text: 'Áo thun Nike Dri-FIT chính hãng, size L, màu đen', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Nike+Shirt',
-        imageUrls: ['https://via.placeholder.com/300?text=Nike+1', 'https://via.placeholder.com/300?text=Nike+2', 'https://via.placeholder.com/300?text=Nike+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Nike', condition: 'Mới', specs: { size: 'L', material: '100% Cotton' } },
-        createdAt: new Date()
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[3]._id,
-        title: 'Giày Air Jordan 1 Retro',
-        slug: 'giay-air-jordan-1',
-        descriptionHistory: [
-          { text: 'Giày Air Jordan 1 Retro High OG Chicago, size 9.5US', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Air+Jordan+1',
-        imageUrls: ['https://via.placeholder.com/300?text=Jordan+1', 'https://via.placeholder.com/300?text=Jordan+2', 'https://via.placeholder.com/300?text=Jordan+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Jordan', condition: 'Như mới', specs: { size: '9.5US' } },
-        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[4]._id,
-        title: 'Bàn Làm Việc Gỗ Sồi',
-        slug: 'ban-lam-viec-go-soi',
-        descriptionHistory: [
-          { text: 'Bàn làm việc gỗ sồi nguyên khối, kích thước 120x60cm', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Desk',
-        imageUrls: ['https://via.placeholder.com/300?text=Desk+1', 'https://via.placeholder.com/300?text=Desk+2', 'https://via.placeholder.com/300?text=Desk+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'HandMade', condition: 'Mới', specs: { material: 'Gỗ sồi', size: '120x60cm' } },
-        createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[5]._id,
-        title: 'Điều Hòa LG Inverter 1.5HP',
-        slug: 'dieu-hoa-lg-1-5hp',
-        descriptionHistory: [
-          { text: 'Điều hòa LG Inverter 1.5HP, tiết kiệm điện, bảo hành 3 năm', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=AC+LG',
-        imageUrls: ['https://via.placeholder.com/300?text=AC+1', 'https://via.placeholder.com/300?text=AC+2', 'https://via.placeholder.com/300?text=AC+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'LG', condition: 'Mới', specs: { power: '1.5HP', type: 'Inverter' } },
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[6]._id,
-        title: 'Quả Bóng FIFA Pro',
-        slug: 'qua-bong-fifa-pro',
-        descriptionHistory: [
-          { text: 'Quả bóng đá FIFA Pro, chất lượng chuyên nghiệp', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Football',
-        imageUrls: ['https://via.placeholder.com/300?text=Ball+1', 'https://via.placeholder.com/300?text=Ball+2', 'https://via.placeholder.com/300?text=Ball+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'FIFA', condition: 'Mới', specs: { material: 'PVC' } },
-        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[7]._id,
-        title: 'Vợt Cầu Lông Yonex Nanoray',
-        slug: 'vot-cau-long-yonex',
-        descriptionHistory: [
-          { text: 'Vợt cầu lông Yonex Nanoray, dành cho chuyên nghiệp', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Badminton',
-        imageUrls: ['https://via.placeholder.com/300?text=Racket+1', 'https://via.placeholder.com/300?text=Racket+2', 'https://via.placeholder.com/300?text=Racket+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Yonex', condition: 'Như mới', specs: { series: 'Nanoray' } },
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[8]._id,
-        title: 'Nhà Giả Kim - Paulo Coelho',
-        slug: 'nha-gia-kim',
-        descriptionHistory: [
-          { text: 'Sách Nhà Giả Kim của Paulo Coelho, bìa cứng, tái bản lần 10', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=Book',
-        imageUrls: ['https://via.placeholder.com/300?text=Book+1', 'https://via.placeholder.com/300?text=Book+2', 'https://via.placeholder.com/300?text=Book+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'Skybooks', condition: 'Như mới', specs: { author: 'Paulo Coelho', pages: 320 } },
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-      },
-      {
-        sellerId: seller._id,
-        categoryId: childCategories[9]._id,
-        title: 'The Alchemist - English Version',
-        slug: 'the-alchemist-english',
-        descriptionHistory: [
-          { text: 'Sách The Alchemist bản tiếng Anh, bìa mềm', createdAt: new Date(), authorId: seller._id }
-        ],
-        primaryImageUrl: 'https://via.placeholder.com/300?text=English+Book',
-        imageUrls: ['https://via.placeholder.com/300?text=Eng+1', 'https://via.placeholder.com/300?text=Eng+2', 'https://via.placeholder.com/300?text=Eng+3'],
-        isActive: true,
-        baseCurrency: 'VND',
-        metadata: { brand: 'HarperCollins', condition: 'Mới', specs: { author: 'Paulo Coelho', pages: 224 } },
-        createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
-      }
+        // Thời trang & Khác (10 sản phẩm khác)
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[2]._id,
+          title: 'Áo Thun Nike Dri-FIT',
+          slug: 'ao-thun-nike-dri-fit',
+          descriptionHistory: [
+            { text: 'Áo thun Nike Dri-FIT chính hãng, size L, màu đen', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Nike+Shirt',
+          imageUrls: ['https://via.placeholder.com/300?text=Nike+1', 'https://via.placeholder.com/300?text=Nike+2', 'https://via.placeholder.com/300?text=Nike+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Nike', condition: 'Mới', specs: { size: 'L', material: '100% Cotton' } },
+          createdAt: new Date()
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[3]._id,
+          title: 'Giày Air Jordan 1 Retro',
+          slug: 'giay-air-jordan-1',
+          descriptionHistory: [
+            { text: 'Giày Air Jordan 1 Retro High OG Chicago, size 9.5US', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Air+Jordan+1',
+          imageUrls: ['https://via.placeholder.com/300?text=Jordan+1', 'https://via.placeholder.com/300?text=Jordan+2', 'https://via.placeholder.com/300?text=Jordan+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Jordan', condition: 'Như mới', specs: { size: '9.5US' } },
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[4]._id,
+          title: 'Bàn Làm Việc Gỗ Sồi',
+          slug: 'ban-lam-viec-go-soi',
+          descriptionHistory: [
+            { text: 'Bàn làm việc gỗ sồi nguyên khối, kích thước 120x60cm', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Desk',
+          imageUrls: ['https://via.placeholder.com/300?text=Desk+1', 'https://via.placeholder.com/300?text=Desk+2', 'https://via.placeholder.com/300?text=Desk+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'HandMade', condition: 'Mới', specs: { material: 'Gỗ sồi', size: '120x60cm' } },
+          createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[5]._id,
+          title: 'Điều Hòa LG Inverter 1.5HP',
+          slug: 'dieu-hoa-lg-1-5hp',
+          descriptionHistory: [
+            { text: 'Điều hòa LG Inverter 1.5HP, tiết kiệm điện, bảo hành 3 năm', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=AC+LG',
+          imageUrls: ['https://via.placeholder.com/300?text=AC+1', 'https://via.placeholder.com/300?text=AC+2', 'https://via.placeholder.com/300?text=AC+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'LG', condition: 'Mới', specs: { power: '1.5HP', type: 'Inverter' } },
+          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[6]._id,
+          title: 'Quả Bóng FIFA Pro',
+          slug: 'qua-bong-fifa-pro',
+          descriptionHistory: [
+            { text: 'Quả bóng đá FIFA Pro, chất lượng chuyên nghiệp', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Football',
+          imageUrls: ['https://via.placeholder.com/300?text=Ball+1', 'https://via.placeholder.com/300?text=Ball+2', 'https://via.placeholder.com/300?text=Ball+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'FIFA', condition: 'Mới', specs: { material: 'PVC' } },
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[7]._id,
+          title: 'Vợt Cầu Lông Yonex Nanoray',
+          slug: 'vot-cau-long-yonex',
+          descriptionHistory: [
+            { text: 'Vợt cầu lông Yonex Nanoray, dành cho chuyên nghiệp', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Badminton',
+          imageUrls: ['https://via.placeholder.com/300?text=Racket+1', 'https://via.placeholder.com/300?text=Racket+2', 'https://via.placeholder.com/300?text=Racket+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Yonex', condition: 'Như mới', specs: { series: 'Nanoray' } },
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[8]._id,
+          title: 'Nhà Giả Kim - Paulo Coelho',
+          slug: 'nha-gia-kim',
+          descriptionHistory: [
+            { text: 'Sách Nhà Giả Kim của Paulo Coelho, bìa cứng, tái bản lần 10', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=Book',
+          imageUrls: ['https://via.placeholder.com/300?text=Book+1', 'https://via.placeholder.com/300?text=Book+2', 'https://via.placeholder.com/300?text=Book+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'Skybooks', condition: 'Như mới', specs: { author: 'Paulo Coelho', pages: 320 } },
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+        },
+        {
+          sellerId: seller._id,
+          categoryId: childCategories[9]._id,
+          title: 'The Alchemist - English Version',
+          slug: 'the-alchemist-english',
+          descriptionHistory: [
+            { text: 'Sách The Alchemist bản tiếng Anh, bìa mềm', createdAt: new Date(), authorId: seller._id }
+          ],
+          primaryImageUrl: 'https://via.placeholder.com/300?text=English+Book',
+          imageUrls: ['https://via.placeholder.com/300?text=Eng+1', 'https://via.placeholder.com/300?text=Eng+2', 'https://via.placeholder.com/300?text=Eng+3'],
+          isActive: true,
+          baseCurrency: 'VND',
+          metadata: { brand: 'HarperCollins', condition: 'Mới', specs: { author: 'Paulo Coelho', pages: 224 } },
+          createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
+        }
       ], { ordered: false }); // FIX: ordered: false để insert dù có lỗi
       console.log(`[SEED] Created ${products.length} products`);
     } catch (error) {
@@ -455,7 +457,7 @@ async function seedData() {
     const auctions = [];
     for (const config of auctionConfigs) {
       if (config.productIndex >= products.length) break;
-      
+
       auctions.push({
         productId: products[config.productIndex]._id,
         sellerId: seller._id,
@@ -480,11 +482,11 @@ async function seedData() {
     const bids = [];
     for (let i = 0; i < createdAuctions.length; i++) {
       const auctionBidCount = createdAuctions[i].bidCount;
-      
+
       for (let j = 0; j < auctionBidCount; j++) {
         const isBidder1 = j % 2 === 0;
         const bidder = isBidder1 ? bidder1 : bidder2;
-        
+
         bids.push({
           auctionId: createdAuctions[i]._id,
           productId: createdAuctions[i].productId,
@@ -495,7 +497,7 @@ async function seedData() {
         });
       }
     }
-    
+
     await Bid.insertMany(bids, { ordered: false });
     console.log(`[SEED] Created ${bids.length} bids`);
 
