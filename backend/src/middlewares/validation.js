@@ -71,6 +71,43 @@ export const validateRegisterInput = (req, res, next) => {
 };
 
 /**
+ * Validate dữ liệu OTP
+ */
+export const validateOtpInput = (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return next(
+        new AppError(
+          "Vui lòng cung cấp email và mã OTP",
+          400,
+          ERROR_CODES.INVALID_INPUT
+        )
+      );
+    }
+
+    if (!isValidEmail(email)) {
+      return next(
+        new AppError("Email không hợp lệ", 400, ERROR_CODES.INVALID_INPUT)
+      );
+    }
+
+    if (typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
+      return next(
+        new AppError("Mã OTP phải là 6 chữ số", 400, ERROR_CODES.INVALID_INPUT)
+      );
+    }
+
+    next();
+  } catch (error) {
+    console.error("[VALIDATE OTP] Lỗi validate OTP:", error);
+    next(error);
+  }
+};
+
+
+/**
  * Validate dữ liệu đăng nhập
  */
 export const validateLoginInput = (req, res, next) => {

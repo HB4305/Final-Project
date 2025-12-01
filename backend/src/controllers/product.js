@@ -12,6 +12,68 @@ import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import Auction from '../models/Auction.js';
 
+
+/**
+ * API 1.1: Lấy tất cả sản phẩm (phân trang, không lọc)
+ * Hiển thị danh sách sản phẩm đang hoạt động với các tùy chọn sắp xếp:
+ * - newest (mới nhất)
+ * - price_asc (giá thấp đến cao)
+ * - price_desc (giá cao đến thấp)
+ * - ending_soon (gần kết thúc)
+ *
+ * Query params:
+ * - page: số trang (mặc định 1)
+ * - limit: số sản phẩm trên trang (mặc định 12)
+ * - sortBy: cách sắp xếp (mặc định 'newest')
+ *
+ * GET /api/products?page=1&limit=12&sortBy=newest
+ */
+export const getAllProducts = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 12, sortBy = 'newest' } = req.query;
+    const skip = (page - 1) * limit;
+
+    let sortOption = {};
+    switch (sortBy) {
+      case 'price_asc':
+        sortOption = { startPrice: 1 };
+        break;
+      case 'price_desc':
+        sortOption = { startPrice: -1 };
+        break;
+      case 'newest':
+        sortOption = { createdAt: -1 };
+        break;
+      case 'ending_soon':
+        sortOption = { endDate: 1 };
+        break;
+      default:
+        sortOption = { createdAt: -1 };
+    }
+
+    const total = await Product.countDocuments({ status: 'active' });
+    const products = await Product.find({ status: 'active' })
+      .sort(sortOption)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('categoryId', 'name');
+
+    res.status(200).json({
+      status: 'success',
+      data: products,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 /**
  * API 1.2: Lấy Top 5 sản phẩm cho Trang Chủ
  * Trả về 3 nhóm top products:
