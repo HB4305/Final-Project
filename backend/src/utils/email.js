@@ -11,12 +11,12 @@ const __dirname = path.dirname(__filename);
 // Tạo transporter function để load credentials khi cần
 const getTransporter = () => {
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT) || 587,
+    host: process.env.EMAIL_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.EMAIL_PORT) || 587,
     secure: false,
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
     },
   });
 };
@@ -26,7 +26,11 @@ const getTransporter = () => {
  */
 const loadTemplate = async (templateName, data) => {
   try {
-    const templatePath = path.join(__dirname, "../templates/emails", `${templateName}.html`);
+    const templatePath = path.join(
+      __dirname,
+      "../templates/emails",
+      `${templateName}.html`
+    );
     const templateContent = await fs.readFile(templatePath, "utf-8");
     const template = handlebars.compile(templateContent);
     return template(data);
@@ -40,17 +44,18 @@ export const sendEmail = async (options) => {
   try {
     const transporter = getTransporter();
     const mailOptions = {
-        from:`"${process.env.APP_NAME || 'Auction Platform'}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text || options.html.replace(/<[^>]+>/g, ''), 
+      from: `"${process.env.FROM_NAME || "Auction Platform"}" <${
+        process.env.FROM_EMAIL || process.env.EMAIL_USER
+      }>`,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text || options.html.replace(/<[^>]+>/g, ""),
     };
 
     const info = await transporter.sendMail(mailOptions);
     console.log(`Email sent: %s`, info.messageId);
     return info;
-
   } catch (error) {
     console.error("Error sending email:", error.message);
   }
@@ -111,8 +116,10 @@ export const sendAnswerNotification = async (data) => {
 };
 
 export const verifyEmailConfiguration = async () => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log("Email credentials not configured. Email features will be disabled.");
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log(
+      "Email credentials not configured. Email features will be disabled."
+    );
     return false;
   }
 
@@ -120,7 +127,7 @@ export const verifyEmailConfiguration = async () => {
     const transporter = getTransporter();
     await transporter.verify();
     console.log("Email server is ready to send messages");
-    console.log(`Using: ${process.env.SMTP_USER}`);
+    console.log(`Using: ${process.env.EMAIL_USER}`);
     return true;
   } catch (error) {
     console.error("Email server configuration error:", error.message);

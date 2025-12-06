@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import ReCAPTCHA from "react-google-recaptcha";
 import { useAuth } from "../../context/AuthContext";
 import Toast from "../../../components/Toast";
 
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [toast, setToast] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
   const navigate = useNavigate();
 
   // Check for error query param (from OAuth)
@@ -36,6 +38,11 @@ export default function LoginPage() {
 
     if (!email || !password) {
       setError("Please fill in all fields");
+      return;
+    }
+
+    if (!recaptchaToken) {
+      setError("Please verify you are not a robot");
       return;
     }
 
@@ -66,6 +73,7 @@ export default function LoginPage() {
 
       setError(errorMessage);
       setToast({ message: errorMessage, type: "error" });
+      setRecaptchaToken(null); // Reset reCAPTCHA on error
     }
   };
 
@@ -146,6 +154,17 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
+
+            {/* ReCAPTCHA */}
+            <div className="flex justify-center my-4">
+              <ReCAPTCHA
+                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                onChange={(token) => setRecaptchaToken(token)}
+              />
+            </div>
+            {error && error.includes("robot") && (
+              <p className="text-xs text-red-500 text-center">{error}</p>
+            )}
 
             <button
               type="submit"

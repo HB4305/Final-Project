@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import ReCAPTCHA from "react-google-recaptcha";
 import authService from "../../services/authService"; // Hãy chắc chắn đường dẫn đúng tới file service của bạn
 
 export default function ForgotPasswordPage() {
@@ -11,6 +12,7 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
   const navigate = useNavigate();
 
   // BƯỚC 1: Gửi Email để lấy OTP
@@ -20,6 +22,8 @@ export default function ForgotPasswordPage() {
     setMessage("");
 
     if (!email) return setError("Please enter your email");
+
+    if (!recaptchaToken) return setError("Please verify you are not a robot");
 
     setLoading(true);
     try {
@@ -136,6 +140,15 @@ export default function ForgotPasswordPage() {
                   className="w-full px-4 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
+
+              {/* ReCAPTCHA */}
+              <div className="flex justify-center my-4">
+                <ReCAPTCHA
+                  sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                  onChange={(token) => setRecaptchaToken(token)}
+                />
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
