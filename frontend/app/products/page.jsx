@@ -10,6 +10,7 @@ import {
   LoadingSpinner,
   EmptyState,
   ErrorMessage,
+  Pagination,
   transformProductData,
   buildCategoryMap,
   filterProducts,
@@ -102,30 +103,63 @@ const useFilters = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [priceRange, setPriceRange] = useState([0, Infinity]);
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   const resetFilters = useCallback(() => {
     setSearchQuery('');
     setSelectedCategory('All');
     setSortBy('newest');
     setPriceRange([0, Infinity]);
+    setCurrentPage(1);
   }, []);
 
   const toggleFilters = useCallback(() => {
     setShowFilters(prev => !prev);
   }, []);
 
+  // Reset page khi filter thay đổi
+  const handleCategoryChange = useCallback((category) => {
+    setSelectedCategory(category);
+    setCurrentPage(1);
+  }, []);
+
+  const handleSearchChange = useCallback((query) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePriceRangeChange = useCallback((range) => {
+    setPriceRange(range);
+    setCurrentPage(1);
+  }, []);
+
+  const handleSortChange = useCallback((sort) => {
+    setSortBy(sort);
+    setCurrentPage(1);
+  }, []);
+
+  const handleItemsPerPageChange = useCallback((items) => {
+    setItemsPerPage(items);
+    setCurrentPage(1);
+  }, []);
+
   return {
     searchQuery,
-    setSearchQuery,
+    setSearchQuery: handleSearchChange,
     selectedCategory,
-    setSelectedCategory,
+    setSelectedCategory: handleCategoryChange,
     sortBy,
-    setSortBy,
+    setSortBy: handleSortChange,
     priceRange,
-    setPriceRange,
+    setPriceRange: handlePriceRangeChange,
     showFilters,
     toggleFilters,
-    resetFilters
+    resetFilters,
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage: handleItemsPerPageChange
   };
 };
 
@@ -150,7 +184,11 @@ export default function ProductsPage() {
     setPriceRange,
     showFilters,
     toggleFilters,
-    resetFilters
+    resetFilters,
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage
   } = useFilters();
 
   // Combine errors
@@ -167,10 +205,17 @@ export default function ProductsPage() {
     return sortProducts(filtered, sortBy);
   }, [products, searchQuery, selectedCategory, sortBy, priceRange, categoryMap]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredProducts, currentPage, itemsPerPage]);
+
   // Render content based on state
   const renderContent = () => {
     if (loading) {
-      return <LoadingSpinner message="Loading products..." />;
+      return <LoadingSpinner message="Đang tải sản phẩm..." />;
     }
 
     if (filteredProducts.length === 0) {
@@ -178,11 +223,23 @@ export default function ProductsPage() {
     }
 
     return (
-      <ProductGrid
-        products={filteredProducts}
-        watchlist={watchlist}
-        onToggleWatchlist={toggleWatchlist}
-      />
+      <>
+        <ProductGrid
+          products={paginatedProducts}
+          watchlist={watchlist}
+          onToggleWatchlist={toggleWatchlist}
+        />
+        
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredProducts.length}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      </>
     );
   };
 
@@ -220,8 +277,13 @@ export default function ProductsPage() {
             {/* Results Count */}
             <div className="mb-6 flex justify-between items-center">
               <p className="text-muted-foreground text-sm">
-                Showing <span className="font-semibold">{filteredProducts.length}</span> of{' '}
-                <span className="font-semibold">{products.length}</span> products
+                Hiển thị <span className="font-semibold">{paginatedProducts.length}</span> / {' '}
+                <span className="font-semibold">{filteredProducts.length}</span> sản phẩm
+                {selectedCategory !== 'All' && (
+                  <span className="ml-2 text-primary">
+                    trong danh mục "{selectedCategory}"
+                  </span>
+                )}
               </p>
             </div>
 

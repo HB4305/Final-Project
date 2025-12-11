@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Clock, Heart, Gavel } from "lucide-react";
 import productService from "../app/services/productService";

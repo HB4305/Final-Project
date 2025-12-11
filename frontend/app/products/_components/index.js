@@ -6,6 +6,7 @@ export { default as SearchHeader } from './SearchHeader';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as EmptyState } from './EmptyState';
 export { default as ErrorMessage } from './ErrorMessage';
+export { default as Pagination } from './Pagination';
 
 // Export utilities
 export * from './utils';
