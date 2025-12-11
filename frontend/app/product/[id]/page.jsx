@@ -1,442 +1,299 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Heart, Share2, Shield, Clock, MessageSquare, Loader, X } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, Share2, Shield, MessageSquare, Loader, AlertCircle, TrendingUp, Eye } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import Navigation from '../../../components/navigation';
 import productService from '../../services/productService.js';
 
-const formatPrice = (price) => {
-  if (!price) return 'N/A';
-  return `${price.toLocaleString('vi-VN')} VNĐ`;
-};
+// Import all components from _components folder
+import {
+  useProductDetail,
+  TABS,
+  ImageGallery,
+  ImageLightbox,
+  AuctionSection,
+  SellerInfoCard,
+  RelatedProductsSection,
+  DescriptionTab,
+  DetailsTab,
+  BiddersTab,
+  formatPrice
+} from '../_components';
 
-const formatDateTime = (dateString) => {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleString('vi-VN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop";
-
-// Lightbox Component for Full-Size Image View
-const ImageLightbox = ({ isOpen, imageUrl, onClose }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div 
-      className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 cursor-pointer"
-      onClick={onClose}
-    >
-      <button 
-        className="absolute top-4 right-4 text-white hover:text-gray-300 transition"
-        onClick={onClose}
-      >
-        <X className="w-8 h-8" />
-      </button>
-      <img 
-        src={imageUrl || FALLBACK_IMAGE}
-        alt="Full size view"
-        className="max-w-full max-h-full object-contain cursor-default"
-        onClick={(e) => e.stopPropagation()}
-        onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
-      />
-    </div>
-  );
-};
-
-const ImageGallery = ({ images, primaryImage, mainImageIndex, onImageChange, onImageClick }) => (
-  <div>
-    <div 
-      className="bg-muted rounded-lg overflow-hidden mb-4 aspect-square cursor-pointer hover:opacity-90 transition"
-      onClick={() => onImageClick(primaryImage || images?.[mainImageIndex] || FALLBACK_IMAGE)}
-    >
-      <img 
-        src={primaryImage || images?.[mainImageIndex] || FALLBACK_IMAGE} 
-        alt="Product"
-        className="w-full h-full object-cover"
-        onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
-      />
-    </div>
-    <div className="flex gap-2 overflow-x-auto">
-      {images && images.length > 0 ? (
-        images.map((img, idx) => (
-          <button 
-            key={idx}
-            onClick={() => {
-              onImageChange(idx);
-              onImageClick(img || FALLBACK_IMAGE);
-            }}
-            className={`w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition hover:opacity-75 ${
-              mainImageIndex === idx ? 'border-primary' : 'border-border'
-            }`}
-          >
-            <img 
-              src={img || FALLBACK_IMAGE} 
-              alt={`View ${idx + 1}`} 
-              className="w-full h-full object-cover"
-              onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
-            />
-          </button>
-        ))
-      ) : (
-        <p className="text-sm text-muted-foreground">No additional images</p>
-      )}
-    </div>
-  </div>
-);
-
-const SellerInfo = ({ seller }) => (
-  <div className="flex items-center gap-4 p-4 bg-muted rounded-lg mb-6">
-    <div className="flex-1">
-      <div className="flex items-center gap-2">
-        <p className="font-semibold">{seller?.username || 'Unknown Seller'}</p>
-        <Shield className="w-4 h-4 text-green-500" />
-      </div>
-      <p className="text-sm text-muted-foreground">
-        {seller?.ratingSummary?.averageRating?.toFixed(1) || '0.0'} ★ ({seller?.ratingSummary?.totalRatings || 0} reviews)
-      </p>
-    </div>
-    <button className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition">
-      Contact Seller
-    </button>
-  </div>
-);
-
-const BidSection = ({ auction, showForm, onToggleForm, bidAmount, onBidChange, onSubmit }) => (
-  <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mb-6">
-    <p className="text-sm text-muted-foreground mb-2">Current Bid</p>
-    <p className="text-4xl font-bold text-primary mb-4">{formatPrice(auction?.currentPrice)}</p>
-    
-    <div className="flex gap-4 text-sm mb-6">
-      <div>
-        <p className="text-muted-foreground">{auction?.bidCount || 0} Bids</p>
-      </div>
-      <div className="flex items-center gap-1 text-red-500 font-semibold">
-        <Clock className="w-4 h-4" /> {formatDateTime(auction?.endAt)}
-      </div>
-    </div>
-
-    {!showForm ? (
-      <div className="space-y-2">
-        <button 
-          onClick={() => onToggleForm(true)}
-          className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-semibold"
-        >
-          Place Bid
-        </button>
-        <button className="w-full px-4 py-3 bg-accent text-white rounded-lg hover:bg-accent/90 transition font-semibold">
-          Buy Now - {formatPrice(auction?.buyNowPrice || auction?.currentPrice)}
-        </button>
-      </div>
-    ) : (
-      <form onSubmit={onSubmit} className="space-y-3">
-        <input 
-          type="number"
-          value={bidAmount}
-          onChange={(e) => onBidChange(e.target.value)}
-          placeholder={`Minimum: ${formatPrice((auction?.currentPrice || 0) + (auction?.priceStep || 50000))}`}
-          className="w-full px-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        <div className="flex gap-2">
-          <button 
-            type="submit"
-            className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-semibold"
-          >
-            Confirm Bid
-          </button>
-          <button 
-            type="button"
-            onClick={() => onToggleForm(false)}
-            className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted transition"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    )}
-  </div>
-);
-
-const ActionButtons = ({ isWatchlisted, onToggleWatchlist }) => (
-  <div className="flex gap-3">
-    <button 
-      onClick={onToggleWatchlist}
-      className={`flex-1 px-4 py-3 border rounded-lg transition font-semibold flex items-center justify-center gap-2 ${
-        isWatchlisted 
-          ? 'bg-red-500/10 border-red-500 text-red-500' 
-          : 'border-border hover:bg-muted'
-      }`}
-    >
-      <Heart className={`w-5 h-5 ${isWatchlisted ? 'fill-current' : ''}`} />
-      {isWatchlisted ? 'Saved' : 'Save'}
-    </button>
-    <button className="flex-1 px-4 py-3 border border-border rounded-lg hover:bg-muted transition font-semibold flex items-center justify-center gap-2">
-      <Share2 className="w-5 h-5" /> Share
-    </button>
-  </div>
-);
-
-const DescriptionSection = ({ description }) => (
-  <div className="bg-background border border-border rounded-lg p-6 mb-8">
-    <h2 className="text-2xl font-bold mb-4">Description</h2>
-    <p className="text-muted-foreground leading-relaxed">
-      {description || 'No description available'}
-    </p>
-  </div>
-);
-
-const BidHistorySection = ({ bidHistory }) => (
-  <div className="bg-background border border-border rounded-lg p-6 mb-8">
-    <h2 className="text-2xl font-bold mb-4">Bid History</h2>
-    <div className="space-y-3">
-      {bidHistory && bidHistory.length > 0 ? (
-        bidHistory.map((bid, idx) => (
-          <div key={idx} className="flex justify-between items-center pb-3 border-b border-border last:border-b-0">
-            <div>
-              <p className="font-medium">{bid.bidder}</p>
-              <p className="text-xs text-muted-foreground">{bid.time}</p>
-            </div>
-            <p className="font-bold text-primary">{formatPrice(bid.amount)}</p>
-          </div>
-        ))
-      ) : (
-        <p className="text-muted-foreground text-center py-4">No bids yet</p>
-      )}
-    </div>
-  </div>
-);
-
-const QuestionSection = () => (
-  <div className="bg-background border border-border rounded-lg p-6">
-    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-      <MessageSquare className="w-6 h-6" /> Ask a Question
-    </h2>
-    <form className="space-y-3">
-      <textarea 
-        placeholder="Ask the seller a question about this item..."
-        rows="4"
-        className="w-full px-4 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-      />
-      <button className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium">
-        Send Question
-      </button>
-    </form>
-  </div>
-);
-
-const SpecificationsSidebar = ({ specs, relatedProducts }) => (
-  <div>
-    <div className="bg-background border border-border rounded-lg p-6 sticky top-24">
-      <h3 className="font-bold text-lg mb-4">Specifications</h3>
-      <div className="space-y-3">
-        {specs ? (
-          Object.entries(specs).map(([key, value], idx) => (
-            <div key={idx} className="flex justify-between border-b border-border pb-3">
-              <span className="text-muted-foreground capitalize">{key}</span>
-              <span className="font-semibold">{value}</span>
-            </div>
-          ))
-        ) : (
-          <p className="text-muted-foreground text-sm">No specifications available</p>
-        )}
-      </div>
-
-      {relatedProducts && relatedProducts.length > 0 && (
-        <div className="mt-6 pt-6 border-t border-border">
-          <h3 className="font-bold mb-4">Related Items</h3>
-          <div className="space-y-2">
-            {relatedProducts.map((related) => (
-              <Link 
-                key={related._id}
-                to={`/product/${related._id}`}
-                className="block p-2 hover:bg-muted rounded-lg transition"
-              >
-                <div className="flex items-center gap-2">
-                  <img 
-                    src={related.primaryImageUrl || FALLBACK_IMAGE}
-                    alt={related.title}
-                    className="w-12 h-12 object-cover rounded"
-                    onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium line-clamp-1">{related.title}</p>
-                    <p className="text-xs text-primary font-bold">{formatPrice(related.auction?.currentPrice)}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
+/**
+ * =============================================
+ * MAIN PRODUCT DETAIL PAGE COMPONENT
+ * =============================================
+ */
 export default function ProductDetailPage() {
   const { id } = useParams();
-  const [mainImage, setMainImage] = useState(0);
-  const [bidAmount, setBidAmount] = useState('');
-  const [isWatchlisted, setIsWatchlisted] = useState(false);
-  const [showBidForm, setShowBidForm] = useState(false);
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { product, loading, error, refetch } = useProductDetail(id);
+  
+  // State management
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxImage, setLightboxImage] = useState('');
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState('description');
+  const [isWatchlisted, setIsWatchlisted] = useState(false);
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        const response = await productService.getProductById(id);
-        
-        if (response.success) {
-          setProduct(response.data);
-        } else {
-          setError(response.error || 'Failed to load product');
-        }
-      } catch (err) {
-        console.error('Error fetching product:', err);
-        setError(err.response?.data?.message || 'Failed to load product');
-      } finally {
-        setLoading(false);
+  /**
+   * Handlers
+   */
+  const handlePlaceBid = async (amount) => {
+    try {
+      const response = await productService.placeBid(id, { amount });
+      if (response.success) {
+        alert(`Đặt giá ${formatPrice(amount)} thành công!`);
+        refetch();
+      } else {
+        alert(response.error || 'Đặt giá thất bại');
       }
-    };
-
-    if (id) {
-      fetchProduct();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Đã có lỗi xảy ra');
     }
-  }, [id]);
+  };
 
-  const handlePlaceBid = useCallback(async (e) => {
-    e.preventDefault();
-    const currentPrice = product?.auction?.currentPrice || 0;
-    
-    if (bidAmount > currentPrice) {
-      try {
-        const response = await productService.placeBid(id, { amount: bidAmount });
-        if (response.success) {
-          alert(`Bid of ${formatPrice(bidAmount)} placed successfully!`);
-          setBidAmount('');
-          setShowBidForm(false);
-          
-          const updatedProduct = await productService.getProductById(id);
-          if (updatedProduct.success) {
-            setProduct(updatedProduct.data);
-          }
-        }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to place bid');
-      }
-    } else {
-      alert(`Bid must be higher than current price: ${formatPrice(currentPrice)}`);
-    }
-  }, [bidAmount, id, product?.auction?.currentPrice]);
-
-  const toggleWatchlist = useCallback(() => {
-    setIsWatchlisted(prev => !prev);
-  }, []);
-
-  const openLightbox = useCallback((imageUrl) => {
-    setLightboxImage(imageUrl);
+  const openLightbox = (index) => {
+    setLightboxIndex(index);
     setLightboxOpen(true);
-  }, []);
+  };
 
-  const closeLightbox = useCallback(() => {
-    setLightboxOpen(false);
-  }, []);
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: product.title,
+        url: window.location.href
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Đã sao chép link sản phẩm!');
+    }
+  };
 
+  const toggleWatchlist = async () => {
+    try {
+      // TODO: Implement watchlist API call
+      setIsWatchlisted(!isWatchlisted);
+      alert(isWatchlisted ? 'Đã xóa khỏi danh sách theo dõi' : 'Đã thêm vào danh sách theo dõi');
+    } catch (err) {
+      alert('Không thể cập nhật danh sách theo dõi');
+    }
+  };
+
+  /**
+   * Loading State
+   */
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading product...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-center">
+            <Loader className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Đang tải sản phẩm...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error || !product) {
+  /**
+   * Error State
+   */
+  if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error || 'Product not found'}</p>
-          <Link to="/" className="text-primary hover:underline">
-            ← Back to Auctions
-          </Link>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Không tìm thấy sản phẩm</h2>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <Link 
+              to="/products" 
+              className="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
+            >
+              ← Quay lại danh sách sản phẩm
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <ImageLightbox 
-        isOpen={lightboxOpen}
-        imageUrl={lightboxImage}
-        onClose={closeLightbox}
-      />
-      
-      <nav className="sticky top-0 bg-background border-b border-border z-40">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <Link to="/" className="text-primary hover:underline font-medium">
-            ← Back to Auctions
-          </Link>
+  /**
+   * No Product State
+   */
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="flex items-center justify-center h-[60vh]">
+          <p className="text-muted-foreground">Không có dữ liệu sản phẩm</p>
         </div>
-      </nav>
+      </div>
+    );
+  }
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-          <ImageGallery
-            images={product.imageUrls}
-            primaryImage={product.primaryImageUrl}
-            mainImageIndex={mainImage}
-            onImageChange={setMainImage}
-            onImageClick={openLightbox}
-          />
+  // Prepare images for gallery and lightbox
+  const allImages = [product.primaryImageUrl, ...(product.imageUrls || [])].filter(Boolean);
 
-          <div className="flex flex-col">
-            <div className="mb-6">
-              <p className="text-sm text-muted-foreground mb-2">
-                {product.categoryId?.name || 'Uncategorized'}
-              </p>
-              <h1 className="text-4xl font-bold mb-4">{product.title}</h1>
-              
-              <SellerInfo seller={product.sellerId} />
+  /**
+   * Main Render
+   */
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+
+      {/* Lightbox */}
+      {lightboxOpen && (
+        <ImageLightbox 
+          images={allImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
+
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+          <Link to="/" className="hover:text-primary transition">Trang chủ</Link>
+          <span>/</span>
+          <Link to="/products" className="hover:text-primary transition">Sản phẩm</Link>
+          <span>/</span>
+          <Link 
+            to={`/category/${product.categoryId?._id}`}
+            className="hover:text-primary transition"
+          >
+            {product.categoryId?.name || 'Danh mục'}
+          </Link>
+          <span>/</span>
+          <span className="text-foreground font-medium truncate">{product.title}</span>
+        </nav>
+
+        {/* Product Header */}
+        <div className="bg-white border border-border rounded-xl p-6 mb-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Eye className="w-4 h-4" />
+                  <span>{product.views || 0} lượt xem</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>{product.auction?.bidCount || 0} lượt đặt giá</span>
+                </div>
+              </div>
             </div>
 
-            <BidSection
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={toggleWatchlist}
+                className={`p-3 rounded-lg border transition ${
+                  isWatchlisted 
+                    ? 'bg-red-50 border-red-200 text-red-600' 
+                    : 'border-border hover:bg-muted'
+                }`}
+                title={isWatchlisted ? 'Bỏ theo dõi' : 'Theo dõi sản phẩm'}
+              >
+                <Heart className={`w-5 h-5 ${isWatchlisted ? 'fill-current' : ''}`} />
+              </button>
+              <button 
+                onClick={handleShare}
+                className="p-3 border border-border rounded-lg hover:bg-muted transition"
+                title="Chia sẻ"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
+              <button 
+                className="p-3 border border-border rounded-lg hover:bg-muted transition"
+                title="Báo cáo"
+              >
+                <Shield className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-3 gap-6 mb-8">
+          {/* Left Column: Images + Tabs */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Image Gallery */}
+            <div className="bg-white border border-border rounded-xl p-6">
+              <ImageGallery 
+                images={product.imageUrls}
+                primaryImage={product.primaryImageUrl}
+                onImageClick={openLightbox}
+              />
+            </div>
+
+            {/* Tabs Section */}
+            <div className="bg-white border border-border rounded-xl overflow-hidden">
+              {/* Tab Headers */}
+              <div className="flex border-b border-border">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-1 py-4 px-6 font-semibold transition border-b-2 ${
+                      activeTab === tab.id
+                        ? 'border-primary text-primary bg-primary/5'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6">
+                {activeTab === 'description' && (
+                  <DescriptionTab 
+                    description={product.description}
+                    descriptionHistory={product.descriptionHistory}
+                    bidHistory={product.auction?.bidHistory}
+                  />
+                )}
+                {activeTab === 'details' && (
+                  <DetailsTab product={product} />
+                )}
+                {activeTab === 'bidders' && (
+                  <BiddersTab bidders={product.auction?.topBidders} />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Auction + Seller */}
+          <div className="space-y-6">
+            {/* Auction Section */}
+            <AuctionSection 
               auction={product.auction}
-              showForm={showBidForm}
-              onToggleForm={setShowBidForm}
-              bidAmount={bidAmount}
-              onBidChange={setBidAmount}
-              onSubmit={handlePlaceBid}
+              onPlaceBid={handlePlaceBid}
             />
 
-            <ActionButtons 
-              isWatchlisted={isWatchlisted}
-              onToggleWatchlist={toggleWatchlist}
-            />
+            {/* Seller Info Card */}
+            <SellerInfoCard seller={product.sellerId} />
+            
+            {/* Quick Actions */}
+            <div className="bg-white border border-border rounded-xl p-6 space-y-3">
+              <button className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium flex items-center justify-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Hỏi người bán
+              </button>
+              <button className="w-full py-3 border border-border rounded-lg hover:bg-muted transition font-medium flex items-center justify-center gap-2">
+                <Eye className="w-5 h-5" />
+                Theo dõi sản phẩm
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <DescriptionSection description={product.descriptionHistory?.[0]?.text} />
-            <BidHistorySection bidHistory={product.bidHistory} />
-            <QuestionSection />
-          </div>
-
-          <SpecificationsSidebar 
-            specs={product.metadata?.specs}
-            relatedProducts={product.relatedProducts}
-          />
-        </div>
+        {/* Related Products Section */}
+        <RelatedProductsSection products={product.relatedProducts} />
       </main>
     </div>
   );

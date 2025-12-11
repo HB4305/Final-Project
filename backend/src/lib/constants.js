@@ -77,3 +77,43 @@ export const JWT_EXPIRY = {
   ACCESS_TOKEN: "7d",
   REFRESH_TOKEN: "30d",
 };
+
+// ========================================
+// PRODUCT & AUCTION VALIDATION CONSTANTS
+// ========================================
+
+export const PRODUCT_VALIDATION = {
+  TITLE_MAX_LENGTH: 200,
+  DESCRIPTION_MIN_LENGTH: 50,
+  MIN_IMAGES: 3,
+  MAX_IMAGES: 10,
+};
+
+export const AUCTION_VALIDATION = {
+  MIN_START_PRICE: 10000,        // 10,000 VND
+  MIN_PRICE_STEP: 1000,          // 1,000 VND
+  MIN_DURATION_MS: 60 * 60 * 1000,  // 1 hour in milliseconds
+  MIN_DURATION_HOURS: 1,
+  MAX_DURATION_DAYS: 30,
+  NEW_PRODUCT_DAYS: 7,           // Days to mark as "new"
+};
+
+export const SORT_OPTIONS = {
+  PRODUCTS: ['newest', 'price_asc', 'price_desc', 'ending_soon', 'most_bids'],
+  SEARCH: ['relevance', 'price_asc', 'price_desc', 'ending_soon', 'most_bids'],
+};
+
+export const PAGINATION = {
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 12,
+  MAX_LIMIT: 100,
+};
+
+export const PLACEHOLDER_IMAGES = {
+  PRODUCT: [
+    'https://via.placeholder.com/800x600/FF5733/FFFFFF?text=Product+Image+1',
+    'https://via.placeholder.com/800x600/33FF57/FFFFFF?text=Product+Image+2',
+    'https://via.placeholder.com/800x600/3357FF/FFFFFF?text=Product+Image+3'
+  ],
+  AVATAR: 'https://via.placeholder.com/150x150/CCCCCC/666666?text=User',
+};

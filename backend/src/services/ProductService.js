@@ -602,7 +602,7 @@ export class ProductService {
 
       // Lấy thông tin phiên đấu giá hiện tại
       const auction = await Auction.findOne({ productId: productId })
-        .select('_id currentPrice bidCount endAt startPrice priceStep buyNowPrice autoExtendEnabled currentHighestBidderId status')
+        .select('_id currentPrice bidCount startAt endAt startPrice priceStep buyNowPrice autoExtendEnabled currentHighestBidderId status')
         .lean();
 
       if (!auction) {

@@ -11,6 +11,14 @@ import { isValidObjectId } from '../utils/validators.js';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import Auction from '../models/Auction.js';
+import {
+  PRODUCT_VALIDATION,
+  AUCTION_VALIDATION,
+  SORT_OPTIONS,
+  PAGINATION,
+  PLACEHOLDER_IMAGES,
+  AUCTION_STATUS
+} from '../lib/constants.js';
 
 
 /**
@@ -32,16 +40,20 @@ import Auction from '../models/Auction.js';
  */
 export const getAllProducts = async (req, res, next) => {
   try {
-    const { page = 1, limit = 12, sortBy = 'newest', status = 'active' } = req.query;
+    const { 
+      page = PAGINATION.DEFAULT_PAGE, 
+      limit = PAGINATION.DEFAULT_LIMIT, 
+      sortBy = 'newest', 
+      status = AUCTION_STATUS.ACTIVE 
+    } = req.query;
 
     // Validate sort options
-    const validSortOptions = ['newest', 'price_asc', 'price_desc', 'ending_soon', 'most_bids'];
-    if (!validSortOptions.includes(sortBy)) {
-      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${validSortOptions.join(', ')}`, 400, 'INVALID_SORT_OPTION');
+    if (!SORT_OPTIONS.PRODUCTS.includes(sortBy)) {
+      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${SORT_OPTIONS.PRODUCTS.join(', ')}`, 400, 'INVALID_SORT_OPTION');
     }
 
     // Validate status options
-    const validStatusOptions = ['active', 'scheduled', 'ended', 'draft'];
+    const validStatusOptions = Object.values(AUCTION_STATUS);
     if (!validStatusOptions.includes(status)) {
       throw new AppError(`Trạng thái không hợp lệ. Chọn: ${validStatusOptions.join(', ')}`, 400, 'INVALID_STATUS');
     }
@@ -110,7 +122,11 @@ export const getTopProducts = async (req, res, next) => {
 export const getProductsByCategory = async (req, res, next) => {
   try {
     const { categoryId } = req.params;
-    const { page = 1, limit = 12, sortBy = 'newest' } = req.query;
+    const { 
+      page = PAGINATION.DEFAULT_PAGE, 
+      limit = PAGINATION.DEFAULT_LIMIT, 
+      sortBy = 'newest' 
+    } = req.query;
 
     console.log(`[PRODUCT CONTROLLER] GET /api/products/category/${categoryId}`);
     console.log(`[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}`);
@@ -121,9 +137,8 @@ export const getProductsByCategory = async (req, res, next) => {
     }
 
     // Validate sort options
-    const validSortOptions = ['newest', 'price_asc', 'price_desc', 'ending_soon', 'most_bids'];
-    if (!validSortOptions.includes(sortBy)) {
-      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${validSortOptions.join(', ')}`, 400, 'INVALID_SORT_OPTION');
+    if (!SORT_OPTIONS.PRODUCTS.includes(sortBy)) {
+      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${SORT_OPTIONS.PRODUCTS.join(', ')}`, 400, 'INVALID_SORT_OPTION');
     }
 
     const result = await productService.getProductsByCategory(
@@ -167,7 +182,15 @@ export const getProductsByCategory = async (req, res, next) => {
  */
 export const searchProducts = async (req, res, next) => {
   try {
-    const { q = '', categoryId, minPrice, maxPrice, sortBy = 'relevance', page = 1, limit = 12 } = req.query;
+    const { 
+      q = '', 
+      categoryId, 
+      minPrice, 
+      maxPrice, 
+      sortBy = 'relevance', 
+      page = PAGINATION.DEFAULT_PAGE, 
+      limit = PAGINATION.DEFAULT_LIMIT 
+    } = req.query;
 
     console.log(`[PRODUCT CONTROLLER] GET /api/products/search?q="${q}"`);
     console.log(`[PRODUCT CONTROLLER] Tham số lọc: categoryId=${categoryId}, minPrice=${minPrice}, maxPrice=${maxPrice}, sortBy=${sortBy}`);
@@ -178,9 +201,8 @@ export const searchProducts = async (req, res, next) => {
     }
 
     // Validate sort options
-    const validSortOptions = ['relevance', 'price_asc', 'price_desc', 'ending_soon', 'most_bids'];
-    if (!validSortOptions.includes(sortBy)) {
-      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${validSortOptions.join(', ')}`, 400, 'INVALID_SORT_OPTION');
+    if (!SORT_OPTIONS.SEARCH.includes(sortBy)) {
+      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${SORT_OPTIONS.SEARCH.join(', ')}`, 400, 'INVALID_SORT_OPTION');
     }
 
     // Prepare filters
@@ -286,10 +308,10 @@ export const postProduct = async (req, res) => {
       });
     }
 
-    if (title.length > 200) {
+    if (title.length > PRODUCT_VALIDATION.TITLE_MAX_LENGTH) {
       return res.status(400).json({
         success: false,
-        message: 'Tên sản phẩm không được vượt quá 200 ký tự'
+        message: `Tên sản phẩm không được vượt quá ${PRODUCT_VALIDATION.TITLE_MAX_LENGTH} ký tự`
       });
     }
 
@@ -301,10 +323,10 @@ export const postProduct = async (req, res) => {
       });
     }
 
-    if (description.length < 50) {
+    if (description.length < PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH) {
       return res.status(400).json({
         success: false,
-        message: 'Mô tả sản phẩm phải có ít nhất 50 ký tự'
+        message: `Mô tả sản phẩm phải có ít nhất ${PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH} ký tự`
       });
     }
 
@@ -360,10 +382,10 @@ export const postProduct = async (req, res) => {
       });
     }
 
-    if (numStartPrice < 10000) {
+    if (numStartPrice < AUCTION_VALIDATION.MIN_START_PRICE) {
       return res.status(400).json({
         success: false,
-        message: 'Giá khởi điểm tối thiểu là 10,000 VND'
+        message: `Giá khởi điểm tối thiểu là ${AUCTION_VALIDATION.MIN_START_PRICE.toLocaleString()} VND`
       });
     }
 
@@ -398,10 +420,10 @@ export const postProduct = async (req, res) => {
       });
     }
 
-    if (numPriceStep < 1000) {
+    if (numPriceStep < AUCTION_VALIDATION.MIN_PRICE_STEP) {
       return res.status(400).json({
         success: false,
-        message: 'Bước giá tối thiểu là 1,000 VND'
+        message: `Bước giá tối thiểu là ${AUCTION_VALIDATION.MIN_PRICE_STEP.toLocaleString()} VND`
       });
     }
 
@@ -455,11 +477,11 @@ export const postProduct = async (req, res) => {
       });
     }
 
-    const minDuration = 60 * 60 * 1000; // 1 hour
+    const minDuration = AUCTION_VALIDATION.MIN_DURATION_MS;
     if (endDate - startDate < minDuration) {
       return res.status(400).json({
         success: false,
-        message: 'Thời gian đấu giá phải ít nhất 1 giờ'
+        message: `Thời gian đấu giá phải ít nhất ${AUCTION_VALIDATION.MIN_DURATION_HOURS} giờ`
       });
     }
 
@@ -475,13 +497,13 @@ export const postProduct = async (req, res) => {
     if (uploadedFiles && uploadedFiles.length > 0) {
       console.log(`[PRODUCT CONTROLLER] Upload ${uploadedFiles.length} ảnh lên cloud storage...`);
 
-      // TODO: Upload thực tế lên Cloudinary/S3
+      // Production: Upload thực tế lên Cloudinary/S3
       // const uploadPromises = uploadedFiles.map(file => uploadToCloudinary(file.buffer));
       // imageUrls = await Promise.all(uploadPromises);
 
-      // Tạm thời dùng fake URLs
+      // Development: Tạm thời dùng fake URLs với timestamp unique
       imageUrls = uploadedFiles.map((file, index) => {
-        return `https://cloudinary.com/fake-url/${Date.now()}-${index}.jpg`;
+        return `https://cloudinary.com/uploads/${Date.now()}-${index}-${file.originalname || 'image.jpg'}`;
       });
 
       primaryImageUrl = imageUrls[0];
@@ -490,14 +512,9 @@ export const postProduct = async (req, res) => {
     }
     // Nếu không có middleware (test mode)
     else {
-      console.log('[PRODUCT CONTROLLER] ⚠️ TEST MODE: Sử dụng fake image URLs');
+      console.log('[PRODUCT CONTROLLER] ⚠️ TEST MODE: Sử dụng placeholder image URLs');
 
-      imageUrls = [
-        'https://via.placeholder.com/800x600/FF5733/FFFFFF?text=Product+Image+1',
-        'https://via.placeholder.com/800x600/33FF57/FFFFFF?text=Product+Image+2',
-        'https://via.placeholder.com/800x600/3357FF/FFFFFF?text=Product+Image+3'
-      ];
-
+      imageUrls = PLACEHOLDER_IMAGES.PRODUCT;
       primaryImageUrl = imageUrls[0];
     }
 
@@ -518,8 +535,19 @@ export const postProduct = async (req, res) => {
     // ========================================
     // 8. TẠO PRODUCT
     // ========================================
+    
+    // Lấy sellerId từ authenticated user
+    const sellerId = req.user?._id || req.user?.id;
+    
+    if (!sellerId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Vui lòng đăng nhập để đăng sản phẩm'
+      });
+    }
+
     const newProduct = new Product({
-      sellerId: '674b2d5e8f9a1b2c3d4e5f60', // TODO: req.user._id
+      sellerId,
       categoryId,
       title: title.trim(),
       slug,
@@ -527,7 +555,7 @@ export const postProduct = async (req, res) => {
         {
           text: description.trim(),
           createdAt: new Date(),
-          authorId: '674b2d5e8f9a1b2c3d4e5f60' // TODO: req.user._id
+          authorId: sellerId
         }
       ],
       primaryImageUrl,
@@ -540,7 +568,7 @@ export const postProduct = async (req, res) => {
       flags: {
         featured: false,
         highlightedUntil: null,
-        isNewUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        isNewUntil: new Date(Date.now() + AUCTION_VALIDATION.NEW_PRODUCT_DAYS * 24 * 60 * 60 * 1000)
       }
     });
 
@@ -552,13 +580,13 @@ export const postProduct = async (req, res) => {
     // ========================================
     const newAuction = new Auction({
       productId: savedProduct._id,
-      sellerId: '674b2d5e8f9a1b2c3d4e5f60', // TODO: req.user._id
+      sellerId,
       startPrice: numStartPrice,
       priceStep: numPriceStep,
       currentPrice: numStartPrice,
-      startAt: startDate,  // ← Sửa từ startTime
-      endAt: endDate,      // ← Sửa từ endTime
-      status: startDate > now ? 'scheduled' : 'active', // ← Sửa 'pending' thành 'scheduled'
+      startAt: startDate,
+      endAt: endDate,
+      status: startDate > now ? AUCTION_STATUS.SCHEDULED : AUCTION_STATUS.ACTIVE,
       bidCount: 0,
       autoExtendEnabled: true
     });
