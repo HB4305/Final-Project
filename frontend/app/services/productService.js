@@ -145,6 +145,59 @@ export const getBidHistory = async (productId) => {
   return response.data;
 };
 
+/**
+ * API 1.2: Lấy Top 5 sản phẩm cho Homepage
+ * - Top 5 sắp kết thúc (endingSoon)
+ * - Top 5 có nhiều bids nhất (mostBids)
+ * - Top 5 có giá cao nhất (highestPrice)
+ * @returns {Promise}
+ */
+export const getTopProducts = async () => {
+  try {
+    const response = await api.get("/products/home/top");
+    return {
+      success: true,
+      data: response.data.data,
+      message: response.data.message,
+    };
+  } catch (error) {
+    console.error("Error fetching top products:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch top products",
+    };
+  }
+};
+
+/**
+ * Format giá tiền VNĐ
+ * @param {number} price 
+ * @returns {string}
+ */
+export const formatPrice = (price) => {
+  if (!price) return "0 VNĐ";
+  return `${price.toLocaleString("vi-VN")} VNĐ`;
+};
+
+/**
+ * Tính thời gian còn lại
+ * @param {string} endAt - ISO date string
+ * @returns {Object}
+ */
+export const calculateTimeRemaining = (endAt) => {
+  if (!endAt) return { isEnded: true };
+  
+  const diff = new Date(endAt) - new Date();
+  if (diff <= 0) return { isEnded: true };
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  
+  return { days, hours, minutes, seconds, isEnded: false };
+};
+
 const productService = {
   getProductById,
   getProducts,
@@ -154,6 +207,9 @@ const productService = {
   deleteProduct,
   placeBid,
   getBidHistory,
+  getTopProducts,
+  formatPrice,
+  calculateTimeRemaining,
 };
 
 export default productService;

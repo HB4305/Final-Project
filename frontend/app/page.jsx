@@ -1,17 +1,7 @@
 import React from "react";
-import {
-  Heart,
-  Search,
-  User,
-  LogOut,
-  LogIn,
-  Menu,
-  X,
-  ChevronRight,
-  Zap,
-} from "lucide-react";
+import { Zap } from "lucide-react";
 import Navigation from "../components/navigation";
-import FeaturedProducts from "../components/featured-products";
+import TopProductsSection from "../components/top-products-section";
 import CategoryNav from "../components/category-nav";
 
 export default function Home() {
@@ -61,8 +51,10 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Featured Products */}
-        <FeaturedProducts />
+        {/* Top 5 Products Sections */}
+        <section className="max-w-7xl mx-auto px-4 py-12">
+          <TopProductsSection />
+        </section>
 
         {/* Stats Section */}
         <section className="bg-white py-12 px-4 border-t border-border">
