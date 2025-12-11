@@ -36,14 +36,11 @@ export const getAllCategories = async (req, res, next) => {
       .select('_id name slug level')
       .lean();
 
-    console.log(`[CATEGORY CONTROLLER] Tìm được ${parentCategories.length} danh mục cha`);
-
     // Lấy tất cả child categories (level = 2)
     const childCategories = await Category.find({ parentId: { $ne: null } })
       .select('_id name slug parentId level')
       .lean();
 
-    console.log(`[CATEGORY CONTROLLER] Tìm được ${childCategories.length} danh mục con`);
 
     // Kết hợp: mỗi parent category chứa children array
     const categoriesWithChildren = parentCategories.map(parent => ({
@@ -52,8 +49,6 @@ export const getAllCategories = async (req, res, next) => {
         child.parentId.toString() === parent._id.toString()
       )
     }));
-
-    console.log('[CATEGORY CONTROLLER] Nesting danh mục thành công');
 
     res.status(200).json({
       status: 'success',
@@ -75,7 +70,6 @@ export const getCategoryBySlug = async (req, res, next) => {
   try {
     const { slug } = req.params;
 
-    console.log(`[CATEGORY CONTROLLER] GET /api/categories/${slug}`);
 
     const category = await Category.findOne({ slug }).lean();
 
@@ -90,8 +84,6 @@ export const getCategoryBySlug = async (req, res, next) => {
         .select('_id name slug level')
         .lean();
     }
-
-    console.log(`[CATEGORY CONTROLLER] Lấy danh mục thành công: ${slug}`);
 
     res.status(200).json({
       status: 'success',
