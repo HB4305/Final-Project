@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Heart,
   Search,
   User,
-  LogOut,
-  LogIn,
   Menu,
   X,
-  ShoppingCart,
   Bell,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";

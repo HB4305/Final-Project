@@ -7,7 +7,7 @@ import Product from './models/Product.js';
 import Auction from './models/Auction.js';
 import Bid from './models/Bid.js';
 import User from './models/User.js';
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,11 +129,11 @@ async function seedData() {
               authorId: seller._id
             }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=iPhone+15+Pro+Max',
+          primaryImageUrl: 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=500&h=500&fit=crop',
           imageUrls: [
-            'https://via.placeholder.com/300?text=iPhone+15+Pro+Max+1',
-            'https://via.placeholder.com/300?text=iPhone+15+Pro+Max+2',
-            'https://via.placeholder.com/300?text=iPhone+15+Pro+Max+3'
+            'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=500&h=500&fit=crop',
+            'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=500&h=500&fit=crop',
+            'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&h=500&fit=crop'
           ],
           isActive: true,
           baseCurrency: 'VND',
@@ -153,8 +153,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Samsung Galaxy S24 Ultra 512GB Titanium Black, mở hộp 1 lần, có bảo hành 2 năm', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Samsung+Galaxy+S24',
-          imageUrls: ['https://via.placeholder.com/300?text=Samsung+1', 'https://via.placeholder.com/300?text=Samsung+2', 'https://via.placeholder.com/300?text=Samsung+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: {
@@ -173,8 +173,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'iPhone 14 Pro 128GB Gold, hàng chính hãng, đã sử dụng 3 tháng', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=iPhone+14+Pro',
-          imageUrls: ['https://via.placeholder.com/300?text=iPhone+14+1', 'https://via.placeholder.com/300?text=iPhone+14+2', 'https://via.placeholder.com/300?text=iPhone+14+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1632661674386-33e7e8601d5e?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Apple', model: 'iPhone 14 Pro', condition: 'Đã dùng', specs: { storage: '128GB', color: 'Gold' } },
@@ -188,8 +188,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Google Pixel 8 Pro 256GB Obsidian, mới 100%', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Pixel+8+Pro',
-          imageUrls: ['https://via.placeholder.com/300?text=Pixel+1', 'https://via.placeholder.com/300?text=Pixel+2', 'https://via.placeholder.com/300?text=Pixel+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Google', model: 'Pixel 8 Pro', condition: 'Mới', specs: { storage: '256GB', color: 'Obsidian' } },
@@ -203,8 +203,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'OnePlus 12 256GB Silky Black, hàng chính hãng', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=OnePlus+12',
-          imageUrls: ['https://via.placeholder.com/300?text=OnePlus+1', 'https://via.placeholder.com/300?text=OnePlus+2', 'https://via.placeholder.com/300?text=OnePlus+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1557180295-76eee20ae8aa?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'OnePlus', model: '12', condition: 'Mới', specs: { storage: '256GB' } },
@@ -218,8 +218,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Xiaomi 14 Ultra 512GB Space Black, mới 100%', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Xiaomi+14+Ultra',
-          imageUrls: ['https://via.placeholder.com/300?text=Xiaomi+1', 'https://via.placeholder.com/300?text=Xiaomi+2', 'https://via.placeholder.com/300?text=Xiaomi+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1567581935884-3349723552ca?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1567581935884-3349723552ca?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1605236453806-6ff36851218e?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Xiaomi', model: '14 Ultra', condition: 'Mới', specs: { storage: '512GB' } },
@@ -235,8 +235,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'MacBook Pro 16" M3 Max 48GB 1TB, hàng chính hãng Apple', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=MacBook+Pro+16',
-          imageUrls: ['https://via.placeholder.com/300?text=MacBook+1', 'https://via.placeholder.com/300?text=MacBook+2', 'https://via.placeholder.com/300?text=MacBook+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Apple', model: 'MacBook Pro 16', condition: 'Mới', specs: { cpu: 'M3 Max', ram: '48GB', storage: '1TB' } },
@@ -250,8 +250,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Dell XPS 15 i7 RTX 4060, 32GB RAM, 1TB SSD', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Dell+XPS+15',
-          imageUrls: ['https://via.placeholder.com/300?text=Dell+1', 'https://via.placeholder.com/300?text=Dell+2', 'https://via.placeholder.com/300?text=Dell+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Dell', model: 'XPS 15', condition: 'Như mới', specs: { cpu: 'i7-13700H', ram: '32GB', storage: '1TB' } },
@@ -265,8 +265,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'HP Pavilion 15 i5 MX550, 16GB RAM, 512GB SSD', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=HP+Pavilion',
-          imageUrls: ['https://via.placeholder.com/300?text=HP+1', 'https://via.placeholder.com/300?text=HP+2', 'https://via.placeholder.com/300?text=HP+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'HP', model: 'Pavilion 15', condition: 'Đã dùng', specs: { cpu: 'i5-12450H', ram: '16GB', storage: '512GB' } },
@@ -280,8 +280,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Lenovo ThinkPad X1 Carbon i7, 16GB, 512GB', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Lenovo+X1',
-          imageUrls: ['https://via.placeholder.com/300?text=Lenovo+1', 'https://via.placeholder.com/300?text=Lenovo+2', 'https://via.placeholder.com/300?text=Lenovo+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1602080858428-57174f9431cf?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Lenovo', model: 'ThinkPad X1', condition: 'Mới', specs: { cpu: 'i7-1365U', ram: '16GB', storage: '512GB' } },
@@ -297,8 +297,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Áo thun Nike Dri-FIT chính hãng, size L, màu đen', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Nike+Shirt',
-          imageUrls: ['https://via.placeholder.com/300?text=Nike+1', 'https://via.placeholder.com/300?text=Nike+2', 'https://via.placeholder.com/300?text=Nike+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Nike', condition: 'Mới', specs: { size: 'L', material: '100% Cotton' } },
@@ -312,8 +312,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Giày Air Jordan 1 Retro High OG Chicago, size 9.5US', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Air+Jordan+1',
-          imageUrls: ['https://via.placeholder.com/300?text=Jordan+1', 'https://via.placeholder.com/300?text=Jordan+2', 'https://via.placeholder.com/300?text=Jordan+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Jordan', condition: 'Như mới', specs: { size: '9.5US' } },
@@ -327,8 +327,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Bàn làm việc gỗ sồi nguyên khối, kích thước 120x60cm', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Desk',
-          imageUrls: ['https://via.placeholder.com/300?text=Desk+1', 'https://via.placeholder.com/300?text=Desk+2', 'https://via.placeholder.com/300?text=Desk+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'HandMade', condition: 'Mới', specs: { material: 'Gỗ sồi', size: '120x60cm' } },
@@ -342,8 +342,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Điều hòa LG Inverter 1.5HP, tiết kiệm điện, bảo hành 3 năm', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=AC+LG',
-          imageUrls: ['https://via.placeholder.com/300?text=AC+1', 'https://via.placeholder.com/300?text=AC+2', 'https://via.placeholder.com/300?text=AC+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1545259742-12f0cb57b28d?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1635840420193-0fc6c3e67e90?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'LG', condition: 'Mới', specs: { power: '1.5HP', type: 'Inverter' } },
@@ -357,8 +357,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Quả bóng đá FIFA Pro, chất lượng chuyên nghiệp', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Football',
-          imageUrls: ['https://via.placeholder.com/300?text=Ball+1', 'https://via.placeholder.com/300?text=Ball+2', 'https://via.placeholder.com/300?text=Ball+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aad?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1552667466-07770ae110d0?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'FIFA', condition: 'Mới', specs: { material: 'PVC' } },
@@ -372,8 +372,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Vợt cầu lông Yonex Nanoray, dành cho chuyên nghiệp', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Badminton',
-          imageUrls: ['https://via.placeholder.com/300?text=Racket+1', 'https://via.placeholder.com/300?text=Racket+2', 'https://via.placeholder.com/300?text=Racket+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1593786481241-86f4f98c5840?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Yonex', condition: 'Như mới', specs: { series: 'Nanoray' } },
@@ -387,8 +387,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Sách Nhà Giả Kim của Paulo Coelho, bìa cứng, tái bản lần 10', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=Book',
-          imageUrls: ['https://via.placeholder.com/300?text=Book+1', 'https://via.placeholder.com/300?text=Book+2', 'https://via.placeholder.com/300?text=Book+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'Skybooks', condition: 'Như mới', specs: { author: 'Paulo Coelho', pages: 320 } },
@@ -402,8 +402,8 @@ async function seedData() {
           descriptionHistory: [
             { text: 'Sách The Alchemist bản tiếng Anh, bìa mềm', createdAt: new Date(), authorId: seller._id }
           ],
-          primaryImageUrl: 'https://via.placeholder.com/300?text=English+Book',
-          imageUrls: ['https://via.placeholder.com/300?text=Eng+1', 'https://via.placeholder.com/300?text=Eng+2', 'https://via.placeholder.com/300?text=Eng+3'],
+          primaryImageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&h=500&fit=crop',
+          imageUrls: ['https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=500&h=500&fit=crop'],
           isActive: true,
           baseCurrency: 'VND',
           metadata: { brand: 'HarperCollins', condition: 'Mới', specs: { author: 'Paulo Coelho', pages: 224 } },

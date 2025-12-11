@@ -20,55 +20,50 @@ import Auction from '../models/Auction.js';
  * - price_asc (giá thấp đến cao)
  * - price_desc (giá cao đến thấp)
  * - ending_soon (gần kết thúc)
+ * - most_bids (nhiều bids nhất)
  *
  * Query params:
  * - page: số trang (mặc định 1)
  * - limit: số sản phẩm trên trang (mặc định 12)
  * - sortBy: cách sắp xếp (mặc định 'newest')
+ * - status: trạng thái auction (mặc định 'active')
  *
- * GET /api/products?page=1&limit=12&sortBy=newest
+ * GET /api/products?page=1&limit=12&sortBy=newest&status=active
  */
 export const getAllProducts = async (req, res, next) => {
   try {
-    const { page = 1, limit = 12, sortBy = 'newest' } = req.query;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 12, sortBy = 'newest', status = 'active' } = req.query;
 
-    let sortOption = {};
-    switch (sortBy) {
-      case 'price_asc':
-        sortOption = { startPrice: 1 };
-        break;
-      case 'price_desc':
-        sortOption = { startPrice: -1 };
-        break;
-      case 'newest':
-        sortOption = { createdAt: -1 };
-        break;
-      case 'ending_soon':
-        sortOption = { endDate: 1 };
-        break;
-      default:
-        sortOption = { createdAt: -1 };
+    // Validate sort options
+    const validSortOptions = ['newest', 'price_asc', 'price_desc', 'ending_soon', 'most_bids'];
+    if (!validSortOptions.includes(sortBy)) {
+      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${validSortOptions.join(', ')}`, 400, 'INVALID_SORT_OPTION');
     }
 
-    const total = await Product.countDocuments({ status: 'active' });
-    const products = await Product.find({ status: 'active' })
-      .sort(sortOption)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .populate('categoryId', 'name');
+    // Validate status options
+    const validStatusOptions = ['active', 'scheduled', 'ended', 'draft'];
+    if (!validStatusOptions.includes(status)) {
+      throw new AppError(`Trạng thái không hợp lệ. Chọn: ${validStatusOptions.join(', ')}`, 400, 'INVALID_STATUS');
+    }
+
+    console.log(`[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}, status=${status}`);
+
+    const result = await productService.getAllProducts(
+      parseInt(page), 
+      parseInt(limit), 
+      sortBy, 
+      status
+    );
 
     res.status(200).json({
       status: 'success',
-      data: products,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
+      message: 'Lấy danh sách sản phẩm thành công',
+      data: result.products,
+      pagination: result.pagination,
+      timestamp: new Date()
     });
   } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Lỗi trong getAllProducts:', error);
     next(error);
   }
 };

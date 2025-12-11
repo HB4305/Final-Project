@@ -13,6 +13,178 @@ import { AppError } from '../utils/errors.js';
 import mongoose from 'mongoose';
 
 export class ProductService {
+
+  /**
+   * API 1.1: Lấy tất cả sản phẩm (không lọc danh mục, có phân trang)
+   */
+  async getAllProducts(page = 1, limit = 12, sortBy = 'newest', status = 'active') {
+    try {
+
+      const skip = (page - 1) * limit;
+
+      // Xác định sort order
+      let sortStage = { createdAt: -1 };
+      if (sortBy === 'price_asc') sortStage = { 'auction.currentPrice': 1 };
+      if (sortBy === 'price_desc') sortStage = { 'auction.currentPrice': -1 };
+      if (sortBy === 'ending_soon') sortStage = { 'auction.endAt': 1 };
+      if (sortBy === 'most_bids') sortStage = { 'auction.bidCount': -1 };
+
+      // Aggregate pipeline
+      const pipeline = [
+        // Stage 1: Match active products
+        {
+          $match: {
+            isActive: true
+          }
+        },
+        // Stage 2: Lookup auction
+        {
+          $lookup: {
+            from: 'auctions',
+            localField: '_id',
+            foreignField: 'productId',
+            as: 'auction'
+          }
+        },
+        // Stage 3: Unwind auction
+        {
+          $unwind: {
+            path: '$auction',
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        // Stage 4: Match auction status
+        {
+          $match: {
+            'auction.status': status
+          }
+        },
+        // Stage 5: Lookup seller
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'sellerId',
+            foreignField: '_id',
+            as: 'seller'
+          }
+        },
+        // Stage 6: Unwind seller
+        {
+          $unwind: {
+            path: '$seller',
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        // Stage 7: Lookup category
+        {
+          $lookup: {
+            from: 'categories',
+            localField: 'categoryId',
+            foreignField: '_id',
+            as: 'category'
+          }
+        },
+        // Stage 8: Unwind category
+        {
+          $unwind: {
+            path: '$category',
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        // Stage 9: Sort
+        {
+          $sort: sortStage
+        },
+        // Stage 10: Skip
+        {
+          $skip: skip
+        },
+        // Stage 11: Limit
+        {
+          $limit: parseInt(limit)
+        },
+        // Stage 12: Project
+        {
+          $project: {
+            _id: 1,
+            title: 1,
+            slug: 1,
+            primaryImageUrl: 1,
+            imageUrls: 1,
+            createdAt: 1,
+            auction: {
+              _id: '$auction._id',
+              currentPrice: '$auction.currentPrice',
+              bidCount: '$auction.bidCount',
+              endAt: '$auction.endAt',
+              startPrice: '$auction.startPrice',
+              status: '$auction.status'
+            },
+            seller: {
+              _id: '$seller._id',
+              username: '$seller.username',
+              ratingSummary: '$seller.ratingSummary'
+            },
+            category: {
+              _id: '$category._id',
+              name: '$category.name'
+            }
+          }
+        }
+      ];
+
+      const products = await Product.aggregate(pipeline);
+
+      // Count total
+      const totalPipeline = [
+        {
+          $match: {
+            isActive: true
+          }
+        },
+        {
+          $lookup: {
+            from: 'auctions',
+            localField: '_id',
+            foreignField: 'productId',
+            as: 'auction'
+          }
+        },
+        {
+          $unwind: {
+            path: '$auction',
+            preserveNullAndEmptyArrays: false
+          }
+        },
+        {
+          $match: {
+            'auction.status': status
+          }
+        },
+        {
+          $count: 'total'
+        }
+      ];
+
+      const totalResult = await Product.aggregate(totalPipeline);
+      const total = totalResult.length > 0 ? totalResult[0].total : 0;
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        products,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalProducts: total,
+          limit: parseInt(limit)
+        }
+      };
+    } catch (error) {
+      console.error('[PRODUCT SERVICE] Lỗi getAllProducts:', error);
+      throw error;
+    }
+  }
+
   /**
    * API 1.2: Lấy Top 5 sản phẩm cho Homepage
    * - Top 5 sắp kết thúc (endAt soonest)
@@ -94,9 +266,7 @@ export class ProductService {
    */
   async getProductsByCategory(categoryId, page = 1, limit = 12, sortBy = 'newest') {
     try {
-      console.log(`[PRODUCT SERVICE] API 1.3 - Lấy sản phẩm theo danh mục: ${categoryId}, trang: ${page}, sort: ${sortBy}`);
 
-      console.log('[PRODUCT SERVICE] Validating category...');
       const category = await Category.findById(categoryId);
       if (!category) {
         throw new AppError('Danh mục không tồn tại', 404, 'CATEGORY_NOT_FOUND');
