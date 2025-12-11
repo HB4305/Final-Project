@@ -4,12 +4,13 @@
 
 export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop";
 
+// Sort options - sync với backend API
 export const SORT_OPTIONS = [
-  { label: 'Newest', value: 'newest' },
-  { label: 'Price: Low to High', value: 'price_asc' },
-  { label: 'Price: High to Low', value: 'price_desc' },
-  { label: 'Most Bids', value: 'bids' },
-  { label: 'Ending Soon', value: 'ending' },
+  { label: 'Mới nhất', value: 'newest' },
+  { label: 'Giá: Thấp → Cao', value: 'price_asc' },
+  { label: 'Giá: Cao → Thấp', value: 'price_desc' },
+  { label: 'Nhiều lượt đấu giá', value: 'bids' },
+  { label: 'Sắp kết thúc', value: 'ending' },
 ];
 
 export const formatPrice = (price) => {

@@ -22,6 +22,7 @@ import SettingsPage from "../app/profile/settings/page";
 import RatingsPage from "../app/profile/ratings/page";
 import AdminCategoriesPage from "../app/admin/categories/page";
 import AdminProductsPage from "../app/admin/products/page";
+import SearchPage from "../app/search/page";
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
           />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/create" element={<CreateProductPage />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/watchlist" element={<DashboardPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />

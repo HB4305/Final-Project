@@ -170,6 +170,93 @@ export const getTopProducts = async () => {
 };
 
 /**
+ * API 1.4: Full-text search sản phẩm
+ * Tìm kiếm với nhiều filter và sort options
+ * @param {Object} params - Search parameters
+ * @param {string} params.q - Từ khóa tìm kiếm (bắt buộc, ít nhất 2 ký tự)
+ * @param {string} params.categoryId - ID danh mục (tùy chọn)
+ * @param {number} params.minPrice - Giá tối thiểu (tùy chọn)
+ * @param {number} params.maxPrice - Giá tối đa (tùy chọn)
+ * @param {string} params.sortBy - Cách sắp xếp: relevance, price_asc, price_desc, ending_soon, most_bids
+ * @param {number} params.page - Số trang (mặc định 1)
+ * @param {number} params.limit - Số sản phẩm mỗi trang (mặc định 12)
+ * @returns {Promise}
+ */
+export const searchProducts = async (params = {}) => {
+  try {
+    const {
+      q,
+      categoryId,
+      minPrice,
+      maxPrice,
+      sortBy = "relevance",
+      page = 1,
+      limit = 12,
+    } = params;
+
+    // Validate search query
+    if (!q || q.trim().length < 2) {
+      return {
+        success: false,
+        error: "Vui lòng nhập từ khóa tìm kiếm (ít nhất 2 ký tự)",
+      };
+    }
+
+    const queryParams = { q: q.trim(), sortBy, page, limit };
+    
+    // Add optional filters
+    if (categoryId) queryParams.categoryId = categoryId;
+    if (minPrice !== undefined && minPrice !== null) queryParams.minPrice = minPrice;
+    if (maxPrice !== undefined && maxPrice !== null) queryParams.maxPrice = maxPrice;
+
+    const response = await api.get("/products/search", { params: queryParams });
+
+    return {
+      success: true,
+      data: response.data.data,
+      pagination: response.data.pagination,
+      query: response.data.query,
+      message: response.data.message,
+    };
+  } catch (error) {
+    console.error("Error searching products:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Lỗi khi tìm kiếm sản phẩm",
+    };
+  }
+};
+
+/**
+ * Lấy sản phẩm theo danh mục
+ * @param {string} categoryId - ID danh mục
+ * @param {Object} params - { page, limit, sortBy }
+ * @returns {Promise}
+ */
+export const getProductsByCategory = async (categoryId, params = {}) => {
+  try {
+    const { page = 1, limit = 12, sortBy = "newest" } = params;
+
+    const response = await api.get(`/products/category/${categoryId}`, {
+      params: { page, limit, sortBy },
+    });
+
+    return {
+      success: true,
+      data: response.data.data,
+      pagination: response.data.pagination,
+      message: response.data.message,
+    };
+  } catch (error) {
+    console.error("Error fetching products by category:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Lỗi khi lấy sản phẩm theo danh mục",
+    };
+  }
+};
+
+/**
  * Format giá tiền VNĐ
  * @param {number} price 
  * @returns {string}
@@ -208,6 +295,8 @@ const productService = {
   placeBid,
   getBidHistory,
   getTopProducts,
+  searchProducts,
+  getProductsByCategory,
   formatPrice,
   calculateTimeRemaining,
 };

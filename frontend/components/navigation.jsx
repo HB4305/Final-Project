@@ -48,8 +48,8 @@ export default function Navigation() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
+    if (searchQuery.trim().length >= 2) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -67,7 +67,7 @@ export default function Navigation() {
             </span>
           </Link>
 
-          {/* Search Bar */}
+          {/* Search Bar - Full-text search */}
           <form
             onSubmit={handleSearch}
             className="hidden md:flex items-center flex-1 max-w-xl bg-white rounded-sm ml-4"
@@ -76,10 +76,14 @@ export default function Navigation() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products..."
+              placeholder="Tìm kiếm sản phẩm... (ít nhất 2 ký tự)"
               className="flex-1 px-4 py-2 text-foreground placeholder-muted-foreground outline-none text-sm"
             />
-            <button className="px-4 py-2 text-primary hover:bg-muted transition">
+            <button 
+              type="submit"
+              className="px-4 py-2 text-primary hover:bg-muted transition"
+              title="Tìm kiếm nâng cao"
+            >
               <Search className="w-5 h-5" />
             </button>
           </form>
