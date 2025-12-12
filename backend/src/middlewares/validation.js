@@ -15,7 +15,7 @@ import { ERROR_CODES } from "../lib/constants.js";
  */
 export const validateRegisterInput = (req, res, next) => {
   try {
-    const { username, email, password, fullName, recaptchaToken } = req.body;
+    const { username, email, password, passwordConfirm, fullName } = req.body;
 
     if (!username || !email || !password || !passwordConfirm || !fullName) {
       return next(

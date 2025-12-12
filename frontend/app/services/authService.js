@@ -2,7 +2,7 @@ import api from "./api";
 
 /**
  * Đăng ký tài khoản mới
- * @param {Object} userData - { username, fullName, email, password, recaptchaToken }
+ * @param {Object} userData - { username, fullName, email, password, passwordConfirm, recaptchaToken }
  */
 const signup = (userData) => {
   return api.post("/auth/register", {
@@ -10,6 +10,7 @@ const signup = (userData) => {
     fullName: userData.fullName || userData.name,
     email: userData.email,
     password: userData.password,
+    passwordConfirm: userData.passwordConfirm,
     recaptchaToken: userData.recaptchaToken,
   });
 };
