@@ -10,6 +10,7 @@ import auctionRoutes from './routes/auction.js';
 import ratingRoutes from './routes/rating.js';
 import userAuctionRoutes from './routes/userAuction.js';
 import userRoutes from './routes/user.js';
+import watchlistRoutes from './routes/watchlist.js';
 import categoryRoutes from './routes/category.js';
 import productRoutes from './routes/product.js';
 
@@ -38,6 +39,7 @@ app.use('/api/auctions', auctionRoutes);
 app.use('/api/ratings', ratingRoutes);
 app.use('/api/user/auctions', userAuctionRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 
