@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Heart, Share2, Shield, MessageSquare, Loader, AlertCircle, TrendingUp, Eye } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import Navigation from '../../../components/navigation';
 import productService from '../../services/productService.js';
+import ProductQA from '../../../components/product-qa.jsx';
 
 // Import all components from _components folder
 import {
@@ -33,7 +34,7 @@ export default function ProductDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('description');
   const [isWatchlisted, setIsWatchlisted] = useState(false);
-
+  const qaRef = useRef(null);
   /**
    * Handlers
    */
@@ -280,7 +281,9 @@ export default function ProductDetailPage() {
             
             {/* Quick Actions */}
             <div className="bg-white border border-border rounded-xl p-6 space-y-3">
-              <button className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium flex items-center justify-center gap-2">
+              <button 
+                onClick={() => qaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium flex items-center justify-center gap-2">
                 <MessageSquare className="w-5 h-5" />
                 Hỏi người bán
               </button>
@@ -290,6 +293,14 @@ export default function ProductDetailPage() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Q&A Section */}
+        <div ref={qaRef} className="mb-8">
+          <ProductQA 
+            productId={id}
+            sellerId={product.sellerId?._id}
+          />
         </div>
 
         {/* Related Products Section */}
