@@ -13,6 +13,7 @@ import userRoutes from './routes/user.js';
 import watchlistRoutes from './routes/watchlist.js';
 import categoryRoutes from './routes/category.js';
 import productRoutes from './routes/product.js';
+import questionRoutes from './routes/question.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/questions', questionRoutes);
 
 // 404 Handler
 app.use(notFoundHandler);

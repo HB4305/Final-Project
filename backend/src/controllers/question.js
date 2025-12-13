@@ -9,7 +9,7 @@ import {
 export const createQuestion = async (req, res, next) => {
   try {
     const { productId, content } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     if (!productId || !content?.trim()) {
       throw new AppError("Product ID and content are required", 400);
@@ -52,15 +52,15 @@ export const createQuestion = async (req, res, next) => {
       productUrl,
     });
 
-    // Create notification
-    await NotificationService.createNotification({
-      userId: product.sellerId._id,
-      type: "question",
-      title: "New Question about Product",
-      message: `${question.authorId.fullName} asked about "${product.title}"`,
-      relatedId: question._id,
-      link: `/products/${productId}`,
-    });
+    // TODO: Create notification
+    // await NotificationService.createNotification({
+    //   userId: product.sellerId._id,
+    //   type: "question",
+    //   title: "New Question about Product",
+    //   message: `${question.authorId.fullName} asked about "${product.title}"`,
+    //   relatedId: question._id,
+    //   link: `/products/${productId}`,
+    // });
 
     res.status(201).json({
       success: true,
@@ -87,7 +87,7 @@ export const getQuestionsProduct = async (req, res, next) => {
 
     const questions = await Question.find({ productId })
       .populate("authorId", "fullName avatar")
-      .populate("answer.authorId", "fullName avatar")
+      .populate("answers.authorId", "fullName avatar")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -139,7 +139,9 @@ export const answerQuestion = async (req, res, next) => {
       throw new AppError("You are not authorized to answer this question", 403);
     }
 
-    question.answer.push({
+    const user = await User.findById(userId, "fullName");
+
+    question.answers.push({
       authorId: userId,
       text: text.trim(),
       createdAt: new Date(),
@@ -147,6 +149,9 @@ export const answerQuestion = async (req, res, next) => {
 
     question.status = "answered";
     await question.save();
+    
+    // Populate answer author for response
+    await question.populate("answers.authorId", "fullName");
 
     const productUrl = `${process.env.FRONTEND_BASE_URL}/products/${question.productId._id}`;
 
@@ -159,14 +164,15 @@ export const answerQuestion = async (req, res, next) => {
       productUrl,
     });
 
-    await NotificationService.createNotification({
-      userId: question.authorId._id,
-      type: "answer",
-      title: "Your Question Has Been Answered",
-      message: `Your question about "${question.productId.title}" has been answered.`,
-      relatedId: question._id,
-      link: `/products/${question.productId._id}`,
-    });
+    // TODO: Create notification
+    // await NotificationService.createNotification({
+    //   userId: question.authorId._id,
+    //   type: "answer",
+    //   title: "Your Question Has Been Answered",
+    //   message: `Your question about "${question.productId.title}" has been answered.`,
+    //   relatedId: question._id,
+    //   link: `/products/${question.productId._id}`,
+    // });
 
     res.json({
       success: true,
