@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, Share2, Shield, MessageSquare, Loader, AlertCircle, TrendingUp, Eye } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import Navigation from '../../../components/navigation';
 import productService from '../../services/productService.js';
+import watchlistService from '../../services/watchlistService.js';
 
 // Import all components from _components folder
 import {
@@ -33,6 +34,24 @@ export default function ProductDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('description');
   const [isWatchlisted, setIsWatchlisted] = useState(false);
+
+  /**
+   * Check if product is in watchlist when component loads
+   */
+  useEffect(() => {
+    const checkWatchlistStatus = async () => {
+      if (!id) return;
+
+      try {
+        const response = await watchlistService.checkWatchlist(id);
+        setIsWatchlisted(response.data.isWatched || false);
+      } catch (err) {
+        console.error('Error checking watchlist status:', err);
+      }
+    };
+
+    checkWatchlistStatus();
+  }, [id]);
 
   /**
    * Handlers
@@ -71,11 +90,20 @@ export default function ProductDetailPage() {
 
   const toggleWatchlist = async () => {
     try {
-      // TODO: Implement watchlist API call
-      setIsWatchlisted(!isWatchlisted);
-      alert(isWatchlisted ? 'Đã xóa khỏi danh sách theo dõi' : 'Đã thêm vào danh sách theo dõi');
+      if (isWatchlisted) {
+        // Remove from watchlist
+        await watchlistService.removeFromWatchlist(id);
+        setIsWatchlisted(false);
+        alert('Đã xóa khỏi danh sách theo dõi');
+      } else {
+        // Add to watchlist
+        await watchlistService.addToWatchlist(id);
+        setIsWatchlisted(true);
+        alert('Đã thêm vào danh sách theo dõi');
+      }
     } catch (err) {
-      alert('Không thể cập nhật danh sách theo dõi');
+      console.error('Watchlist error:', err);
+      alert(err.response?.data?.message || 'Không thể cập nhật danh sách theo dõi');
     }
   };
 
@@ -192,8 +220,8 @@ export default function ProductDetailPage() {
               <button
                 onClick={toggleWatchlist}
                 className={`p-3 rounded-lg border transition ${isWatchlisted
-                    ? 'bg-red-50 border-red-200 text-red-600'
-                    : 'border-border hover:bg-muted'
+                  ? 'bg-red-50 border-red-200 text-red-600'
+                  : 'border-border hover:bg-muted'
                   }`}
                 title={isWatchlisted ? 'Bỏ theo dõi' : 'Theo dõi sản phẩm'}
               >
@@ -238,8 +266,8 @@ export default function ProductDetailPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex-1 py-4 px-6 font-semibold transition border-b-2 ${activeTab === tab.id
-                        ? 'border-primary text-primary bg-primary/5'
-                        : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      ? 'border-primary text-primary bg-primary/5'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
                   >
                     {tab.label}

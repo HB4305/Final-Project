@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import Navigation from '../../components/navigation';
 import productService from '../services/productService.js';
 import categoryService from '../services/categoryService.js';
+import watchlistService from '../services/watchlistService.js';
 
 import {
   ProductGrid,
@@ -29,11 +30,11 @@ const useCategories = () => {
     const fetchCategories = async () => {
       try {
         const response = await categoryService.getAllCategories();
-        
+
         if (response.success) {
           const allCats = response.data;
           const parentCats = allCats.filter(cat => cat.level === 1);
-          
+
           setCategories(['All', ...parentCats.map(cat => cat.name)]);
           setCategoryMap(buildCategoryMap(allCats));
         }
@@ -41,7 +42,7 @@ const useCategories = () => {
         setError('Failed to load categories');
       }
     };
-    
+
     fetchCategories();
   }, []);
 
@@ -58,7 +59,7 @@ const useProducts = () => {
       setLoading(true);
       setError(null);
       const response = await productService.getAllProducts();
-      
+
       if (response.success) {
         const transformedProducts = response.data.map(transformProductData);
         setProducts(transformedProducts);
@@ -79,20 +80,50 @@ const useProducts = () => {
   return { products, loading, error, refetch: fetchProducts };
 };
 
-const useWatchlist = () => {
+const useWatchlist = (products) => {
   const [watchlist, setWatchlist] = useState(new Set());
 
-  const toggleWatchlist = useCallback((productId) => {
-    setWatchlist(prev => {
-      const newWatchlist = new Set(prev);
-      if (newWatchlist.has(productId)) {
-        newWatchlist.delete(productId);
-      } else {
-        newWatchlist.add(productId);
+  // Load watchlist from API when products are loaded
+  useEffect(() => {
+    const loadWatchlist = async () => {
+      if (products.length === 0) return;
+
+      try {
+        const response = await watchlistService.getWatchlist({ page: 1, limit: 100 });
+        const watchedIds = new Set(
+          response.data.watchlist
+            .map(item => item.productId?._id || item.productId)
+            .filter(Boolean)
+        );
+        setWatchlist(watchedIds);
+      } catch (error) {
+        console.error('Error loading watchlist:', error);
       }
-      return newWatchlist;
-    });
-  }, []);
+    };
+
+    loadWatchlist();
+  }, [products]);
+
+  const toggleWatchlist = useCallback(async (productId) => {
+    const isWatched = watchlist.has(productId);
+
+    try {
+      if (isWatched) {
+        await watchlistService.removeFromWatchlist(productId);
+        setWatchlist(prev => {
+          const newWatchlist = new Set(prev);
+          newWatchlist.delete(productId);
+          return newWatchlist;
+        });
+      } else {
+        await watchlistService.addToWatchlist(productId);
+        setWatchlist(prev => new Set(prev).add(productId));
+      }
+    } catch (error) {
+      console.error('Watchlist error:', error);
+      alert(error.response?.data?.message || 'Không thể cập nhật danh sách theo dõi');
+    }
+  }, [watchlist]);
 
   return { watchlist, toggleWatchlist };
 };
@@ -172,7 +203,7 @@ export default function ProductsPage() {
   // Custom hooks
   const { categories, categoryMap, error: categoryError } = useCategories();
   const { products, loading, error: productError, refetch } = useProducts();
-  const { watchlist, toggleWatchlist } = useWatchlist();
+  const { watchlist, toggleWatchlist } = useWatchlist(products);
   const {
     searchQuery,
     setSearchQuery,
@@ -229,7 +260,7 @@ export default function ProductsPage() {
           watchlist={watchlist}
           onToggleWatchlist={toggleWatchlist}
         />
-        
+
         {/* Pagination */}
         <Pagination
           currentPage={currentPage}
@@ -245,11 +276,11 @@ export default function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation 
-        isLoggedIn={isLoggedIn} 
-        setIsLoggedIn={setIsLoggedIn} 
-        currentUser={currentUser} 
-        setCurrentUser={setCurrentUser} 
+      <Navigation
+        isLoggedIn={isLoggedIn}
+        setIsLoggedIn={setIsLoggedIn}
+        currentUser={currentUser}
+        setCurrentUser={setCurrentUser}
       />
 
       <SearchHeader
