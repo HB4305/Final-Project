@@ -6,6 +6,7 @@
  */
 
 import express from 'express';
+import bidRouter from './bid.js';
 import {
   getAllProducts,
   getTopProducts,
@@ -69,4 +70,8 @@ router.post('/',
   // validateProductImages,   
   postProduct
 );
+
+
+router.use('/:productId/bids', bidRouter);
+
 export default router;

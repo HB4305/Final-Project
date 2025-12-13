@@ -20,7 +20,23 @@ export class BidService {
    * @returns {Object} { success, currentPrice, currentHighestBidderId }
    */
   async placeBid(auctionId, bidderId, bidAmount) {
+    // ✅ Đảm bảo bidAmount là số
+    bidAmount = Number(bidAmount);
+
+    console.log('[BID SERVICE] Bid amount type:', typeof bidAmount);
+    console.log('[BID SERVICE] Bid amount value:', bidAmount);
+
+    if (isNaN(bidAmount)) {
+      throw new AppError("Số tiền đặt giá không hợp lệ", 400);
+    }
+
     // 1. Lấy thông tin auction
+    console.log('[BID SERVICE] Auction ID:', auctionId); // ✅ Debug log
+
+    if (!auctionId) {
+      throw new AppError("Auction ID không được cung cấp", 400);
+    }
+
     const auction = await Auction.findById(auctionId);
     if (!auction) {
       throw new AppError("Cuộc đấu giá không tồn tại", 404);
@@ -36,7 +52,8 @@ export class BidService {
     }
 
     // 3. Kiểm tra thời gian
-    if (new Date() > new Date(auction.endAt)) {
+    const now = new Date(); // ✅ Thêm biến now
+    if (now > new Date(auction.endAt)) {
       throw new AppError(
         "Cuộc đấu giá đã kết thúc",
         400,
@@ -83,6 +100,21 @@ export class BidService {
       );
     }
 
+    // 4. Kiểm tra giá đặt phải cao hơn giá hiện tại + step
+    const minBidAmount = auction.currentPrice + auction.priceStep;
+    console.log('[BID SERVICE] Current price:', auction.currentPrice);
+    console.log('[BID SERVICE] Price step:', auction.priceStep);
+    console.log('[BID SERVICE] Min bid amount:', minBidAmount);
+    console.log('[BID SERVICE] User bid amount:', bidAmount);
+
+    if (bidAmount < minBidAmount) {
+      throw new AppError(
+        `Giá đặt phải lớn hơn hoặc bằng ${minBidAmount.toLocaleString("vi-VN")}đ`,
+        400,
+        ERROR_CODES.BID_TOO_LOW
+      );
+    }
+
     /**
      * API 3.1: Tự động gia hạn
      * Lấy cấu hình hệ thống
@@ -107,53 +139,45 @@ export class BidService {
     console.log(`  - Thời gian được gia hạn: ${autoExtendDuration} phút`);
 
     let autoExtended = false;
-    let newEndTime = auction.endTime;
+    let newEndTime = auction.endAt;
 
     if (autoExtendEnabled) {
-      // Tính thời gian còn lại
-      const timeRemaining = auction.endTime - now;
+      // ✅ Chuyển Date sang timestamp
+      if (!auction.endAt) {
+        throw new AppError("Cuộc đấu giá không có thời gian kết thúc", 500);
+      }
+
+      const auctionEndTime = auction.endAt instanceof Date ? auction.endAt : new Date(auction.endAt);
+      const endTimeMs = auctionEndTime.getTime();
+      const nowMs = now.getTime();
+      const timeRemaining = endTimeMs - nowMs;
+
       const threshold = autoExtendThreshold * 60 * 1000;
       const duration = autoExtendDuration * 60 * 1000;
 
       const minutesLeft = Math.floor(timeRemaining / 1000 / 60);
-      console.log(`[BID SERVICE] Thời gian còn lại ${timeRemaining} phút`);
+      console.log(`[BID SERVICE] Thời gian còn lại ${minutesLeft} phút`);
 
-      // Nếu thời gian còn lại <= threshold, tiến hành gia hạn
       if (timeRemaining <= threshold && timeRemaining > 0) {
         console.log(
           `[BID SERVICE] Tự động gia hạn thêm: ${autoExtendDuration} phút`
         );
 
-        newEndTime = new Date(auction.endTime.getTime() + duration);
+        newEndTime = new Date(auctionEndTime.getTime() + duration);
         autoExtended = true;
 
-        // Cập nhật auction
-        auction.endTime = newEndTime;
-        auction.autoExtendCount += 1;
-
-        // Lưu lại lịch sử tự động gia hạn
+        // ✅ Chỉ push vào array, KHÔNG save
         auction.autoExtendHistory.push({
           extendedAt: now,
-          oldEndTime: new Date(newEndTime.getTime() - duration),
+          oldEndTime: auction.endAt,
           newEndTime: newEndTime,
           triggeredByBidId: null,
         });
 
-        console.log(
-          `[BID SERVICE] Tự động gia hạn lần: ${auction.autoExtendCount}`
-        );
-        console.log(
-          `[BID SERVICE] Thời gian kết thúc mới: ${auction.newEndTime}`
-        );
+        console.log(`[BID SERVICE] Tự động gia hạn lần: ${(auction.autoExtendCount || 0) + 1}`);
+        console.log(`[BID SERVICE] Thời gian kết thúc mới: ${newEndTime}`);
       }
     }
-
-    // Cập nhật auction
-    auction.currentPrice = bidAmount;
-    auction.winnerId = userId;
-    auction.bidCount += 1;
-
-    await auction.save();
 
     // 7. Tạo session để đảm bảo atomic operation
     const session = await Auction.startSession();
@@ -168,69 +192,65 @@ export class BidService {
             productId: auction.productId,
             bidderId,
             amount: bidAmount,
-            isAuto: false,
+            createdAt: new Date(),
           },
         ],
         { session }
       );
 
-      // 8b. Update auction (chỉ update nếu giá vẫn còn hợp lệ - optimistic concurrency)
+      // ✅ Chuẩn bị dữ liệu update
+      const updateData = {
+        currentPrice: bidAmount,
+        currentHighestBidId: newBid[0]._id,
+        currentHighestBidderId: bidderId,
+        $inc: { bidCount: 1 },
+        updatedAt: new Date(),
+      };
+
+      // ✅ Nếu có auto-extend, thêm vào updateData
+      if (autoExtended) {
+        updateData.endAt = newEndTime;
+        updateData.$inc.autoExtendCount = 1;
+        updateData.$push = {
+          autoExtendHistory: {
+            extendedAt: now,
+            oldEndTime: auction.endAt,
+            newEndTime: newEndTime,
+            triggeredByBidId: newBid[0]._id
+          }
+        };
+      }
+
+      // ✅ Sửa log để dùng giá gốc
+      const originalPrice = await Auction.findById(auctionId).select('currentPrice').lean();
+
+      console.log('[BID SERVICE] Attempting update with conditions:');
+      console.log('  - auctionId:', auctionId);
+      console.log('  - currentPrice < bidAmount:', `${originalPrice.currentPrice} < ${bidAmount} = ${originalPrice.currentPrice < bidAmount}`);
+
       const updated = await Auction.findOneAndUpdate(
         {
           _id: auctionId,
           currentPrice: { $lt: bidAmount },
           status: AUCTION_STATUS.ACTIVE,
         },
-        [
-          {
-            $set: {
-              currentPrice: bidAmount,
-              currentHighestBidId: newBid[0]._id,
-              currentHighestBidderId: bidderId,
-              bidCount: { $add: ["$bidCount", 1] },
-
-              // ★ Update phần tử cuối của autoExtendHistory nếu thỏa điều kiện
-              autoExtendHistory: {
-                $cond: [
-                  {
-                    $and: [
-                      autoExtended, // biến boolean từ JS
-                      { $gt: [{ $size: "$autoExtendHistory" }, 0] },
-                    ],
-                  },
-                  {
-                    // Nếu thỏa → ghi đè phần tử cuối
-                    $concatArrays: [
-                      {
-                        $slice: [
-                          "$autoExtendHistory",
-                          { $subtract: [{ $size: "$autoExtendHistory" }, 1] },
-                        ],
-                      },
-                      [
-                        {
-                          $mergeObjects: [
-                            { $arrayElemAt: ["$autoExtendHistory", -1] },
-                            { triggeredByBidId: newBid[0]._id },
-                          ],
-                        },
-                      ],
-                    ],
-                  },
-                  "$autoExtendHistory", // Nếu không thỏa → giữ nguyên
-                ],
-              },
-
-              updatedAt: new Date(),
-            },
-          },
-        ],
+        updateData,
         { new: true, session }
       );
 
+      console.log('[BID SERVICE] Update result:', updated ? 'SUCCESS' : 'FAILED');
+
       if (!updated) {
-        // Ai đó đặt giá cao hơn trước
-        throw new AppError("Có người đặt giá cao hơn bạn rồi", 409);
+        // ✅ Debug: Lấy giá mới nhất để xem
+        const freshAuction = await Auction.findById(auctionId).session(session);
+        console.log('[BID SERVICE] Fresh auction price:', freshAuction.currentPrice);
+        console.log('[BID SERVICE] User bid was:', bidAmount);
+
+        throw new AppError(
+          `Có người đặt giá cao hơn (${freshAuction.currentPrice.toLocaleString('vi-VN')}đ). Vui lòng đặt giá mới.`,
+          409,
+          ERROR_CODES.BID_TOO_LOW
+        );
       }
 
       // // 7c. Kiểm tra auto-extend
@@ -241,12 +261,15 @@ export class BidService {
       // Commit transaction
       await session.commitTransaction();
 
-      return {
+      const result = {
         success: true,
         currentPrice: updated.currentPrice,
         currentHighestBidderId: updated.currentHighestBidderId,
         bidCount: updated.bidCount,
       };
+
+      console.log('[BID SERVICE] Returning result:', result);
+      return result;
     } catch (error) {
       await session.abortTransaction();
       throw error;

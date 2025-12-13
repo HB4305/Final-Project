@@ -6,11 +6,40 @@ import { AppError } from '../utils/errors.js';
  */
 export const placeBid = async (req, res, next) => {
   try {
-    const { auctionId } = req.params;
+    const { auctionId, productId } = req.params;
     const { amount } = req.body;
     const bidderId = req.user._id;
 
-    const result = await bidService.placeBid(auctionId, bidderId, amount);
+    console.log('[CONTROLLER] Params:', { auctionId, productId }); // ✅ Debug
+    console.log('[CONTROLLER] Body:', { amount }); // ✅ Debug
+
+    let finalAuctionId = auctionId;
+
+    if (productId) {
+      const Auction = (await import('../models/Auction.js')).default;
+
+      const auction = await Auction.findOne({
+        productId,
+        status: 'active'
+      });
+
+      console.log('[CONTROLLER] Found auction:', auction?._id); // ✅ Debug
+
+      if (!auction) {
+        throw new AppError(
+          'Sản phẩm này không có cuộc đấu giá hoạt động',
+          404,
+          'AUCTION_NOT_FOUND'
+        );
+      }
+      finalAuctionId = auction._id.toString();
+    }
+
+    console.log('[CONTROLLER] Final Auction ID:', finalAuctionId); // ✅ Debug
+
+    const result = await bidService.placeBid(finalAuctionId, bidderId, amount);
+
+    console.log('[CONTROLLER] Bid placed successfully, sending response:', result);
 
     res.status(201).json({
       status: 'success',
