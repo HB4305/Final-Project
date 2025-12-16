@@ -5,6 +5,7 @@ import {
   getUserRatingSummary,
   getUserRatings,
   getUserProfile,
+  submitUpgradeRequest
 } from "../controllers/user.js";
 import { authenticate } from "../middlewares/auth.js";
 
@@ -45,5 +46,11 @@ router.get("/:userId/ratings/summary", getUserRatingSummary);
  * Lấy danh sách ratings của user khác (public)
  */
 router.get("/:userId/ratings", getUserRatings);
+
+/**
+ * POST /api/users/upgrade-request
+ * Bidder submit upgrade request to seller
+ */
+router.post("/upgrade-request", authenticate, submitUpgradeRequest);
 
 export default router;

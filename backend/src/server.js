@@ -42,6 +42,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+// Admin routes
+app.use("/api/admin", adminRoutes);
 
 // 404 Handler
 app.use(notFoundHandler);

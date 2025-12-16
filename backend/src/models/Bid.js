@@ -25,6 +25,17 @@ const bidSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // API 3.3: Đánh dấu bid bị invalidate khi bidder bị reject
+  isValid: {
+    type: Boolean,
+    default: true
+  },
+  invalidatedAt: {
+    type: Date
+  },
+  invalidatedReason: {
+    type: String
+  },
   metadata: {
     proxyFor: {
       type: mongoose.Schema.Types.ObjectId,

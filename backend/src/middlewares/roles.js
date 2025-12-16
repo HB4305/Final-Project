@@ -100,3 +100,35 @@ export const isOrderParticipant = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Middleware kiểm tra seller role có còn hợp lệ không (chưa hết hạn)
+ * Sử dụng cho các hành động yêu cầu seller role như đăng sản phẩm mới
+ */
+export const checkSellerExpiration = (req, res, next) => {
+  try {
+    if (!req.user) {
+      return next(new AppError('Vui lòng đăng nhập', 401, ERROR_CODES.UNAUTHORIZED));
+    }
+
+    // Admin bypass seller expiration check
+    if (req.user.roles?.includes('admin')) {
+      return next();
+    }
+
+    // Kiểm tra xem user có role seller không
+    if (!req.user.roles?.includes('seller')) {
+      return next(new AppError('Bạn cần quyền seller để thực hiện hành động này', 403, ERROR_CODES.FORBIDDEN));
+    }
+
+    // Kiểm tra seller expiration
+    if (req.user.sellerExpiresAt && new Date(req.user.sellerExpiresAt) < new Date()) {
+      return next(new AppError('Quyền seller của bạn đã hết hạn. Vui lòng yêu cầu gia hạn.', 403, ERROR_CODES.FORBIDDEN));
+    }
+
+    next();
+  } catch (error) {
+    console.error('[CHECK SELLER EXPIRATION] Lỗi kiểm tra seller expiration:', error);
+    next(error);
+  }
+};
