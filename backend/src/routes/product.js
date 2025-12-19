@@ -73,9 +73,7 @@ router.get('/:productId', getProductDetail);
 router.post('/',
   authenticate,
   checkSellerExpiration,
-  // uploadProductImages,  
-  // handleMulterError,        
-  // validateProductImages,   
+  validateProductImages,   
   postProduct
 );
 

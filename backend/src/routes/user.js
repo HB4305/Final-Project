@@ -6,7 +6,9 @@ import {
   getUserRatings,
   getUserProfile,
   submitUpgradeRequest,
-  getUpgradeRequests
+  getUpgradeRequests,
+  approveUpgradeRequest,
+  rejectUpgradeRequest
 } from "../controllers/user.js";
 import { authenticate } from "../middlewares/auth.js";
 
