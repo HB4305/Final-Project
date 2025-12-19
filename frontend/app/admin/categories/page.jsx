@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
-import Navigation from "../../../components/navigation";
+import AdminNavigation from "../../../components/admin-navigation";
+import categoryService from "../../services/categoryService";
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState([]);
@@ -13,10 +14,10 @@ export default function AdminCategoriesPage() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:5001/api/categories");
-      const result = await response.json();
-      if (result.success) {
-        setCategories(result.data);
+      const response = await categoryService.getAllCategories();
+      console.log("[CATEGORY ADMIN]:", response.data);
+      if (response.success) {
+        setCategories(response.data);
       }
       setLoading(false);
     } catch (error) {
@@ -34,26 +35,17 @@ export default function AdminCategoriesPage() {
     setError("");
 
     try {
-      const url = editingCategory
-        ? `http://localhost:5001/api/categories/${editingCategory.id}`
-        : "http://localhost:5001/api/categories";
+      const response = await categoryService.createCategory(formData);
 
-      const response = await fetch(url, {
-        method: editingCategory ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert(result.message);
+      if (response.success) {
+        console.log("[CATEGORY ADMIN]:", response.data);
+        alert(response.message);
         setShowModal(false);
         setFormData({ name: "", description: "" });
         setEditingCategory(null);
         fetchCategories();
       } else {
-        setError(result.message);
+        setError(response.message);
       }
     } catch (error) {
       setError("An error occurred. Please try again.");
@@ -64,20 +56,13 @@ export default function AdminCategoriesPage() {
     if (!confirm(`Are you sure you want to delete "${category.name}"?`)) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:5001/api/categories/${category.id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await categoryService.deleteCategory(category._id);
 
-      const result = await response.json();
-
-      if (result.success) {
-        alert(result.message);
+      if (response.success) {
+        alert(response.message);
         fetchCategories();
       } else {
-        alert("Error: " + result.message);
+        alert("Error: " + response.message);
       }
     } catch (error) {
       alert("An error occurred. Please try again.");
@@ -98,9 +83,9 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      <AdminNavigation />
 
-      <div className="max-w-6xl mx-auto px-4 py-24">
+      <div className="max-w-6xl mx-auto px-4 py-32">
         <div className="bg-white shadow-lg rounded-lg p-8">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -136,12 +121,6 @@ export default function AdminCategoriesPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created At
-                    </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
@@ -151,16 +130,10 @@ export default function AdminCategoriesPage() {
                   {categories.map((category) => (
                     <tr key={category.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {category.id}
+                        {category._id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {category.name}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {category.description || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {new Date(category.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button

@@ -61,13 +61,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   }, []);
 
   const schema = z.object({
-    name: z.string().min(3, "Product name is required"),
-    category: z.string().min(1, "Category is required"),
+    title: z.string().min(3, "Product title is required"),
+    categoryId: z.string().min(1, "Category is required"),
     startPrice: z.number().positive("Starting price must be > 0"),
-    stepPrice: z.number().positive("Step price must be > 0"),
+    priceStep: z.number().positive("Step price must be > 0"),
     buyNowPrice: z.number().optional(),
-    auctionDays: z.number().min(1, "Auction duration must be at least 1 day").max(30, "Maximum 30 days"),
-    isAutoRenew: z.boolean().optional(),
+    startTime: z.string().min(1, "Start time is required"),
+    endTime: z.string().min(1, "End time is required"),
+    autoExtendEnabled: z.boolean().optional(),
     description: z
       .string()
       .min(10, "Description must be at least 10 characters"),
@@ -83,13 +84,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: "",
-      category: "",
+      title: "",
+      categoryId: "",
       startPrice: 0,
-      stepPrice: 0,
+      priceStep: 0,
       buyNowPrice: 0,
-      auctionDays: 7,
-      isAutoRenew: false,
+      startTime: "",
+      endTime: "",
+      autoExtendEnabled: false,
       description: "",
       images: [],
     },
@@ -127,21 +129,17 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       }
 
       // Create product with properly formatted data
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + data.auctionDays);
-      
       const payload = {
-        name: data.name,
-        category: data.category,
+        title: data.title,
+        categoryId: data.categoryId,
         startPrice: data.startPrice,
-        currentPrice: data.startPrice, // Initially same as start price
-        stepPrice: data.stepPrice,
+        priceStep: data.priceStep,
         buyNowPrice: data.buyNowPrice || undefined,
-        endDate: endDate.toISOString(),
-        isAutoRenew: data.isAutoRenew || false,
+        startTime: data.startTime,
+        endTime: data.endTime,
         description: data.description,
-        images: uploadImageUrls,
-        seller: "674766b5867cfd97aa73fccf" // TODO: Get from authenticated user
+        imageUrls: uploadImageUrls,
+        metadata: {} // Optional metadata
       };
 
       console.log("📦 Creating product with payload:", payload);
@@ -235,17 +233,17 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Type className="inline w-4 h-4 mr-1" />
-                Product Name *
+                Product Title *
               </label>
               <input
-                {...register("name")}
-                placeholder="Enter product name"
+                {...register("title")}
+                placeholder="Enter product title"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
-              {errors.name && (
+              {errors.title && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
-                  {errors.name.message}
+                  {errors.title.message}
                 </p>
               )}
             </div>
@@ -257,7 +255,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 Category *
               </label>
               <select 
-                {...register("category")} 
+                {...register("categoryId")} 
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 disabled={loadingCategories}
               >
@@ -276,10 +274,10 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               {!loadingCategories && categories.length === 0 && (
                 <p className="text-yellow-600 text-sm mt-1">⚠️ No categories available. Please contact admin.</p>
               )}
-              {errors.category && (
+              {errors.categoryId && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
-                  {errors.category.message}
+                  {errors.categoryId.message}
                 </p>
               )}
             </div>
@@ -319,15 +317,15 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 <input 
                   type="number"
                   step="0.01"
-                  {...register("stepPrice", { valueAsNumber: true })}
+                  {...register("priceStep", { valueAsNumber: true })}
                   placeholder="0.00"
                   className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
               </div>
-              {errors.stepPrice && (
+              {errors.priceStep && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
-                  {errors.stepPrice.message}
+                  {errors.priceStep.message}
                 </p>
               )}
             </div>
@@ -351,39 +349,55 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               <p className="text-sm text-gray-500 mt-1">Leave empty if not applicable</p>
             </div>
 
-            {/* Auction Duration */}
+            {/* Start Time */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Clock className="inline w-4 h-4 mr-1" />
-                Auction Duration (Days) *
+                Auction Start Time *
               </label>
               <input 
-                type="number"
-                min="1"
-                max="30"
-                {...register("auctionDays", { valueAsNumber: true })}
-                placeholder="7"
+                type="datetime-local"
+                {...register("startTime")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
-              {errors.auctionDays && (
+              {errors.startTime && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
-                  {errors.auctionDays.message}
+                  {errors.startTime.message}
                 </p>
               )}
-              <p className="text-sm text-gray-500 mt-1">Auction will end in the specified number of days</p>
             </div>
 
-            {/* Auto Renew */}
+            {/* End Time */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <Clock className="inline w-4 h-4 mr-1" />
+                Auction End Time *
+              </label>
+              <input 
+                type="datetime-local"
+                {...register("endTime")}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+              {errors.endTime && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <X className="w-4 h-4 mr-1" />
+                  {errors.endTime.message}
+                </p>
+              )}
+              <p className="text-sm text-gray-500 mt-1">Must be after start time</p>
+            </div>
+
+            {/* Auto Extend */}
             <div className="flex items-center">
               <input 
                 type="checkbox"
-                {...register("isAutoRenew")}
-                id="autoRenew"
+                {...register("autoExtendEnabled")}
+                id="autoExtend"
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <label htmlFor="autoRenew" className="ml-2 text-sm font-medium text-gray-700">
-                Auto-renew auction if no bids received
+              <label htmlFor="autoExtend" className="ml-2 text-sm font-medium text-gray-700">
+                Enable auto-extend (adds 10 minutes if bid placed in last 5 minutes)
               </label>
             </div>
 

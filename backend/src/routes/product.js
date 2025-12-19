@@ -15,7 +15,8 @@ import {
   postProduct,
   toggleAutoExtend,
   updateProductDescription,
-  rejectBidder
+  rejectBidder,
+  withdrawBid
 } from '../controllers/product.js';
 
 import {
@@ -99,7 +100,7 @@ router.put('/:productId/auto-extend', toggleAutoExtend);
 router.put('/:productId/description', updateProductDescription);
 
 /**
- * API 3.3: Từ chối lượt ra giá của bidder
+ * API 3.3: Từ chối lượt ra giá của bidder (Seller action)
  * POST /api/products/:productId/reject-bidder
  * Body: { bidderId: string, reason: string }
  * Requires: Authentication (seller only)
@@ -107,5 +108,15 @@ router.put('/:productId/description', updateProductDescription);
 // Tạm thời không cần authenticate để test
 // router.post('/:productId/reject-bidder', authenticate, authorize(USER_ROLES.SELLER), rejectBidder);
 router.post('/:productId/reject-bidder', rejectBidder);
+
+/**
+ * API 3.3: Bidder tự rút lại bid (Bidder action)
+ * POST /api/products/:productId/withdraw-bid
+ * Body: { reason: string } (optional)
+ * Requires: Authentication (bidder only)
+ */
+// Tạm thời không cần authenticate để test
+// router.post('/:productId/withdraw-bid', authenticate, withdrawBid);
+router.post('/:productId/withdraw-bid', withdrawBid);
 
 export default router;

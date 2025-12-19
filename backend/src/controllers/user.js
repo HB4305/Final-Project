@@ -1,6 +1,9 @@
 // CONTROLLER: User Controller
 
+import UpgradeRequest from '../models/UpgradeRequest.js';
+import User from '../models/User.js'; 
 import { userService } from "../services/UserService.js";
+
 
 /**
  * Controller lấy rating summary của user
@@ -94,9 +97,6 @@ export const submitUpgradeRequest = async (req, res, next) => {
       });
     }
 
-    const { default: User } = await import('../models/User.js');
-    const { default: UpgradeRequest } = await import('../models/UpgradeRequest.js');
-
     // Check user exists
     const user = await User.findById(userId);
     if (!user) {
@@ -162,3 +162,84 @@ export const submitUpgradeRequest = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Controller lấy danh sách upgrade requests
+ * GET /api/users/upgrade-requests
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} next - Next middleware function
+ */
+export const getUpgradeRequests = async (req, res, next) => {
+  try {
+    const userId = req.user?._id;
+
+    const upgradeRequests = await UpgradeRequest.find({
+      user: userId
+    });
+
+    res.status(200).json({
+      status: "success",
+      success: true,
+      message: 'Upgrade requests retrieved successfully',
+      data: upgradeRequests.data
+    });
+  } catch (error) {
+    console.log("[ERROR] getUpgradeRequests: ", error);
+    next(error);
+  }
+};
+
+/**
+ * Controller chấp nhận upgrade request
+ * PUT /api/users/upgrade-requests/:requestId/approve
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} next - Next middleware function
+ */
+export const approveUpgradeRequest = async (req, res, next) => {
+  try {
+    const requestId = req.params.requestId;
+    const upgradeRequest = await upgradeService.approveUpgradeRequest(requestId);
+    res.status(200).json({
+      status: "success",
+      success: true,
+      message: 'Upgrade request approved successfully',
+      data: upgradeRequest.data
+    });
+  } catch (error) {
+    console.log("[ERROR] approveUpgradeRequest: ", error);
+    next(error);
+  }
+};
+
+/**
+ * Controller từ chối upgrade request
+ * PUT /api/users/upgrade-requests/:requestId/reject
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} next - Next middleware function
+ */
+export const rejectUpgradeRequest = async (req, res, next) => {
+  try {
+    const requestId = req.params.requestId;
+    const upgradeRequest = await UpgradeRequest.findById(requestId);
+    if (!upgradeRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Upgrade request not found'
+      });
+    }
+    upgradeRequest.status = 'rejected';
+    await upgradeRequest.save();
+    res.status(200).json({
+      success: true,
+      message: 'Upgrade request rejected successfully',
+      data: upgradeRequest
+    });
+  } catch (error) {
+    console.log("[ERROR] rejectUpgradeRequest: ", error);
+    next(error);
+  }
+};
+

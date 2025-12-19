@@ -5,7 +5,8 @@ import {
   getUserRatingSummary,
   getUserRatings,
   getUserProfile,
-  submitUpgradeRequest
+  submitUpgradeRequest,
+  getUpgradeRequests
 } from "../controllers/user.js";
 import { authenticate } from "../middlewares/auth.js";
 
@@ -48,9 +49,27 @@ router.get("/:userId/ratings/summary", getUserRatingSummary);
 router.get("/:userId/ratings", getUserRatings);
 
 /**
+ * GET /api/users/upgrade-requests
+ * Lấy danh sách upgrade requests
+ */
+router.get("/upgrade-requests", authenticate, getUpgradeRequests);
+
+/**
  * POST /api/users/upgrade-request
  * Bidder submit upgrade request to seller
  */
 router.post("/upgrade-request", authenticate, submitUpgradeRequest);
+
+/**
+ * PUT /api/users/upgrade-requests/:requestId/approve
+ * Approve upgrade request
+ */
+router.put("/upgrade-requests/:requestId/approve", authenticate, approveUpgradeRequest);
+
+/**
+ * PUT /api/users/upgrade-requests/:requestId/reject
+ * Reject upgrade request
+ */
+router.put("/upgrade-requests/:requestId/reject", authenticate, rejectUpgradeRequest);
 
 export default router;

@@ -798,32 +798,54 @@ export const updateProductDescription = async (req, res, next) => {
 
     // Prepare update object
     const updateFields = {};
-    if (description !== undefined) {
-      updateFields.description = description;
+    
+    // Add new description to history if provided
+    if (description !== undefined && description.trim().length > 0) {
+      product.descriptionHistory.push({
+        text: description.trim(),
+        createdAt: new Date(),
+        authorId: userId
+      });
     }
+    
+    // Update metadata if provided
     if (metadata !== undefined) {
       updateFields.metadata = { ...product.metadata, ...metadata };
     }
+    
     updateFields.updatedAt = new Date();
 
-    // Update using findByIdAndUpdate to bypass validation for unchanged fields
-    const updatedProduct = await Product.findByIdAndUpdate(
-      productId,
-      { $set: updateFields },
-      { new: true, runValidators: false }
-    );
+    // Save product to update descriptionHistory
+    if (description !== undefined) {
+      await product.save();
+    }
+
+    // Update other fields if needed
+    if (Object.keys(updateFields).length > 0) {
+      await Product.findByIdAndUpdate(
+        productId,
+        { $set: updateFields },
+        { new: false, runValidators: false }
+      );
+    }
+
+    // Get latest description
+    const latestDescription = product.descriptionHistory.length > 0 
+      ? product.descriptionHistory[product.descriptionHistory.length - 1].text 
+      : '';
 
     res.json({
       success: true,
       message: 'Product description updated successfully',
       data: {
         product: {
-          _id: updatedProduct._id,
-          title: updatedProduct.title,
-          description: updatedProduct.description,
-          metadata: updatedProduct.metadata,
-          primaryImageUrl: updatedProduct.primaryImageUrl,
-          updatedAt: updatedProduct.updatedAt
+          _id: product._id,
+          title: product.title,
+          description: latestDescription,
+          descriptionHistory: product.descriptionHistory,
+          metadata: metadata ? { ...product.metadata, ...metadata } : product.metadata,
+          primaryImageUrl: product.primaryImageUrl,
+          updatedAt: new Date()
         }
       }
     });
@@ -912,3 +934,52 @@ export const rejectBidder = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * ============================================
+ * API 3.3: Bidder tự rút lại bid
+ * POST /api/products/:productId/withdraw-bid
+ * ============================================
+ * Bidder có thể tự rút lại tất cả bids của mình
+ */
+export const withdrawBid = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user?._id;
+
+    // Validate input
+    if (!isValidObjectId(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID'
+      });
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Call BidService to handle withdrawal logic
+    const { default: BidService } = await import('../services/BidService.js');
+    const bidService = new BidService();
+    
+    const result = await bidService.withdrawBid(
+      productId, 
+      userId.toString(), 
+      reason || 'Bidder withdrew bid'
+    );
+
+    res.json({
+      success: true,
+      message: 'Bid withdrawn successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

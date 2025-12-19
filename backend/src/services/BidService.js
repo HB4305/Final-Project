@@ -433,6 +433,174 @@ export class BidService {
   async getBidCountByBidder(auctionId, bidderId) {
     return await Bid.countDocuments({ auctionId, bidderId });
   }
+
+  /**
+   * ============================================
+   * API 3.3: Bidder tự rút lại bid của mình
+   * ============================================
+   * Bidder có thể tự rút lại tất cả bids của mình
+   * Nếu bidder hiện là highest bidder, chuyển cho bidder thứ 2
+   * @param {string} productId - ID sản phẩm
+   * @param {string} bidderId - ID bidder muốn rút bid
+   * @param {string} reason - Lý do rút bid
+   * @returns {Object} Thông tin withdrawal với winner mới
+   */
+  async withdrawBid(productId, bidderId, reason = "Bidder withdrew bid") {
+    const session = await Auction.startSession();
+    session.startTransaction();
+
+    try {
+      console.log(`[BID SERVICE] Bidder ${bidderId} withdrawing bids for product ${productId}`);
+      console.log(`[BID SERVICE] Reason: ${reason}`);
+
+      // 1. Tìm cuộc đấu giá cho sản phẩm
+      const auction = await Auction.findOne({ productId: productId }).session(session);
+      if (!auction) {
+        throw new AppError('Auction not found for this product', 404);
+      }
+
+      // Chỉ cho phép withdraw trong auction active
+      if (auction.status !== AUCTION_STATUS.ACTIVE) {
+        throw new AppError('Can only withdraw bids in active auctions', 400);
+      }
+
+      // 2. Kiểm tra bidder có bids nào không
+      const bidCount = await Bid.countDocuments({
+        auctionId: auction._id,
+        bidderId: bidderId,
+        isValid: true
+      }).session(session);
+
+      if (bidCount === 0) {
+        throw new AppError('You have no active bids for this product', 400);
+      }
+
+      const previousWinnerId = auction.currentHighestBidderId ? auction.currentHighestBidderId.toString() : null;
+      const isCurrentWinner = previousWinnerId === bidderId;
+
+      console.log(`[BID SERVICE] Current winner: ${previousWinnerId}`);
+      console.log(`[BID SERVICE] Is withdrawing bidder current winner? ${isCurrentWinner}`);
+
+      // 3. Invalidate ALL bids của bidder
+      const invalidatedResult = await Bid.updateMany(
+        { 
+          auctionId: auction._id,
+          bidderId: bidderId,
+          isValid: true
+        },
+        { 
+          isValid: false,
+          invalidatedAt: new Date(),
+          invalidatedReason: reason
+        },
+        { session }
+      );
+
+      console.log(`[BID SERVICE] Invalidated ${invalidatedResult.modifiedCount} bids from withdrawing bidder`);
+
+      let newWinner = null;
+      let newPrice = auction.currentPrice;
+
+      // 4. Nếu bidder đang là winner, tìm winner mới
+      if (isCurrentWinner) {
+        console.log(`[BID SERVICE] Finding new winner...`);
+
+        // Tìm highest valid bid (không phải của withdrawing bidder)
+        const newHighestBid = await Bid.findOne({
+          auctionId: auction._id,
+          bidderId: { $ne: bidderId },
+          isValid: true
+        })
+        .sort({ amount: -1, createdAt: -1 })
+        .session(session);
+
+        if (newHighestBid) {
+          // Có winner mới
+          auction.currentPrice = newHighestBid.amount;
+          auction.currentHighestBidderId = newHighestBid.bidderId;
+          auction.currentHighestBidId = newHighestBid._id;
+          newWinner = newHighestBid.bidderId.toString();
+          newPrice = newHighestBid.amount;
+
+          console.log(`[BID SERVICE] New winner found: ${newWinner} with bid ${newPrice}`);
+        } else {
+          // Không còn bid hợp lệ nào → reset về giá khởi điểm
+          auction.currentPrice = auction.startPrice;
+          auction.currentHighestBidderId = null;
+          auction.currentHighestBidId = null;
+          newPrice = auction.startPrice;
+
+          console.log(`[BID SERVICE] No valid bids left, reset to start price ${newPrice}`);
+        }
+      }
+
+      // 5. Recalculate bidCount (chỉ đếm valid bids)
+      const validBidCount = await Bid.countDocuments({
+        auctionId: auction._id,
+        isValid: true
+      }).session(session);
+
+      auction.bidCount = validBidCount;
+      auction.updatedAt = new Date();
+      await auction.save({ session });
+
+      console.log(`[BID SERVICE] Updated auction bidCount to ${validBidCount}`);
+
+      // 6. Delete auto-bids của withdrawing bidder
+      const AutoBid = (await import('../models/AutoBid.js')).default;
+      const deletedAutoBids = await AutoBid.deleteMany({
+        bidderId,
+        productId
+      }).session(session);
+
+      console.log(`[BID SERVICE] Deleted ${deletedAutoBids.deletedCount} auto-bids`);
+
+      // 7. Create audit log (optional)
+      const AuditLog = (await import('../models/AuditLog.js')).default;
+      await AuditLog.create([{
+        user: bidderId,
+        action: 'WITHDRAW_BID',
+        resource: 'Auction',
+        resourceId: auction._id,
+        details: {
+          productId,
+          reason,
+          wasCurrentWinner: isCurrentWinner,
+          newWinnerId: newWinner,
+          previousPrice: isCurrentWinner ? auction.currentPrice : null,
+          newPrice
+        }
+      }], { session });
+
+      await session.commitTransaction();
+
+      return {
+        withdrawal: {
+          bidderId,
+          reason,
+          withdrawnAt: new Date()
+        },
+        auction: {
+          auctionId: auction._id,
+          currentPrice: auction.currentPrice,
+          currentHighestBidderId: auction.currentHighestBidderId,
+          bidCount: auction.bidCount
+        },
+        previousWinner: previousWinnerId,
+        newWinner,
+        winnerChanged: isCurrentWinner,
+        invalidatedBidsCount: invalidatedResult.modifiedCount,
+        deletedAutoBidsCount: deletedAutoBids.deletedCount
+      };
+
+    } catch (error) {
+      await session.abortTransaction();
+      console.error('[BID SERVICE] Error withdrawing bid:', error);
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
 }
 
 export const bidService = new BidService();
