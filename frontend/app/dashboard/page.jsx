@@ -67,77 +67,46 @@ export default function DashboardPage() {
     }
   }, [searchParams]);
 
-  // Load data based on active tab
+  // Load all data on mount
   useEffect(() => {
-    loadTabData();
-  }, [activeTab]);
+    fetchAllData();
+  }, []);
 
-  const loadTabData = async () => {
+  const fetchAllData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      switch (activeTab) {
-        case "participating":
-          const participatingData =
-            await auctionService.getParticipatingAuctions({
-              page: 1,
-              limit: 10,
-            });
-          setParticipatingAuctions(participatingData.data.auctions);
-          setStats((prev) => ({
-            ...prev,
-            activeBids: participatingData.data.pagination.total,
-          }));
-          break;
+      const [
+        participatingData,
+        watchlistData,
+        wonData,
+        sellingData,
+        soldData
+      ] = await Promise.all([
+        auctionService.getParticipatingAuctions({ page: 1, limit: 10 }),
+        watchlistService.getWatchlist({ page: 1, limit: 10 }),
+        auctionService.getWonAuctions({ page: 1, limit: 10 }),
+        auctionService.getSellingAuctions({ page: 1, limit: 10 }),
+        auctionService.getSoldAuctions({ page: 1, limit: 10 })
+      ]);
 
-        case "watchlist":
-          const watchlistData = await watchlistService.getWatchlist({
-            page: 1,
-            limit: 10,
-          });
-          setWatchlist(watchlistData.data.watchlist);
-          setStats((prev) => ({
-            ...prev,
-            watchlistCount: watchlistData.data.pagination.total,
-          }));
-          break;
+      setParticipatingAuctions(participatingData.data.auctions);
+      setWatchlist(watchlistData.data.watchlist);
+      setWonAuctions(wonData.data.auctions);
+      setSellingAuctions(sellingData.data.auctions);
+      setSoldAuctions(soldData.data.auctions);
 
-        case "won":
-          const wonData = await auctionService.getWonAuctions({
-            page: 1,
-            limit: 10,
-          });
-          setWonAuctions(wonData.data.auctions);
-          setStats((prev) => ({
-            ...prev,
-            wonCount: wonData.data.pagination.total,
-          }));
-          break;
+      setStats({
+        activeBids: participatingData.data.pagination.total,
+        watchlistCount: watchlistData.data.pagination.total,
+        wonCount: wonData.data.pagination.total,
+        sellingCount: sellingData.data.pagination.total,
+      });
 
-        case "selling":
-          const sellingData = await auctionService.getSellingAuctions({
-            page: 1,
-            limit: 10,
-          });
-          setSellingAuctions(sellingData.data.auctions);
-          setStats((prev) => ({
-            ...prev,
-            sellingCount: sellingData.data.pagination.total,
-          }));
-          break;
-
-        case "sold":
-          const soldData = await auctionService.getSoldAuctions({
-            page: 1,
-            limit: 10,
-          });
-          setSoldAuctions(soldData.data.auctions);
-          break;
-      }
     } catch (err) {
-      console.error("Error loading data:", err);
-      setError(err.response?.data?.message || "Không thể tải dữ liệu");
+      console.error("Error loading dashboard data:", err);
+      setError(err.response?.data?.message || "Không thể tải dữ liệu dashboard");
     } finally {
       setLoading(false);
     }
@@ -146,7 +115,7 @@ export default function DashboardPage() {
   const handleRemoveFromWatchlist = async (productId) => {
     try {
       await watchlistService.removeFromWatchlist(productId);
-      loadTabData(); // Reload data
+      fetchAllData(); // Reload all data
     } catch (err) {
       alert("Không thể xoá khỏi danh sách yêu thích");
     }
@@ -167,7 +136,7 @@ export default function DashboardPage() {
         "Người thắng không thanh toán"
       );
       alert("Đã hủy giao dịch thành công");
-      loadTabData();
+      fetchAllData();
     } catch (err) {
       alert(err.response?.data?.message || "Không thể hủy giao dịch");
     }
@@ -277,11 +246,10 @@ export default function DashboardPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${
-                    activeTab === tab.key
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${activeTab === tab.key
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
@@ -302,7 +270,7 @@ export default function DashboardPage() {
               <div className="text-center py-8">
                 <p className="text-red-500">{error}</p>
                 <button
-                  onClick={loadTabData}
+                  onClick={fetchAllData}
                   className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
                 >
                   Thử lại

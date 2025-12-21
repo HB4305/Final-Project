@@ -61,7 +61,7 @@ export default function ProductDetailPage() {
       const response = await productService.placeBid(id, { amount });
       // Backend trả về: { status: 'success', message: '...', data: {...} }
       if (response.status === 'success') {
-        alert(`Đặt giá ${formatPrice(amount)} thành công!`);
+        alert(`Đã thiết lập giá tối đa ${formatPrice(amount)} thành công! Hệ thống sẽ tự động đấu giá cho bạn.`);
         refetch();
       } else {
         alert(response.message || 'Đặt giá thất bại');

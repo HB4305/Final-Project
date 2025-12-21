@@ -88,19 +88,19 @@ export const getWonAuctions = async (req, res, next) => {
     const { page = 1, limit = 10, status } = req.query;
     const skip = (page - 1) * limit;
 
+    // Fix: Query based on Auction schema (currentHighestBidderId and status='ended')
     const query = {
-      winnerId: req.user._id,
-      status: "completed",
+      currentHighestBidderId: req.user._id,
+      status: "ended",
     };
 
-    // Nếu có filter theo trạng thái giao dịch
-    if (status) {
-      query.transactionStatus = status;
-    }
+    // Note: transactionStatus is not in Auction schema currently.
+    // If filtering by transaction status is needed, we might need to lookup Orders.
+    // For now, we return all won auctions.
 
     const [auctions, total] = await Promise.all([
       Auction.find(query)
-        .sort({ endedAt: -1 })
+        .sort({ endAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
         .populate({
@@ -116,10 +116,16 @@ export const getWonAuctions = async (req, res, next) => {
       Auction.countDocuments(query),
     ]);
 
+    // Add dummy transactionStatus for frontend compatibility if needed
+    const auctionsWithStatus = auctions.map(a => ({
+      ...a,
+      transactionStatus: 'pending' // Default or fetch from Order if possible
+    }));
+
     res.status(200).json({
       status: "success",
       data: {
-        auctions,
+        auctions: auctionsWithStatus,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -190,17 +196,17 @@ export const getSoldAuctions = async (req, res, next) => {
 
     const query = {
       sellerId: req.user._id,
-      status: "completed",
-      winnerId: { $exists: true, $ne: null },
+      status: "ended",
+      currentHighestBidderId: { $exists: true, $ne: null },
     };
 
-    if (status) {
-      query.transactionStatus = status;
-    }
+    // if (status) {
+    //   query.transactionStatus = status;
+    // }
 
     const [auctions, total] = await Promise.all([
       Auction.find(query)
-        .sort({ endedAt: -1 })
+        .sort({ endAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
         .populate({
@@ -208,17 +214,24 @@ export const getSoldAuctions = async (req, res, next) => {
           select: "title slug primaryImageUrl categoryId",
         })
         .populate(
-          "winnerId",
+          "currentHighestBidderId",
           "username fullName contactPhone email ratingSummary"
         )
         .lean(),
       Auction.countDocuments(query),
     ]);
 
+    // Rename currentHighestBidderId to winnerId for frontend consistency if needed
+    const auctionsFormatted = auctions.map(a => ({
+      ...a,
+      winnerId: a.currentHighestBidderId,
+      transactionStatus: 'pending' // Placeholder
+    }));
+
     res.status(200).json({
       status: "success",
       data: {
-        auctions,
+        auctions: auctionsFormatted,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
