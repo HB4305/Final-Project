@@ -3,6 +3,8 @@
 import Bid from "../models/Bid.js";
 import Auction from "../models/Auction.js";
 import Product from "../models/Product.js";
+import Order from "../models/Order.js";
+import Rating from "../models/Rating.js";
 import { AppError } from "../utils/errors.js";
 
 /**
@@ -116,11 +118,33 @@ export const getWonAuctions = async (req, res, next) => {
       Auction.countDocuments(query),
     ]);
 
-    // Add dummy transactionStatus for frontend compatibility if needed
-    const auctionsWithStatus = auctions.map(a => ({
-      ...a,
-      transactionStatus: 'pending' // Default or fetch from Order if possible
-    }));
+    // Fetch related orders for these auctions
+    const auctionIds = auctions.map(a => a._id);
+    const orders = await Order.find({ auctionId: { $in: auctionIds } }).select("auctionId status").lean();
+
+    // Fetch existing ratings by this user for these auctions/orders
+    const ratings = await Rating.find({
+      raterId: req.user._id,
+      orderId: { $in: orders.map(o => o._id) }
+    }).select("orderId").lean();
+
+    const ratedOrderIds = new Set(ratings.map(r => r.orderId.toString()));
+
+    // Map orders to auctions
+    const orderMap = {};
+    orders.forEach(order => {
+      orderMap[order.auctionId.toString()] = order;
+    });
+
+    // Determine transaction status and isRated
+    const auctionsWithStatus = auctions.map(a => {
+      const order = orderMap[a._id.toString()];
+      return {
+        ...a,
+        transactionStatus: order ? order.status : 'pending',
+        isRated: order ? ratedOrderIds.has(order._id.toString()) : false
+      };
+    });
 
     res.status(200).json({
       status: "success",

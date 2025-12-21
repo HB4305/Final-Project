@@ -14,6 +14,8 @@ import Navigation from "../../components/navigation";
 import watchlistService from "../services/watchlistService";
 import auctionService from "../services/auctionService";
 import transactionService from "../services/transactionService";
+import ratingService from "../services/ratingService";
+import RatingComponent from "../../components/rating-component";
 import { useAuth } from "../context/AuthContext";
 
 const dashboardTabs = [
@@ -48,6 +50,10 @@ export default function DashboardPage() {
     wonCount: 0,
     sellingCount: 0,
   });
+
+  // Rating Modal State
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedTransactionForRating, setSelectedTransactionForRating] = useState(null);
 
   // Handle OAuth callback token
   useEffect(() => {
@@ -139,6 +145,30 @@ export default function DashboardPage() {
       fetchAllData();
     } catch (err) {
       alert(err.response?.data?.message || "Không thể hủy giao dịch");
+    }
+  };
+
+  const handleRateSeller = (auction) => {
+    setSelectedTransactionForRating(auction);
+    setShowRatingModal(true);
+  };
+
+  const handleSubmitRating = async (ratingData) => {
+    try {
+      await ratingService.createRating(ratingData.targetUserId, {
+        score: ratingData.rating === 1 ? 'positive' : 'negative',
+        comment: ratingData.comment,
+        orderId: ratingData.transactionId, // Using auction/order ID
+        context: 'post_transaction'
+      });
+
+      alert("Đánh giá thành công!");
+      setShowRatingModal(false);
+      setSelectedTransactionForRating(null);
+      fetchAllData(); // Refresh data to show updated status if needed
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Lỗi khi gửi đánh giá");
     }
   };
 
@@ -423,12 +453,24 @@ export default function DashboardPage() {
                               </p>
                             </div>
                           </div>
-                          <Link
-                            to={`/transactions/${auction._id}`}
-                            className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
-                          >
-                            Xem Chi Tiết
-                          </Link>
+                          <div className="flex gap-2">
+                            <Link
+                              to={`/transactions/${auction._id}`}
+                              className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
+                            >
+                              Xem Chi Tiết
+                            </Link>
+
+                            {/* Rate Seller Button */}
+                            {auction.transactionStatus === 'completed' && !auction.isRated && (
+                              <button
+                                onClick={() => handleRateSeller(auction)}
+                                className="px-4 py-2 border border-primary text-primary rounded-lg text-sm hover:bg-primary/5"
+                              >
+                                Đánh giá
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}
@@ -557,6 +599,32 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      {/* Rating Modal */}
+      {showRatingModal && selectedTransactionForRating && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-xl w-full max-w-lg overflow-hidden relative">
+            <button
+              onClick={() => setShowRatingModal(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10"
+            >
+              <XCircle className="w-6 h-6" />
+            </button>
+            <div className="p-6">
+              <RatingComponent
+                targetUser={{
+                  id: selectedTransactionForRating.sellerId._id,
+                  name: selectedTransactionForRating.sellerId.username || selectedTransactionForRating.sellerId.fullName,
+                  rating: selectedTransactionForRating.sellerId.ratingSummary?.score || 0,
+                  totalRatings: selectedTransactionForRating.sellerId.ratingSummary?.totalCount || 0
+                }}
+                transactionId={selectedTransactionForRating._id}
+                userType="buyer"
+                onSubmitRating={handleSubmitRating}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
