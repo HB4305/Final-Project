@@ -53,6 +53,10 @@ const userSchema = new mongoose.Schema({
     enum: ["bidder", "seller", "admin", "superadmin"],
     default: ["bidder"],
   },
+  // API 2.6: Seller role expiration (7 days)
+  sellerExpiresAt: {
+    type: Date
+  },
   ratingSummary: {
     countPositive: {
       type: Number,

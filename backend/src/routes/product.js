@@ -13,7 +13,11 @@ import {
   getProductsByCategory,
   searchProducts,
   getProductDetail,
-  postProduct
+  postProduct,
+  toggleAutoExtend,
+  updateProductDescription,
+  rejectBidder,
+  withdrawBid
 } from '../controllers/product.js';
 
 import {
@@ -21,6 +25,9 @@ import {
   validateProductImages,
   handleMulterError,
 } from '../middlewares/upload.js';
+
+import { authenticate } from '../middlewares/auth.js';
+import { checkSellerExpiration } from '../middlewares/roles.js';
 
 const router = express.Router();
 
@@ -62,12 +69,12 @@ router.get('/:productId', getProductDetail);
 /**
  * API 3.1:  Đăng sản phẩm đấu giá
  * POST /api/products
+ * Requires: Authentication, valid seller role (not expired)
  */
-
 router.post('/',
-  // uploadProductImages,  
-  // handleMulterError,        
-  // validateProductImages,   
+  authenticate,
+  checkSellerExpiration,
+  validateProductImages,
   postProduct
 );
 

@@ -15,6 +15,9 @@ import "react-quill/dist/quill.snow.css";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from '../app/context/AuthContext';
+import categoryService from '../app/services/categoryService';
+import productService from '../app/services/productService';
 
 /**
  * ProductListingForm Component
@@ -32,6 +35,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
  * TODO: Replace hardcoded seller ID with authenticated user's ID from auth context
  */
 export default function ProductListingForm({ onSubmit, initialData = null }) {
+  const { currentUser } = useAuth();
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
@@ -40,19 +44,35 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true);
-        console.log('📥 Fetching categories from API...');
-        const response = await fetch('http://localhost:3000/api/categories');
-        const result = await response.json();
-        console.log('📊 Categories response:', result);
+        console.log('Fetching categories from API...');
+        const response = await categoryService.getAllCategories();
+        console.log('Categories response:', response);
         
-        if (result.success) {
-          setCategories(result.data);
-          console.log(`✅ Loaded ${result.data.length} categories:`, result.data.map(c => c.name));
+        if (response.success) {
+          setCategories(response.data);
+          console.log(`Loaded ${response.data.length} categories`);
+          
+          // Debug: Check category structure
+          if (response.data.length > 0) {
+            const firstCat = response.data[0];
+            console.log('First category full object:', firstCat);
+            console.log('Has _id?', firstCat._id);
+            console.log('Has id?', firstCat.id);
+            console.log('Has name?', firstCat.name);
+            
+            // Check all categories
+            response.data.forEach((cat, index) => {
+              const idValue = cat._id || cat.id;
+              if (!idValue) {
+                console.error(`Category ${index} has no _id or id:`, cat);
+              }
+            });
+          }
         } else {
-          console.error('❌ Failed to fetch categories:', result.message);
+          console.error('Failed to fetch categories:', response.message);
         }
       } catch (error) {
-        console.error('❌ Error fetching categories:', error);
+        console.error('Error fetching categories:', error);
       } finally {
         setLoadingCategories(false);
       }
@@ -61,13 +81,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   }, []);
 
   const schema = z.object({
-    name: z.string().min(3, "Product name is required"),
-    category: z.string().min(1, "Category is required"),
+    title: z.string().min(3, "Product title is required"),
+    categoryId: z.string().min(1, "Category is required"),
     startPrice: z.number().positive("Starting price must be > 0"),
-    stepPrice: z.number().positive("Step price must be > 0"),
+    priceStep: z.number().positive("Step price must be > 0"),
     buyNowPrice: z.number().optional(),
-    auctionDays: z.number().min(1, "Auction duration must be at least 1 day").max(30, "Maximum 30 days"),
-    isAutoRenew: z.boolean().optional(),
+    startTime: z.string().min(1, "Start time is required"),
+    endTime: z.string().min(1, "End time is required"),
+    autoExtendEnabled: z.boolean().optional(),
     description: z
       .string()
       .min(10, "Description must be at least 10 characters"),
@@ -83,13 +104,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: "",
-      category: "",
+      title: "",
+      categoryId: "",
       startPrice: 0,
-      stepPrice: 0,
+      priceStep: 0,
       buyNowPrice: 0,
-      auctionDays: 7,
-      isAutoRenew: false,
+      startTime: "",
+      endTime: "",
+      autoExtendEnabled: false,
       description: "",
       images: [],
     },
@@ -98,93 +120,94 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   const [images, setImages] = useState([]);
   const navigate = useNavigate();
   
+  
   const submitForm = async (data) => {
-    console.log("🚀 Starting form submission...");
+    console.log("Starting form submission...");
     console.log("Form data:", data);
     console.log("Images to upload:", images.length);
-    console.log("Validation errors:", errors);
+    console.log("Current user:", currentUser);
+    
+    // Validate minimum images
+    if (images.length < 3) {
+      alert("Please upload at least 3 images");
+      return;
+    }
     
     try {
-      const uploadImageUrls = [];
+      // Create FormData for multipart/form-data request
+      const formData = new FormData();
       
-      // Upload images first
-      if (images.length > 0) {
-        console.log("📤 Uploading images...");
-        for(const img of images){
-          const fd = new FormData();
-          fd.append("file", img.file);
-
-          const res = await fetch("http://localhost:3000/api/upload", {
-            method: "POST",
-            body: fd,
-          });
-
-          const json = await res.json();
-          console.log("✅ Image uploaded:", json);
-          uploadImageUrls.push(json.location);
-        }
-        console.log("✅ All images uploaded:", uploadImageUrls);
+      // Append text fields
+      formData.append("title", data.title);
+      formData.append("description", data.description);
+      formData.append("categoryId", data.categoryId);
+      formData.append("startPrice", data.startPrice.toString());
+      formData.append("priceStep", data.priceStep.toString());
+      formData.append("startTime", data.startTime);
+      formData.append("endTime", data.endTime);
+      
+      // Optional fields
+      if (data.buyNowPrice && data.buyNowPrice > 0) {
+        formData.append("buyNowPrice", data.buyNowPrice.toString());
       }
-
-      // Create product with properly formatted data
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + data.auctionDays);
       
-      const payload = {
-        name: data.name,
-        category: data.category,
-        startPrice: data.startPrice,
-        currentPrice: data.startPrice, // Initially same as start price
-        stepPrice: data.stepPrice,
-        buyNowPrice: data.buyNowPrice || undefined,
-        endDate: endDate.toISOString(),
-        isAutoRenew: data.isAutoRenew || false,
-        description: data.description,
-        images: uploadImageUrls,
-        seller: "674766b5867cfd97aa73fccf" // TODO: Get from authenticated user
-      };
-
-      console.log("📦 Creating product with payload:", payload);
+      // Append metadata as JSON string
+      formData.append("metadata", JSON.stringify({
+        autoExtendEnabled: data.autoExtendEnabled || false
+      }));
       
-      const res = await fetch("http://localhost:3000/api/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      console.log("Response status:", res.status);
-      const result = await res.json();
+      // Append image files
+      console.log("Appending images to FormData...");
+      for (const img of images) {
+        formData.append("images", img.file); // 'images' matches multer field name
+      }
+      
+      console.log("FormData prepared with:");
+      console.log("- Title:", data.title);
+      console.log("- Category:", data.categoryId);
+      console.log("- Start Price:", data.startPrice);
+      console.log("- Price Step:", data.priceStep);
+      console.log("- Images:", images.length);
+      
+      // Send request with FormData via productService
+      const result = await productService.createProduct(formData);
       console.log("Response data:", result);
       
-      if (res.ok && result.success) {
+      if (result.success) {
         // Success logging
-        console.log("✅ AUCTION CREATED SUCCESSFULLY!");
+        console.log("AUCTION CREATED SUCCESSFULLY!");
         console.log("=".repeat(50));
-        console.log("Product ID:", result.data.id);
+        console.log("Product ID:", result.data.product._id);
+        console.log("Auction ID:", result.data.auction._id);
+        console.log("Auction Status:", result.data.auction.status);
         console.log("Product Details:", {
-          name: result.data.name,
-          category: result.data.category,
-          startPrice: `$${result.data.startPrice}`,
-          stepPrice: `$${result.data.stepPrice}`,
-          endDate: result.data.endDate,
-          description: result.data.description?.substring(0, 100) + "...",
-          imageCount: result.data.images?.length || 0,
-          timestamp: result.data.createdAt
+          title: result.data.product.title,
+          category: result.data.product.category,
+          startPrice: result.data.auction.startPrice,
+          priceStep: result.data.auction.priceStep,
+          startTime: result.data.auction.startTime,
+          endTime: result.data.auction.endTime,
+          status: result.data.auction.status,
+          imageCount: result.data.product.imageUrls?.length || 0,
+          timestamp: result.data.product.createdAt
         });
         console.log("=".repeat(50));
         
-        alert("✅ " + result.message);
-        // Navigate to products page after successful creation
-        navigate("/products");
+        const statusMsg = result.data.auction.status === 'scheduled' 
+          ? '\n\n⏰ Auction is scheduled and will start at the specified time.'
+          : '\n\n✅ Auction is now active!';
+        
+        alert("✅ " + result.message + statusMsg);
+        
+        // Force reload to fetch fresh data
+        window.location.href = "/products";
       } else {
-        console.error("❌ Failed to create product:", result);
-        alert("❌ " + (result.message || "Failed to create product"));
+        console.error("Failed to create product:", result);
+        alert((result.message || "Failed to create product"));
       }
     } catch (error) {
-      console.error("❌ Error creating product:", error);
-      alert("An error occurred. Please try again.");
+      console.error("Error creating product:", error);
+      alert((error.response?.data?.message || "An error occurred. Please try again."));
     }
   };
 
@@ -235,17 +258,17 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Type className="inline w-4 h-4 mr-1" />
-                Product Name *
+                Product Title *
               </label>
               <input
-                {...register("name")}
-                placeholder="Enter product name"
+                {...register("title")}
+                placeholder="Enter product title"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
-              {errors.name && (
+              {errors.title && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
-                  {errors.name.message}
+                  {errors.title.message}
                 </p>
               )}
             </div>
@@ -257,18 +280,42 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 Category *
               </label>
               <select 
-                {...register("category")} 
+                {...register("categoryId")} 
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 disabled={loadingCategories}
               >
                 <option value="">
                   {loadingCategories ? 'Loading categories...' : 'Select a category'}
                 </option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
+                {categories.flatMap((cat) => {
+                  const items = [];
+                  const catId = cat._id || cat.id;
+                  
+                  // Add parent category
+                  if (catId) {
+                    items.push(
+                      <option key={catId} value={catId}>
+                        {cat.name}
+                      </option>
+                    );
+                  }
+                  
+                  // Add child categories if exist
+                  if (cat.children && cat.children.length > 0) {
+                    cat.children.forEach(child => {
+                      const childId = child._id || child.id;
+                      if (childId) {
+                        items.push(
+                          <option key={childId} value={childId}>
+                            &nbsp;&nbsp;→ {child.name}
+                          </option>
+                        );
+                      }
+                    });
+                  }
+                  
+                  return items;
+                })}
               </select>
               {loadingCategories && (
                 <p className="text-blue-500 text-sm mt-1">Loading categories from database...</p>
@@ -276,10 +323,10 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               {!loadingCategories && categories.length === 0 && (
                 <p className="text-yellow-600 text-sm mt-1">⚠️ No categories available. Please contact admin.</p>
               )}
-              {errors.category && (
+              {errors.categoryId && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
-                  {errors.category.message}
+                  {errors.categoryId.message}
                 </p>
               )}
             </div>
@@ -319,15 +366,15 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 <input 
                   type="number"
                   step="0.01"
-                  {...register("stepPrice", { valueAsNumber: true })}
+                  {...register("priceStep", { valueAsNumber: true })}
                   placeholder="0.00"
                   className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
               </div>
-              {errors.stepPrice && (
+              {errors.priceStep && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
-                  {errors.stepPrice.message}
+                  {errors.priceStep.message}
                 </p>
               )}
             </div>
@@ -351,39 +398,55 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               <p className="text-sm text-gray-500 mt-1">Leave empty if not applicable</p>
             </div>
 
-            {/* Auction Duration */}
+            {/* Start Time */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Clock className="inline w-4 h-4 mr-1" />
-                Auction Duration (Days) *
+                Auction Start Time *
               </label>
               <input 
-                type="number"
-                min="1"
-                max="30"
-                {...register("auctionDays", { valueAsNumber: true })}
-                placeholder="7"
+                type="datetime-local"
+                {...register("startTime")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
-              {errors.auctionDays && (
+              {errors.startTime && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
                   <X className="w-4 h-4 mr-1" />
-                  {errors.auctionDays.message}
+                  {errors.startTime.message}
                 </p>
               )}
-              <p className="text-sm text-gray-500 mt-1">Auction will end in the specified number of days</p>
             </div>
 
-            {/* Auto Renew */}
+            {/* End Time */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <Clock className="inline w-4 h-4 mr-1" />
+                Auction End Time *
+              </label>
+              <input 
+                type="datetime-local"
+                {...register("endTime")}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+              {errors.endTime && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <X className="w-4 h-4 mr-1" />
+                  {errors.endTime.message}
+                </p>
+              )}
+              <p className="text-sm text-gray-500 mt-1">Must be after start time</p>
+            </div>
+
+            {/* Auto Extend */}
             <div className="flex items-center">
               <input 
                 type="checkbox"
-                {...register("isAutoRenew")}
-                id="autoRenew"
+                {...register("autoExtendEnabled")}
+                id="autoExtend"
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <label htmlFor="autoRenew" className="ml-2 text-sm font-medium text-gray-700">
-                Auto-renew auction if no bids received
+              <label htmlFor="autoExtend" className="ml-2 text-sm font-medium text-gray-700">
+                Enable auto-extend (adds 10 minutes if bid placed in last 5 minutes)
               </label>
             </div>
 

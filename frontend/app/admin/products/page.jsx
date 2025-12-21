@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Eye, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Navigation from '../../../components/navigation';
+import AdminNavigation from '../../../components/admin-navigation';
+import productService from '../../services/productService';
+
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([]);
@@ -10,10 +12,10 @@ export default function AdminProductsPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3000/api/products');
-      const result = await response.json();
-      if (result.success) {
-        setProducts(result.data);
+      const response = await productService.getAllProducts();
+      console.log(response.data);
+      if (response.success) {
+        setProducts(response.data);
       }
       setLoading(false);
     } catch (error) {
@@ -30,28 +32,25 @@ export default function AdminProductsPage() {
     if (!confirm(`Are you sure you want to delete "${product.name}"?`)) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}`, {
-        method: 'DELETE',
-      });
+      const response = await productService.deleteProduct(product._id);
 
-      const result = await response.json();
-
-      if (result.success) {
-        alert(result.message);
+      if (response.success) {
+        alert(response.message);
         fetchProducts();
       } else {
-        alert('Error: ' + result.message);
+        alert('Error: ' + response.message);
       }
     } catch (error) {
+      console.error('Error deleting product:', error);
       alert('An error occurred. Please try again.');
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      <AdminNavigation />
       
-      <div className="max-w-7xl mx-auto px-4 py-24">
+      <div className="max-w-7xl mx-auto px-4 py-32">
         <div className="bg-white shadow-lg rounded-lg p-8">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -87,10 +86,13 @@ export default function AdminProductsPage() {
                       Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Category
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Starting Bid
+                      Current Bid
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
@@ -105,25 +107,28 @@ export default function AdminProductsPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {products.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50">
+                    <tr key={product._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {product.id}
+                        {product._id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <img
-                          src={product.images?.[0] || '/placeholder.svg'}
+                          src={product.primaryImageUrl || '/placeholder.svg'}
                           alt={product.name}
                           className="h-12 w-12 object-cover rounded"
                         />
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-xs truncate">
-                        {product.name}
+                        {product.title}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-xs truncate">
+                        {product.auction.bidCount}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {typeof product.category === 'object' ? product.category?.name : product.category}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${(product.startPrice || product.startingBid || 0).toLocaleString()}
+                        ${(product.auction.currentPrice || product.auction.currentBid || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
@@ -135,7 +140,7 @@ export default function AdminProductsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <Link
-                          to={`/product/${product.id}`}
+                          to={`/product/${product._id}`}
                           className="text-blue-600 hover:text-blue-900 mr-4"
                         >
                           <Eye className="w-4 h-4 inline" />

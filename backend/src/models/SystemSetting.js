@@ -1,31 +1,33 @@
 import mongoose from "mongoose";
 
+/**
+ * ============================================
+ * SYSTEM SETTING - Cấu hình hệ thống
+ * ============================================
+ * Admin quản lý các tham số toàn hệ thống
+ * Mỗi setting là 1 document với key-value
+ */
 const systemSettingSchema = new mongoose.Schema({
-  _id: {
+  key: {
     type: String,
-    default: "global",
+    required: true,
+    unique: true,
+    enum: [
+      "autoExtendEnabled",      // Bật/tắt auto-extend toàn hệ thống
+      "autoExtendThreshold",    // Ngưỡng thời gian (phút) - mặc định 5
+      "autoExtendDuration",     // Thời gian gia hạn (phút) - mặc định 10
+    ],
   },
-  autoExtendWindowSec: {
-    type: Number,
-    default: 300,
+  value: {
+    type: mongoose.Schema.Types.Mixed,
+    required: true,
   },
-  autoExtendAmountSec: {
-    type: Number,
-    default: 600,
+  description: {
+    type: String,
   },
-  allowUnratedBidders: {
-    type: Boolean,
-    default: false,
-  },
-  minRatingPercentToBid: {
-    type: Number,
-    default: 0.8,
-    min: 0,
-    max: 1,
-  },
-  buyNowEnabled: {
-    type: Boolean,
-    default: true,
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
   },
   createdAt: {
     type: Date,
@@ -35,55 +37,34 @@ const systemSettingSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-
-  key: {
-    type: String,
-    required: true,
-    unique: true,
-    enum: [
-      "autoExtendEnabled", // Turn on/off auto extend
-      "autoExtendThreshold", //  Giới hạn cuối - mặc định: 5
-      "autoExtendDuration", // Thời gian dược gia hạn - mặc định: 10 phút cuối
-      "sellerExtendEnabled", // Seller tự động gia hạn
-      "sellerExtenedeMaxCount", // Số lần gia hạn tối đa của Seller
-    ],
-  },
-
-  value: {
-    type: mongoose.Schema.Types.Mixed,
-    required: true,
-  },
-
-  description: {
-    type: String,
-  },
-
-  updateBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  },
 });
 
-//Index
-// systemSettingSchema.index({ key: 1 });
+// Index
+systemSettingSchema.index({ key: 1 });
 
-// Update updatedAt on save
+// Middleware
 systemSettingSchema.pre("save", function () {
   this.updatedAt = Date.now();
 });
 
 /**
- * Helper: Lấy giá trị setting
+ * Static method: Lấy giá trị setting
+ * @param {string} key - Setting key
+ * @param {*} defaultValue - Giá trị mặc định nếu không tìm thấy
+ * @returns {*} Setting value hoặc defaultValue
  */
 systemSettingSchema.statics.getSetting = async function (key, defaultValue) {
-  const res = await this.findOne({ key });
-  return res ? res.value : defaultValue;
+  const setting = await this.findOne({ key });
+  return setting ? setting.value : defaultValue;
 };
 
 /**
- * Helper: Cập nhật setting
+ * Static method: Cập nhật setting
+ * @param {string} key - Setting key
+ * @param {*} value - Giá trị mới
+ * @param {string} adminId - Admin ID thực hiện update
+ * @returns {Object} Updated setting document
  */
-
 systemSettingSchema.statics.updateSetting = async function (
   key,
   value,
@@ -93,12 +74,12 @@ systemSettingSchema.statics.updateSetting = async function (
     { key },
     {
       value,
-      updateBy: adminId,
-      updateAt: Date.now(),
+      updatedBy: adminId,
+      updatedAt: Date.now(),
     },
     {
-      upsert: true, // Tạo mới nếu như chưa có
-      new: true,
+      upsert: true,  // Tạo mới nếu chưa có
+      new: true,     // Trả về document sau khi update
     }
   );
 };

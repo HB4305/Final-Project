@@ -60,6 +60,18 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // API 4.2: Archive support
+  isArchived: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date
+  },
+  deletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   flags: {
     featured: {
       type: Boolean,
