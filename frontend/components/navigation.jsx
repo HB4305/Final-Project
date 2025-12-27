@@ -16,6 +16,9 @@ export default function Navigation() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  
+  // Check if user is admin or superadmin
+  const isAdmin = currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('superadmin');
   const userMenuRef = useRef(null);
 
   // Close user menu when clicking outside
@@ -133,6 +136,18 @@ export default function Navigation() {
                     >
                       Settings
                     </Link>
+                    {isAdmin && (
+                      <>
+                        <hr className="border-border" />
+                        <Link
+                          to="/admin/dashboard"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="block px-4 py-3 text-sm text-orange-600 hover:bg-orange-50 transition font-semibold"
+                        >
+                          🛡️ Admin Dashboard
+                        </Link>
+                      </>
+                    )}
                     <hr className="border-border" />
                     <button
                       onClick={() => {
@@ -186,18 +201,14 @@ export default function Navigation() {
             >
               Categories
             </Link>
-            <Link
-              to="/admin/categories"
-              className="text-orange-600 hover:text-orange-700 transition font-medium"
-            >
-              Admin: Categories
-            </Link>
-            <Link
-              to="/admin/products"
-              className="text-orange-600 hover:text-orange-700 transition font-medium"
-            >
-              Admin: Products
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin/dashboard"
+                className="text-orange-600 hover:text-orange-700 transition font-semibold flex items-center gap-1"
+              >
+                🛡️ Admin Panel
+              </Link>
+            )}
             {isLoggedIn && (
               <>
                 <Link

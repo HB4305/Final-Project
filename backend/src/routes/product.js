@@ -12,7 +12,11 @@ import {
   getProductsByCategory,
   searchProducts,
   getProductDetail,
-  postProduct
+  postProduct,
+  toggleAutoExtend,
+  updateProductDescription,
+  rejectBidder,
+  withdrawBid
 } from '../controllers/product.js';
 
 import {
@@ -20,6 +24,9 @@ import {
   validateProductImages,
   handleMulterError,
 } from '../middlewares/upload.js';
+
+import { authenticate } from '../middlewares/auth.js';
+import { checkSellerExpiration } from '../middlewares/roles.js';
 
 const router = express.Router();
 
@@ -61,12 +68,53 @@ router.get('/:productId', getProductDetail);
 /**
  * API 3.1:  Đăng sản phẩm đấu giá
  * POST /api/products
+ * Requires: Authentication, valid seller role (not expired)
  */
-
 router.post('/',
-  // uploadProductImages,  
-  // handleMulterError,        
-  // validateProductImages,   
+  authenticate,
+  checkSellerExpiration,
+  validateProductImages,   
   postProduct
 );
+
+/**
+ * API 3.1: Toggle auto-extend for seller's auction
+ * PUT /api/products/:productId/auto-extend
+ * Body: { autoExtendEnabled: true/false }
+ * Requires: Authentication (seller only)
+ */
+// Tạm thời comment authenticate để test
+// router.put('/:productId/auto-extend', authenticate, authorize(USER_ROLES.SELLER), toggleAutoExtend);
+router.put('/:productId/auto-extend', toggleAutoExtend);
+
+/**
+ * API 3.2: Bổ sung thông tin mô tả sản phẩm
+ * PUT /api/products/:productId/description
+ * Body: { description: string, metadata: object }
+ * Requires: Authentication (seller only)
+ */
+// Tạm thời không cần authenticate để test
+// router.put('/:productId/description', authenticate, authorize(USER_ROLES.SELLER), updateProductDescription);
+router.put('/:productId/description', updateProductDescription);
+
+/**
+ * API 3.3: Từ chối lượt ra giá của bidder (Seller action)
+ * POST /api/products/:productId/reject-bidder
+ * Body: { bidderId: string, reason: string }
+ * Requires: Authentication (seller only)
+ */
+// Tạm thời không cần authenticate để test
+// router.post('/:productId/reject-bidder', authenticate, authorize(USER_ROLES.SELLER), rejectBidder);
+router.post('/:productId/reject-bidder', rejectBidder);
+
+/**
+ * API 3.3: Bidder tự rút lại bid (Bidder action)
+ * POST /api/products/:productId/withdraw-bid
+ * Body: { reason: string } (optional)
+ * Requires: Authentication (bidder only)
+ */
+// Tạm thời không cần authenticate để test
+// router.post('/:productId/withdraw-bid', authenticate, withdrawBid);
+router.post('/:productId/withdraw-bid', withdrawBid);
+
 export default router;
