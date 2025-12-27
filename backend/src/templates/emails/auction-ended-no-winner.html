@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đấu Giá Kết Thúc - Không Có Người Mua</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      .content {
+        padding: 30px;
+        color: #333;
+      }
+      .info-box {
+        background-color: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .product-box {
+        background-color: #f8f9fa;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .info-row:last-child {
+        border-bottom: none;
+      }
+      .label {
+        font-weight: 600;
+        color: #555;
+      }
+      .value {
+        color: #333;
+        font-weight: 500;
+      }
+      .suggestions {
+        background-color: #e0f2fe;
+        border: 2px solid #0284c7;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .suggestions h3 {
+        margin: 0 0 10px 0;
+        color: #0c4a6e;
+      }
+      .suggestions ul {
+        margin: 10px 0;
+        padding-left: 20px;
+      }
+      .suggestions li {
+        margin: 8px 0;
+        color: #333;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 20px 0;
+        font-weight: 600;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Đấu Giá Kết Thúc</h1>
+      </div>
+      <div class="content">
+        <p>Xin chào <strong>{{sellerName}}</strong>,</p>
+        
+        <div class="info-box">
+          <p style="margin: 0; font-weight: 600; color: #d97706;">
+            Cuộc đấu giá cho sản phẩm <strong>{{productTitle}}</strong> đã kết thúc nhưng không có người mua nào đặt giá.
+          </p>
+        </div>
+
+        <div class="product-box">
+          <h2 style="margin: 0 0 15px 0; color: #6b7280;">Thông Tin Đấu Giá</h2>
+          <div class="info-row">
+            <span class="label">Sản phẩm:</span>
+            <span class="value">{{productTitle}}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Giá khởi điểm:</span>
+            <span class="value">{{startPrice}} VNĐ</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Thời gian bắt đầu:</span>
+            <span class="value">{{startTime}}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Thời gian kết thúc:</span>
+            <span class="value">{{endTime}}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Số lượt xem:</span>
+            <span class="value">{{viewCount}}</span>
+          </div>
+        </div>
+
+        <div class="suggestions">
+          <h3>Gợi Ý Để Cải Thiện:</h3>
+          <ul>
+            <li>Xem xét điều chỉnh giá khởi điểm thấp hơn</li>
+            <li>Cải thiện mô tả và hình ảnh sản phẩm</li>
+            <li>Chọn thời gian đấu giá phù hợp hơn</li>
+            <li>Quảng bá sản phẩm trên nhiều kênh hơn</li>
+          </ul>
+        </div>
+
+        <p>Bạn có thể tạo cuộc đấu giá mới cho sản phẩm này hoặc chỉnh sửa thông tin sản phẩm.</p>
+
+        <div style="text-align: center;">
+          <a href="{{productUrl}}" class="button">Xem Sản Phẩm</a>
+        </div>
+      </div>
+      <div class="footer">
+        <p>Nếu bạn cần hỗ trợ, vui lòng liên hệ: support@auctionplatform.com</p>
+        <p>&copy; 2025 Auction Platform. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>

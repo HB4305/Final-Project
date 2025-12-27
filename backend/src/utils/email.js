@@ -115,6 +115,178 @@ export const sendAnswerNotification = async (data) => {
   }
 };
 
+/**
+ * Send email bid success notification
+ */
+export const sendBidSuccessNotification = async (data) => {
+  try {
+    const html = await loadTemplate("bid-success", {
+      bidderEmail: data.bidderEmail,
+      bidderName: data.bidderName,
+      productTitle: data.productTitle,
+      bidAmount: data.bidAmount,
+      currentPrice: data.currentPrice,
+      isHighestBidder: data.isHighestBidder,
+    });
+
+    return sendEmail({
+      to: data.bidderEmail,
+      subject: `Bid Success Notification: ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending bid success notification:", error);
+  }
+};
+
+/**
+ * Send price updated notification
+ */
+export const sendPriceUpdatedNotification = async (data) => {
+  try {
+    const html = await loadTemplate("price-updated-seller", {
+      sellerEmail: data.sellerEmail,
+      sellerName: data.sellerName,
+      productTitle: data.productTitle,
+      previousPrice: data.previousPrice,
+      newPrice: data.newPrice,
+      bidderName: data.bidderName,
+      totalBids: data.totalBids,
+      auctionUrl: data.auctionUrl,
+      auctionEndTime: data.auctionEndTime,
+    });
+  } catch (error) {
+    console.error("Error sending price updated notification:", error);
+  }
+};
+
+/**
+ * Send outbid notification
+ */
+export const sendOutbidNotification = async (data) => {
+  try {
+    const html = await loadTemplate("outbid-notification", {
+      previousBidderEmail: data.previousBidderEmail,
+      previousBidderName: data.previousBidderName,
+      productTitle: data.productTitle,
+      yourBidAmount: data.yourBidAmount,
+      currentPrice: data.currentPrice,
+      productUrl: data.productUrl,
+      auctionEndTime: data.auctionEndTime,
+    });
+  } catch (error) {
+    console.error("Error sending outbid notification:", error);
+  }
+};
+
+/**
+ * Bid rejected notification
+ */
+export const sendBidRejectedNotification = async (data) => {
+  try {
+    const html = await loadTemplate("bid-rejected-notification", {
+      bidderEmail: data.bidderEmail,
+      bidderName: data.bidderName,
+      productTitle: data.productTitle,
+      sellerName: data.sellerName,
+      reason: data.reason,
+      homeUrl: data.homeUrl,
+    });
+  } catch (error) {
+    console.error("Error sending bid rejected notification:", error);
+  }
+};
+
+/**
+ * Send auction ended no winner notification
+ */
+export const sendAuctionEndedNoWinnerNotification = async (data) => {
+  try {
+    const html = await loadTemplate("auction-ended-no-winner", {
+      sellerEmail: data.sellerEmail,
+      sellerName: data.sellerName,
+      productTitle: data.productTitle,
+      startPrice: data.startPrice,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      productUrl: data.productUrl,
+    });
+  } catch (error) {
+    console.error("Error sending auction ended no winner notification:", error);
+  }
+};
+
+/**
+ * Send auction ended seller notification
+ */
+export const sendAuctionEndedSellerNotification = async (data) => {
+  try {
+    const html = await loadTemplate("auction-ended-seller", {
+      sellerEmail: data.sellerEmail,
+      sellerName: data.sellerName,
+      productTitle: data.productTitle,
+      winnerName: data.winnerName,
+      winnerEmail: data.winnerEmail,
+      winnerPhone: data.winnerPhone,
+      finalPrice: data.finalPrice,
+      startPrice: data.startPrice,
+      totalBids: data.totalBids,
+      endTime: data.endTime,
+      orderUrl: data.orderUrl,
+    });
+  } catch (error) {
+    console.error("Error sending auction ended seller notification:", error);
+  }
+};
+
+/**
+ * Send auction winner notification
+ */
+export const sendAuctionWinnerNotification = async (data) => {
+  try {
+    const html = await loadTemplate("auction-winner-notification", {
+      winnerEmail: data.winnerEmail,
+      winnerName: data.winnerName,
+      productTitle: data.productTitle,
+      finalPrice: data.finalPrice,
+      sellerName: data.sellerName,
+      sellerEmail: data.sellerEmail,
+      sellerPhone: data.sellerPhone,
+      totalBids: data.totalBids,
+      endTime: data.endTime,
+      orderUrl: data.orderUrl,
+    });
+  } catch (error) {
+    console.error("Error sending auction winner notification:", error);
+  }
+};
+
+/**
+ * Send seller answer notification
+ */
+export const sendSellerAnswerNotification = async (data) => {
+  try {
+    const html = await loadTemplate("seller-answer-notification", {
+      participantEmail: data.participantEmail,
+      participantName: data.participantName,
+      productTitle: data.productTitle,
+      questionText: data.questionText,
+      answerText: data.answerText,
+      questionAuthor: data.questionAuthor,
+      answerText: data.answerText,
+      sellerName: data.sellerName,
+      currentPrice: data.currentPrice,
+      auctionEndTime: data.auctionEndTime,
+      productUrl: data.productUrl,
+    });
+  } catch (error) {
+    console.error("Error sending seller answer notification:", error);
+  }
+};
+
+/**
+ * Verify email configuration
+ */
 export const verifyEmailConfiguration = async () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.log(
