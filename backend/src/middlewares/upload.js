@@ -70,7 +70,6 @@ export const uploadProductImages = upload.array('images', 10);
 export const validateProductImages = (req, res, next) => {
   console.log('[UPLOAD MIDDLEWARE] Validating uploaded images...');
   
-  // Kiểm tra có files không
   if (!req.files || req.files.length === 0) {
     console.log('[UPLOAD MIDDLEWARE] ✗ Không có file nào được upload');
     return res.status(400).json({
