@@ -745,14 +745,19 @@ export const sendChatMessage = async (req, res, next) => {
 
     await chatMessage.populate('senderId', 'username fullName');
 
-    await notificationService.createNotification({
-      userId: recipientId,
-      type: 'new_message',
-      title: 'New message',
-      message: `${req.user.username}: ${message.substring(0, 50)}...`,
-      relatedId: order._id,
-      relatedModel: 'Order'
-    });
+    const recipientUser = await User.findById(recipientId).select('email');
+    if (recipientUser && recipientUser.email) {
+      await notificationService.createNotification(
+        'new_message',
+        [{ userId: recipientId, email: recipientUser.email }],
+        {
+          title: 'New message',
+          message: `${req.user.username}: ${message.substring(0, 50)}...`,
+          orderId: order._id,
+          senderUsername: req.user.username,
+        }
+      );
+    }
 
     res.status(201).json({
       status: 'success',
