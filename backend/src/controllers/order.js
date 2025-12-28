@@ -86,22 +86,12 @@ export const getOrderByAuctionId = async (req, res, next) => {
         .populate("productId")
         .populate("currentHighestBidderId");
 
-      console.log('[DEBUG] Auction data:');
-      console.log('  Auction found:', !!auction);
-      if (auction) {
-        console.log('  Status:', auction.status);
-        console.log('  Has winner:', !!auction.currentHighestBidderId);
-        console.log('  Winner ID:', auction.currentHighestBidderId?._id);
-        console.log('  Seller ID:', auction.sellerId);
-      }
-
       if (!auction) {
         throw new AppError("Auction not found", 404);
       }
 
       // If auction ended with winner, create order automatically
       if (auction.status === "ended" && auction.currentHighestBidderId) {
-        console.log('[DEBUG] Creating order automatically...');
         order = await Order.create({
           auctionId: auction._id,
           productId: auction.productId._id,
@@ -111,7 +101,6 @@ export const getOrderByAuctionId = async (req, res, next) => {
           currency: auction.productId.baseCurrency || "VND",
           status: "awaiting_payment",
         });
-        console.log('[DEBUG] Order created:', order._id);
 
         // Notify buyer
         await notificationService.createNotification({
@@ -264,27 +253,27 @@ export const submitPaymentInfo = async (req, res, next) => {
       );
     }
 
+    // Standardize payment proof structure
     order.buyerPaymentProof = {
       url: paymentProofUrl,
       uploadedAt: new Date(),
     };
 
-    order.metadata = {
-      ...order.metadata,
-      shippingAddress,
-      paymentNote,
-    };
-
+    // Note: Order model doesn't have metadata field, so we cannot save address there.
+    // Instead we will pass it via notification to seller.
+    
     await order.save();
 
-    await notificationService.createNotification({
-      userId: order.sellerId,
-      type: "payment_submitted",
-      title: "Buyer Submitted Payment Information",
-      message: "Please verify payment and confirm",
-      relatedId: order._id,
-      relatedModel: "Order",
-    });
+    await notificationService.createNotification(
+      "payment_submitted",
+      [{ userId: order.sellerId }], // Recipients must be an array
+      {
+        title: "Buyer Submitted Payment Information",
+        message: `Buyer submitted payment. Address: ${shippingAddress}. Note: ${paymentNote || 'None'}`,
+        relatedId: order._id,
+        relatedModel: "Order",
+      }
+    );
 
     res.status(200).json({
       status: "success",
@@ -310,7 +299,14 @@ export const confirmPayment = async (req, res, next) => {
     }
 
     if (order.status !== "awaiting_payment") {
-      throw new AppError("Payment has not been submitted yet", 400);
+      if (order.status === "seller_confirmed_payment") {
+        return res.status(200).json({
+          status: "success",
+          message: "Payment already confirmed",
+          data: { order },
+        });
+      }
+      throw new AppError("Payment has not been submitted or order is in valid status", 400);
     }
 
     if (!order.buyerPaymentProof || !order.buyerPaymentProof.url) {
@@ -320,14 +316,16 @@ export const confirmPayment = async (req, res, next) => {
     order.status = "seller_confirmed_payment";
     await order.save();
 
-    await notificationService.createNotification({
-      userId: order.buyerId,
-      type: "payment_confirmed",
-      title: "Seller confirmed payment",
-      message: "Your payment has been confirmed by the seller.",
-      relatedId: order._id,
-      relatedModel: "Order",
-    });
+    await notificationService.createNotification(
+      "payment_confirmed",
+      [{ userId: order.buyerId }],
+      {
+        title: "Seller confirmed payment",
+        message: "Your payment has been confirmed by the seller.",
+        relatedId: order._id,
+        relatedModel: "Order",
+      }
+    );
 
     res.status(200).json({
       status: "success",
@@ -375,14 +373,16 @@ export const markAsShipped = async (req, res, next) => {
 
     await order.save();
 
-    await notificationService.createNotification({
-      userId: order.buyerId,
-      type: "order_shipped",
-      title: "Your order has been shipped",
-      message: `Track number: '${trackingNumber}'`,
-      relatedId: order._id,
-      relatedModel: "Order",
-    });
+    await notificationService.createNotification(
+      "order_shipped",
+      [{ userId: order.buyerId }],
+      {
+        title: "Your order has been shipped",
+        message: `Track number: '${trackingNumber}'`,
+        relatedId: order._id,
+        relatedModel: "Order",
+      }
+    );
 
     res.status(200).json({
       status: "success",
@@ -429,23 +429,27 @@ export const confirmDelivery = async (req, res, next) => {
 
     await order.save();
 
-    await notificationService.createNotification({
-      userId: order.sellerId,
-      type: "order_completed",
-      title: "Buyer confirmed delivery",
-      message: "The buyer has received the item. Please provide a rating.",
-      relatedId: order._id,
-      relatedModel: "Order",
-    });
+    await notificationService.createNotification(
+      "order_completed",
+      [{ userId: order.sellerId }],
+      {
+        title: "Buyer confirmed delivery",
+        message: "The buyer has received the item. Please provide a rating.",
+        relatedId: order._id,
+        relatedModel: "Order",
+      }
+    );
 
-    await notificationService.createNotification({
-      userId: order.buyerId,
-      type: "rating_reminder",
-      title: "Please rate your transaction",
-      message: "Share your experience with the seller",
-      relatedId: order._id,
-      relatedModel: "Order",
-    });
+    await notificationService.createNotification(
+      "rating_reminder",
+      [{ userId: order.buyerId }],
+      {
+        title: "Please rate your transaction",
+        message: "Share your experience with the seller",
+        relatedId: order._id,
+        relatedModel: "Order",
+      }
+    );
 
     res.status(200).json({
       status: "success",
@@ -593,14 +597,16 @@ export const cancelOrder = async (req, res, next) => {
 
     await updateUserRatingSummary(order.buyerId, null, -1);
 
-    await notificationService.createNotification({
-      userId: order.buyerId,
-      type: "order_cancelled",
-      title: "Transaction cancelled",
-      message: `Seller cancelled the transaction. Reason: ${reason}`,
-      relatedId: order._id,
-      relatedModel: "Order",
-    });
+    await notificationService.createNotification(
+      "order_cancelled",
+      [{ userId: order.buyerId }],
+      {
+        title: "Transaction cancelled",
+        message: `Seller cancelled the transaction. Reason: ${reason}`,
+        relatedId: order._id,
+        relatedModel: "Order",
+      }
+    );
 
     res.status(200).json({
       status: "success",

@@ -89,8 +89,8 @@ export const getWonAuctions = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const query = {
-      winnerId: req.user._id,
-      status: "completed",
+      currentHighestBidderId: req.user._id, 
+      status: "ended", 
     };
 
     // Nếu có filter theo trạng thái giao dịch
@@ -100,7 +100,7 @@ export const getWonAuctions = async (req, res, next) => {
 
     const [auctions, total] = await Promise.all([
       Auction.find(query)
-        .sort({ endedAt: -1 })
+        .sort({ endAt: -1 }) 
         .skip(skip)
         .limit(parseInt(limit))
         .populate({
@@ -190,17 +190,17 @@ export const getSoldAuctions = async (req, res, next) => {
 
     const query = {
       sellerId: req.user._id,
-      status: "completed",
-      winnerId: { $exists: true, $ne: null },
+      status: "ended",
+      currentHighestBidderId: { $exists: true, $ne: null },
     };
 
     if (status) {
-      query.transactionStatus = status;
+      query.transactionStatus = status; // Note: transactionStatus might not be on Auction model either, but keeping for now if intended for mixed query
     }
 
     const [auctions, total] = await Promise.all([
       Auction.find(query)
-        .sort({ endedAt: -1 })
+        .sort({ endAt: -1 }) // endedAt usually doesn't exist, schema has endAt
         .skip(skip)
         .limit(parseInt(limit))
         .populate({
@@ -208,7 +208,7 @@ export const getSoldAuctions = async (req, res, next) => {
           select: "title slug primaryImageUrl categoryId",
         })
         .populate(
-          "winnerId",
+          "currentHighestBidderId", // Changed from winnerId
           "username fullName contactPhone email ratingSummary"
         )
         .lean(),

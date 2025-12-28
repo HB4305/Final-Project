@@ -30,8 +30,15 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         // Verify token and get user info
         const response = await authService.getCurrentUser();
-        setCurrentUser(response.data.user);
+        
+        // Backend returns { data: { user } }
+        const userData = response.data.data?.user || response.data.user;
+
+        setCurrentUser(userData);
         setIsLoggedIn(true);
+      } else {
+         setIsLoggedIn(false);
+         setCurrentUser(null);
       }
     } catch (error) {
       console.error("Auth check failed:", error);
@@ -48,12 +55,13 @@ export const AuthProvider = ({ children }) => {
     const response = await authService.signin({ email, password });
 
     // Save token
-    if (response.data.accessToken) {
-      localStorage.setItem("token", response.data.accessToken);
+    const accessToken = response.data.data?.accessToken || response.data.accessToken;
+    if (accessToken) {
+      localStorage.setItem("token", accessToken);
     }
 
     // Set user info
-    setCurrentUser(response.data.user);
+    setCurrentUser(response.data.data?.user || response.data.user);
     setIsLoggedIn(true);
 
     return response;
@@ -78,7 +86,7 @@ export const AuthProvider = ({ children }) => {
 
       // Get user profile
       const response = await authService.getCurrentUser();
-      setCurrentUser(response.data.user);
+      setCurrentUser(response.data.data?.user || response.data.user);
       setIsLoggedIn(true);
 
       return response;
