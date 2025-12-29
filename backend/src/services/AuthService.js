@@ -16,7 +16,7 @@ export class AuthService {
    * @returns {Object} { message }
    */
   async register(userData) {
-    const { username, email, password, fullName } = userData;
+    const { username, email, password, fullName, address } = userData;
 
     // Kiểm tra email đã tồn tại trong User (đã verify)
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -63,11 +63,13 @@ export class AuthService {
       email: email.toLowerCase(),
       passwordHash,
       fullName,
+      address,
       otp: {
         code: otp,
         expiresAt: otpExpiresAt,
       },
     });
+    console.log("[AUTH SERVICE] Saving PendingUser with address:", address);
     await pendingUser.save();
 
     // Gửi email chứa OTP
@@ -132,11 +134,17 @@ export class AuthService {
     }
 
     // OTP đúng -> Tạo User chính thức
+    console.log(
+      "[AUTH SERVICE] Verifying OTP. PendingUser address:",
+      pendingUser.address
+    );
+
     const newUser = new User({
       username: pendingUser.username,
       email: pendingUser.email,
       passwordHash: pendingUser.passwordHash,
       fullName: pendingUser.fullName,
+      address: { street: pendingUser.address || "" },
       roles: [USER_ROLES.BIDDER],
       status: USER_STATUS.ACTIVE,
       emailVerified: true,

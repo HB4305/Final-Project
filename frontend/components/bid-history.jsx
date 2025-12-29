@@ -8,10 +8,15 @@ import { Clock, TrendingUp } from 'lucide-react';
  */
 export default function BidHistory({ bids = [] }) {
   const maskUsername = (username) => {
-    if (!username || username.length < 2) return '****';
-    // Mask the username but keep last few characters visible
-    const visibleChars = username.slice(-3);
-    return `****${visibleChars}`;
+    if (!username) return '****';
+    // Split by space to get the last name/word
+    const parts = username.trim().split(' ');
+    const lastName = parts[parts.length - 1];
+    
+    // If the name is too short (e.g. "A"), just show it or keep masking logic safe
+    if (lastName.length < 2) return `****${lastName}`;
+    
+    return `****${lastName}`;
   };
 
   const formatDateTime = (timestamp) => {

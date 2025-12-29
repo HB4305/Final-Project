@@ -9,10 +9,16 @@ import {
   Save,
   X,
   Loader2,
+  Lock,
+  Heart,
+  Gavel,
+  Trophy,
 } from "lucide-react";
 import Navigation from "../../components/navigation";
 import UpgradeRequest from "../../components/upgrade-request";
 import userService from "../services/userService";
+import watchlistService from "../services/watchlistService";
+import auctionService from "../services/auctionService";
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -28,6 +34,23 @@ export default function ProfilePage() {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState("");
   const [otpVerifying, setOtpVerifying] = useState(false);
+
+  // Password update states
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordUpdating, setPasswordUpdating] = useState(false);
+
+  // Tabs state
+  const [activeTab, setActiveTab] = useState("ratings"); // ratings, watchlist, bidding, won
+
+  // Lists data
+  const [watchlist, setWatchlist] = useState([]);
+  const [biddingList, setBiddingList] = useState([]);
+  const [wonList, setWonList] = useState([]);
 
   const [profile, setProfile] = useState(null);
   const [ratings, setRatings] = useState([]);
@@ -84,6 +107,114 @@ export default function ProfilePage() {
       setError("Failed to load profile data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch data based on active tab
+  useEffect(() => {
+    if (activeTab === "watchlist") fetchWatchlist();
+    if (activeTab === "bidding") fetchBiddingList();
+    if (activeTab === "won") fetchWonList();
+  }, [activeTab]);
+
+  const fetchWatchlist = async () => {
+    try {
+      const res = await watchlistService.getWatchlist();
+      if (res.status === "success") {
+        setWatchlist(res.data.watchlist);
+      }
+    } catch (err) {
+      console.error("Error fetching watchlist:", err);
+    }
+  };
+
+  const fetchBiddingList = async () => {
+    try {
+      const res = await auctionService.getParticipatingAuctions();
+      if (res.status === "success") {
+        setBiddingList(res.data.auctions);
+      }
+    } catch (err) {
+      console.error("Error fetching bidding list:", err);
+    }
+  };
+
+  const fetchWonList = async () => {
+    try {
+      const res = await auctionService.getWonAuctions();
+      if (res.status === "success") {
+        setWonList(res.data.auctions);
+      }
+    } catch (err) {
+      console.error("Error fetching won list:", err);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    try {
+      setPasswordUpdating(true);
+      setError("");
+      setSuccess("");
+
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        setError("New passwords do not match");
+        return;
+      }
+
+      if (passwordForm.newPassword.length < 6) {
+        setError("Password must be at least 6 characters");
+        return;
+      }
+
+      await userService.changePassword({
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+      });
+
+      setSuccess("Password changed successfully");
+      setIsChangingPassword(false);
+      setPasswordForm({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (err) {
+      console.error("Error changing password:", err);
+      setError(err.response?.data?.message || "Failed to change password");
+    } finally {
+      setPasswordUpdating(false);
+    }
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await userService.uploadAvatar(formData);
+
+      if (res.data?.success) {
+        setProfile({
+          ...profile,
+          profileImageUrl: res.data.data.profileImageUrl,
+        });
+        setSuccess("Avatar updated successfully");
+        setTimeout(() => setSuccess(""), 3000);
+      }
+    } catch (err) {
+      console.error("Error uploading avatar:", err);
+      setError(err.response?.data?.message || "Failed to upload avatar");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -282,24 +413,123 @@ export default function ProfilePage() {
             <div className="flex flex-col md:flex-row gap-8 items-start">
               {/* Avatar */}
               <div className="flex flex-col items-center gap-4">
-                <img
-                  src={profile?.profileImageUrl || "/placeholder.svg"}
-                  alt={profile?.fullName || profile?.username}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-primary"
-                />
-                {!isEditing && (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium"
+                <div className="relative group">
+                  <img
+                    src={profile?.profileImageUrl || "/placeholder.svg"}
+                    alt={profile?.fullName || profile?.username}
+                    className="w-32 h-32 rounded-full object-cover border-4 border-primary"
+                  />
+                  <label
+                    htmlFor="avatar-upload"
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer text-white"
                   >
-                    <Edit2 className="w-4 h-4" /> Edit Profile
-                  </button>
+                    <Edit2 className="w-6 h-6" />
+                  </label>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                    disabled={saving}
+                  />
+                </div>
+                {!isEditing && (
+                  <div className="flex flex-col gap-2 w-full">
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium w-full"
+                    >
+                      <Edit2 className="w-4 h-4" /> Edit Profile
+                    </button>
+                    <button
+                      onClick={() => setIsChangingPassword(!isChangingPassword)}
+                      className="flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition font-medium w-full"
+                    >
+                      <Lock className="w-4 h-4" /> Change Password
+                    </button>
+                  </div>
                 )}
               </div>
 
               {/* Profile Info */}
               <div className="flex-1">
-                {isEditing ? (
+                {isChangingPassword ? (
+                  <div className="space-y-4 max-w-md">
+                    <h3 className="text-lg font-semibold">Change Password</h3>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordForm.oldPassword}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            oldPassword: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            newPassword: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            confirmPassword: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleChangePassword}
+                        disabled={passwordUpdating}
+                        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium disabled:opacity-50"
+                      >
+                        {passwordUpdating ? "Updating..." : "Update Password"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsChangingPassword(false);
+                          setPasswordForm({
+                            oldPassword: "",
+                            newPassword: "",
+                            confirmPassword: "",
+                          });
+                        }}
+                        disabled={passwordUpdating}
+                        className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : isEditing ? (
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">
@@ -400,8 +630,23 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        City
+                        Address
                       </label>
+                      <input
+                        type="text"
+                        value={editForm.address?.street || ""}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            address: {
+                              ...editForm.address,
+                              street: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="Street Address"
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary mb-2"
+                      />
                       <input
                         type="text"
                         value={editForm.address?.city || ""}
@@ -414,6 +659,7 @@ export default function ProfilePage() {
                             },
                           })
                         }
+                        placeholder="City"
                         className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -452,10 +698,14 @@ export default function ProfilePage() {
                         <Mail className="w-4 h-4 text-muted-foreground" />
                         <span>{profile?.email}</span>
                       </div>
-                      {profile?.address?.city && (
+                      {(profile?.address?.street || profile?.address?.city) && (
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <span>{profile.address.city}</span>
+                          <span>
+                            {[profile.address.street, profile.address.city]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </span>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
@@ -538,51 +788,191 @@ export default function ProfilePage() {
           </div>
 
           {/* Tabs */}
-          <div className="border-b border-border mb-6">
-            <div className="flex gap-4">
-              <button className="px-4 py-2 border-b-2 border-primary text-primary font-medium">
-                Recent Feedback
+          <div className="border-b border-border mb-6 overflow-x-auto">
+            <div className="flex gap-4 min-w-max">
+              <button
+                onClick={() => setActiveTab("ratings")}
+                className={`px-4 py-2 border-b-2 font-medium transition ${
+                  activeTab === "ratings"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Star className="w-4 h-4" /> Ratings
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab("watchlist")}
+                className={`px-4 py-2 border-b-2 font-medium transition ${
+                  activeTab === "watchlist"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Heart className="w-4 h-4" /> Watchlist
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab("bidding")}
+                className={`px-4 py-2 border-b-2 font-medium transition ${
+                  activeTab === "bidding"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Gavel className="w-4 h-4" /> Bidding
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab("won")}
+                className={`px-4 py-2 border-b-2 font-medium transition ${
+                  activeTab === "won"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4" /> Won Auctions
+                </div>
               </button>
             </div>
           </div>
+
           <UpgradeRequest currentUser={profile} />
 
-          {/* Recent Reviews */}
+          {/* Tab Content */}
           <div className="space-y-4">
-            {ratings.length > 0 ? (
-              ratings.map((rating) => (
-                <div
-                  key={rating._id}
-                  className="bg-background border border-border rounded-lg p-6"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <p className="font-semibold">
-                        {rating.raterId?.fullName || rating.raterId?.username}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {rating.context.replace(/_/g, " ")} -{" "}
-                        {new Date(rating.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
-                      {rating.score === 1 ? (
-                        <Star className="w-5 h-5 fill-green-500 text-green-500" />
-                      ) : (
-                        <Star className="w-5 h-5 fill-red-500 text-red-500" />
+            {activeTab === "ratings" && (
+              <>
+                {ratings.length > 0 ? (
+                  ratings.map((rating) => (
+                    <div
+                      key={rating._id}
+                      className="bg-background border border-border rounded-lg p-6"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-semibold">
+                            {rating.raterId?.fullName ||
+                              rating.raterId?.username}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {rating.context.replace(/_/g, " ")} -{" "}
+                            {new Date(rating.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          {rating.score === 1 ? (
+                            <Star className="w-5 h-5 fill-green-500 text-green-500" />
+                          ) : (
+                            <Star className="w-5 h-5 fill-red-500 text-red-500" />
+                          )}
+                        </div>
+                      </div>
+                      {rating.comment && (
+                        <p className="text-sm text-muted-foreground">
+                          {rating.comment}
+                        </p>
                       )}
                     </div>
+                  ))
+                ) : (
+                  <div className="bg-background border border-border rounded-lg p-6 text-center text-muted-foreground">
+                    No ratings yet
                   </div>
-                  {rating.comment && (
-                    <p className="text-sm text-muted-foreground">
-                      {rating.comment}
-                    </p>
-                  )}
-                </div>
-              ))
-            ) : (
-              <div className="bg-background border border-border rounded-lg p-6 text-center text-muted-foreground">
-                No ratings yet
+                )}
+              </>
+            )}
+
+            {activeTab === "watchlist" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {watchlist.length > 0 ? (
+                  watchlist.map((item) => (
+                    <div
+                      key={item._id}
+                      className="bg-background border border-border rounded-lg p-4"
+                    >
+                      <img
+                        src={item.product?.images?.[0] || "/placeholder.svg"}
+                        alt={item.product?.name}
+                        className="w-full h-48 object-cover rounded-md mb-4"
+                      />
+                      <h3 className="font-semibold mb-2">
+                        {item.product?.name}
+                      </h3>
+                      <p className="text-primary font-bold">
+                        ${item.product?.currentPrice?.toLocaleString()}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full bg-background border border-border rounded-lg p-6 text-center text-muted-foreground">
+                    Your watchlist is empty
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "bidding" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {biddingList.length > 0 ? (
+                  biddingList.map((auction) => (
+                    <div
+                      key={auction._id}
+                      className="bg-background border border-border rounded-lg p-4"
+                    >
+                      <img
+                        src={auction.images?.[0] || "/placeholder.svg"}
+                        alt={auction.name}
+                        className="w-full h-48 object-cover rounded-md mb-4"
+                      />
+                      <h3 className="font-semibold mb-2">{auction.name}</h3>
+                      <p className="text-primary font-bold">
+                        ${auction.currentPrice?.toLocaleString()}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Ends: {new Date(auction.endTime).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full bg-background border border-border rounded-lg p-6 text-center text-muted-foreground">
+                    You are not participating in any auctions
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "won" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {wonList.length > 0 ? (
+                  wonList.map((auction) => (
+                    <div
+                      key={auction._id}
+                      className="bg-background border border-border rounded-lg p-4"
+                    >
+                      <img
+                        src={auction.images?.[0] || "/placeholder.svg"}
+                        alt={auction.name}
+                        className="w-full h-48 object-cover rounded-md mb-4"
+                      />
+                      <h3 className="font-semibold mb-2">{auction.name}</h3>
+                      <p className="text-green-600 font-bold">
+                        Won at: ${auction.currentPrice?.toLocaleString()}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Ended: {new Date(auction.endTime).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full bg-background border border-border rounded-lg p-6 text-center text-muted-foreground">
+                    You haven't won any auctions yet
+                  </div>
+                )}
               </div>
             )}
           </div>

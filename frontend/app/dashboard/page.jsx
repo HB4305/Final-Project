@@ -17,13 +17,14 @@ import transactionService from "../services/transactionService";
 import ratingService from "../services/ratingService";
 import RatingComponent from "../../components/rating-component";
 import { useAuth } from "../context/AuthContext";
+import Toast from "../../components/Toast";
 
 const dashboardTabs = [
-  { key: "participating", label: "Participating", icon: Gavel },
-  { key: "watchlist", label: "Watchlist", icon: Heart },
-  { key: "won", label: "Won", icon: CheckCircle },
-  { key: "selling", label: "Selling", icon: ShoppingBag },
-  { key: "sold", label: "Sold", icon: PackageCheck },
+  { key: "participating", label: "Đang tham gia", icon: Gavel },
+  { key: "watchlist", label: "Danh sách theo dõi", icon: Heart },
+  { key: "won", label: "Đã thắng", icon: CheckCircle },
+  { key: "selling", label: "Đang bán", icon: ShoppingBag },
+  { key: "sold", label: "Đã bán", icon: PackageCheck },
 ];
 
 export default function DashboardPage() {
@@ -31,6 +32,7 @@ export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { isLoggedIn, currentUser, loginWithToken } = useAuth();
   const [activeTab, setActiveTab] = useState("participating");
+  const [toast, setToast] = useState(null);
 
   // Data states
   const [participatingAuctions, setParticipatingAuctions] = useState([]);
@@ -53,7 +55,8 @@ export default function DashboardPage() {
 
   // Rating Modal State
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [selectedTransactionForRating, setSelectedTransactionForRating] = useState(null);
+  const [selectedTransactionForRating, setSelectedTransactionForRating] =
+    useState(null);
 
   // Handle OAuth callback token
   useEffect(() => {
@@ -83,19 +86,14 @@ export default function DashboardPage() {
     setError(null);
 
     try {
-      const [
-        participatingData,
-        watchlistData,
-        wonData,
-        sellingData,
-        soldData
-      ] = await Promise.all([
-        auctionService.getParticipatingAuctions({ page: 1, limit: 10 }),
-        watchlistService.getWatchlist({ page: 1, limit: 10 }),
-        auctionService.getWonAuctions({ page: 1, limit: 10 }),
-        auctionService.getSellingAuctions({ page: 1, limit: 10 }),
-        auctionService.getSoldAuctions({ page: 1, limit: 10 })
-      ]);
+      const [participatingData, watchlistData, wonData, sellingData, soldData] =
+        await Promise.all([
+          auctionService.getParticipatingAuctions({ page: 1, limit: 10 }),
+          watchlistService.getWatchlist({ page: 1, limit: 10 }),
+          auctionService.getWonAuctions({ page: 1, limit: 10 }),
+          auctionService.getSellingAuctions({ page: 1, limit: 10 }),
+          auctionService.getSoldAuctions({ page: 1, limit: 10 }),
+        ]);
 
       setParticipatingAuctions(participatingData.data.auctions);
       setWatchlist(watchlistData.data.watchlist);
@@ -109,10 +107,11 @@ export default function DashboardPage() {
         wonCount: wonData.data.pagination.total,
         sellingCount: sellingData.data.pagination.total,
       });
-
     } catch (err) {
       console.error("Error loading dashboard data:", err);
-      setError(err.response?.data?.message || "Không thể tải dữ liệu dashboard");
+      setError(
+        err.response?.data?.message || "Không thể tải dữ liệu dashboard"
+      );
     } finally {
       setLoading(false);
     }
@@ -122,8 +121,12 @@ export default function DashboardPage() {
     try {
       await watchlistService.removeFromWatchlist(productId);
       fetchAllData(); // Reload all data
+      setToast({ message: "Đã xoá khỏi danh sách theo dõi", type: "success" });
     } catch (err) {
-      alert("Không thể xoá khỏi danh sách yêu thích");
+      setToast({
+        message: "Không thể xoá khỏi danh sách theo dõi",
+        type: "error",
+      });
     }
   };
 
@@ -141,10 +144,13 @@ export default function DashboardPage() {
         auctionId,
         "Người thắng không thanh toán"
       );
-      alert("Đã hủy giao dịch thành công");
+      setToast({ message: "Đã hủy giao dịch thành công", type: "success" });
       fetchAllData();
     } catch (err) {
-      alert(err.response?.data?.message || "Không thể hủy giao dịch");
+      setToast({
+        message: err.response?.data?.message || "Không thể hủy giao dịch",
+        type: "error",
+      });
     }
   };
 
@@ -159,16 +165,19 @@ export default function DashboardPage() {
         score: ratingData.rating, // Pass 1 or -1 directly (backend expects number)
         comment: ratingData.comment,
         orderId: ratingData.transactionId, // This is now correctly the Order ID
-        context: 'post_transaction'
+        context: "post_transaction",
       });
 
-      alert("Đánh giá thành công!");
+      setToast({ message: "Đánh giá thành công!", type: "success" });
       setShowRatingModal(false);
       setSelectedTransactionForRating(null);
       fetchAllData(); // Refresh data to show updated status if needed
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Lỗi khi gửi đánh giá");
+      setToast({
+        message: err.response?.data?.message || "Lỗi khi gửi đánh giá",
+        type: "error",
+      });
     }
   };
 
@@ -192,15 +201,22 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div className="pt-24">
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-10">
             <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              My Dashboard
+              Bảng điều khiển
             </h1>
-            <p className="text-lg text-muted-foreground">
-              Manage your auctions and bids
+            <p className="text-muted-foreground text-lg">
+              Quản lý đấu giá, đặt giá và danh sách theo dõi
             </p>
           </div>
 
@@ -210,7 +226,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-600 text-sm font-medium mb-2">
-                    Active Bids
+                    Đang đấu giá
                   </p>
                   <p className="text-4xl font-bold text-blue-700">
                     {stats.activeBids}
@@ -225,7 +241,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-pink-600 text-sm font-medium mb-2">
-                    Watchlist
+                    Đang theo dõi
                   </p>
                   <p className="text-4xl font-bold text-pink-700">
                     {stats.watchlistCount}
@@ -240,7 +256,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-600 text-sm font-medium mb-2">
-                    Won Auctions
+                    Đã thắng
                   </p>
                   <p className="text-4xl font-bold text-green-700">
                     {stats.wonCount}
@@ -255,7 +271,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-orange-600 text-sm font-medium mb-2">
-                    Selling
+                    Đang bán
                   </p>
                   <p className="text-4xl font-bold text-orange-700">
                     {stats.sellingCount}
@@ -276,10 +292,11 @@ export default function DashboardPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${activeTab === tab.key
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
+                  className={`flex items-center gap-2 px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${
+                    activeTab === tab.key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
@@ -460,7 +477,9 @@ export default function DashboardPage() {
                             </div>
                           </div>
                           <Link
-                            to={`/product/${auction.productId?._id || auction.productId}`}
+                            to={`/product/${
+                              auction.productId?._id || auction.productId
+                            }`}
                             className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
                           >
                             Xem Chi Tiết
@@ -561,7 +580,8 @@ export default function DashboardPage() {
                                 </span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
-                                Người mua: {auction.currentHighestBidderId?.username}
+                                Người mua:{" "}
+                                {auction.currentHighestBidderId?.username}
                               </p>
                             </div>
                           </div>
@@ -577,7 +597,9 @@ export default function DashboardPage() {
                               </button>
                             )}
                             <Link
-                              to={`/product/${auction.productId?._id || auction.productId}`}
+                              to={`/product/${
+                                auction.productId?._id || auction.productId
+                              }`}
                               className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
                             >
                               Chi Tiết
@@ -607,9 +629,15 @@ export default function DashboardPage() {
               <RatingComponent
                 targetUser={{
                   id: selectedTransactionForRating.sellerId._id,
-                  name: selectedTransactionForRating.sellerId.username || selectedTransactionForRating.sellerId.fullName,
-                  rating: selectedTransactionForRating.sellerId.ratingSummary?.score || 0,
-                  totalRatings: selectedTransactionForRating.sellerId.ratingSummary?.totalCount || 0
+                  name:
+                    selectedTransactionForRating.sellerId.username ||
+                    selectedTransactionForRating.sellerId.fullName,
+                  rating:
+                    selectedTransactionForRating.sellerId.ratingSummary
+                      ?.score || 0,
+                  totalRatings:
+                    selectedTransactionForRating.sellerId.ratingSummary
+                      ?.totalCount || 0,
                 }}
                 transactionId={selectedTransactionForRating.orderId}
                 userType="buyer"

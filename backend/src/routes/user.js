@@ -8,11 +8,19 @@ import {
   submitUpgradeRequest,
   getUpgradeRequests,
   approveUpgradeRequest,
-  rejectUpgradeRequest
+  rejectUpgradeRequest,
+  updateAvatar
 } from "../controllers/user.js";
 import { authenticate } from "../middlewares/auth.js";
+import { uploadAvatarMiddleware } from "../middlewares/upload.js";
 
 const router = express.Router();
+
+/**
+ * POST /api/users/me/avatar
+ * Upload avatar
+ */
+router.post("/me/avatar", authenticate, uploadAvatarMiddleware, updateAvatar);
 
 /**
  * GET /api/users/me/profile

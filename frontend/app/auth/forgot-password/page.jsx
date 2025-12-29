@@ -2,15 +2,15 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
-import authService from "../../services/authService"; // Hãy chắc chắn đường dẫn đúng tới file service của bạn
+import authService from "../../services/authService";
+import Toast from "../../../components/Toast";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState(null);
   const navigate = useNavigate();
@@ -18,25 +18,37 @@ export default function ForgotPasswordPage() {
   // BƯỚC 1: Gửi Email để lấy OTP
   const handleSendOtp = async (e) => {
     e.preventDefault();
-    setError("");
-    setMessage("");
 
-    if (!email) return setError("Please enter your email");
+    if (!email)
+      return setToast({
+        message: "Vui lòng nhập email của bạn",
+        type: "error",
+      });
 
-    if (!recaptchaToken) return setError("Please verify you are not a robot");
+    if (!recaptchaToken)
+      return setToast({
+        message: "Vui lòng xác minh bạn không phải là robot",
+        type: "error",
+      });
 
     setLoading(true);
     try {
       // Gọi API: POST /auth/forgotpassword
       await authService.forgotPassword(email);
-      setMessage("OTP has been sent to your email. Please check inbox/spam.");
+      setToast({
+        message:
+          "Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư đến hoặc spam.",
+        type: "success",
+      });
       setStep(2);
     } catch (err) {
       console.error(err);
-      setError(
-        err.response?.data?.msg ||
-          "Failed to send OTP. Please check email address."
-      );
+      setToast({
+        message:
+          err.response?.data?.msg ||
+          "Gửi OTP thất bại. Vui lòng kiểm tra lại địa chỉ email.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -45,25 +57,28 @@ export default function ForgotPasswordPage() {
   // BƯỚC 2: Nhập OTP (Chỉ chuyển bước, chưa gọi API)
   const handleVerifyOtpInput = (e) => {
     e.preventDefault();
-    setError("");
 
     // Vì backend API /resetpassword cần cả OTP và Password cùng lúc,
     // nên ở bước này ta chỉ kiểm tra độ dài rồi chuyển sang bước nhập pass.
     if (otp.length === 6) {
       setStep(3);
-      setMessage("");
     } else {
-      setError("Please enter a valid 6-digit OTP.");
+      setToast({
+        message: "Vui lòng nhập mã OTP 6 chữ số hợp lệ.",
+        type: "error",
+      });
     }
   };
 
   // BƯỚC 3: Nhập mật khẩu mới & Gọi API Reset
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    setError("");
 
     if (newPassword.length < 6) {
-      return setError("Password must be at least 6 characters");
+      return setToast({
+        message: "Mật khẩu phải có ít nhất 6 ký tự",
+        type: "error",
+      });
     }
 
     setLoading(true);
@@ -77,16 +92,21 @@ export default function ForgotPasswordPage() {
       });
 
       // Thành công -> Chuyển về trang login
-      navigate("/auth/login");
-      alert("Password reset successfully! Please login.");
+      setToast({
+        message: "Đặt lại mật khẩu thành công! Vui lòng đăng nhập.",
+        type: "success",
+      });
+      setTimeout(() => {
+        navigate("/auth/login");
+      }, 2000);
     } catch (err) {
       console.error(err);
       // Nếu lỗi (OTP sai hoặc hết hạn), hiển thị lỗi.
       // Có thể user cần quay lại bước nhập OTP.
-      setError(err.response?.data?.msg || "Failed to reset password.");
-      if (err.response?.data?.msg === "Invalid OTP or expired") {
-        // Tùy chọn: setStep(2) để nhập lại OTP
-      }
+      setToast({
+        message: err.response?.data?.msg || "Đặt lại mật khẩu thất bại.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -94,37 +114,31 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div className="w-full max-w-md">
         <div className="bg-background border border-border rounded-lg p-8 shadow-sm">
           <Link
             to="/auth/login"
             className="flex items-center gap-2 text-primary hover:underline mb-6 font-medium"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Login
+            <ArrowLeft className="w-4 h-4" /> Quay lại Đăng nhập
           </Link>
 
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">Reset Password</h1>
+            <h1 className="text-3xl font-bold mb-2">Đặt lại Mật khẩu</h1>
             <p className="text-muted-foreground">
-              {step === 1 && "Enter your email to receive reset instructions"}
-              {step === 2 && "Enter the 6-digit code sent to your email"}
-              {step === 3 && "Create a new password for your account"}
+              {step === 1 &&
+                "Nhập email của bạn để nhận hướng dẫn đặt lại mật khẩu"}
+              {step === 2 && "Nhập mã 6 chữ số đã được gửi đến email của bạn"}
+              {step === 3 && "Tạo mật khẩu mới cho tài khoản của bạn"}
             </p>
           </div>
-
-          {/* Hiển thị thông báo thành công */}
-          {message && (
-            <div className="p-3 bg-green-500/10 border border-green-500 text-green-600 rounded-lg text-sm mb-4">
-              {message}
-            </div>
-          )}
-
-          {/* Hiển thị lỗi */}
-          {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500 text-red-600 rounded-lg text-sm mb-4">
-              {error}
-            </div>
-          )}
 
           {/* STEP 1: FORM EMAIL */}
           {step === 1 && (
@@ -157,7 +171,7 @@ export default function ForgotPasswordPage() {
                 {loading ? (
                   <Loader2 className="animate-spin" />
                 ) : (
-                  "Send Reset Code"
+                  "Gửi mã đặt lại"
                 )}
               </button>
             </form>
@@ -168,7 +182,7 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleVerifyOtpInput} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Enter OTP Code
+                  Nhập mã OTP
                 </label>
                 <input
                   type="text"
@@ -180,14 +194,14 @@ export default function ForgotPasswordPage() {
                 />
                 <div className="flex justify-between items-center mt-2">
                   <p className="text-xs text-muted-foreground">
-                    Check your email for the code
+                    Kiểm tra email của bạn để lấy mã
                   </p>
                   <button
                     type="button"
                     onClick={() => setStep(1)}
                     className="text-xs text-blue-500 hover:underline"
                   >
-                    Change Email?
+                    Đổi Email?
                   </button>
                 </div>
               </div>
@@ -196,7 +210,7 @@ export default function ForgotPasswordPage() {
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400"
                 disabled={otp.length !== 6}
               >
-                Next
+                Tiếp tục
               </button>
             </form>
           )}
@@ -206,7 +220,7 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  New Password
+                  Mật khẩu mới
                 </label>
                 <input
                   type="password"
@@ -217,7 +231,7 @@ export default function ForgotPasswordPage() {
                   className="w-full px-4 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Must be at least 6 characters
+                  Phải có ít nhất 6 ký tự
                 </p>
               </div>
               <button
@@ -228,7 +242,7 @@ export default function ForgotPasswordPage() {
                 {loading ? (
                   <Loader2 className="animate-spin" />
                 ) : (
-                  "Reset Password"
+                  "Đặt lại Mật khẩu"
                 )}
               </button>
             </form>

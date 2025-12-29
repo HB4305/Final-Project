@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Trash2, Eye, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import AdminNavigation from '../../../components/admin-navigation';
-import productService from '../../services/productService';
-
+import React, { useState, useEffect } from "react";
+import { Trash2, Eye, RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
+import AdminNavigation from "../../../components/admin-navigation";
+import productService from "../../services/productService";
+import Toast from "../../../components/Toast";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
 
   const fetchProducts = async () => {
     try {
@@ -19,7 +20,7 @@ export default function AdminProductsPage() {
       }
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error("Error fetching products:", error);
       setLoading(false);
     }
   };
@@ -29,47 +30,61 @@ export default function AdminProductsPage() {
   }, []);
 
   const handleDelete = async (product) => {
-    if (!confirm(`Are you sure you want to delete "${product.name}"?`)) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa "${product.name}"?`)) return;
 
     try {
       const response = await productService.deleteProduct(product._id);
 
       if (response.success) {
-        alert(response.message);
+        setToast({
+          message: response.message || "Xóa sản phẩm thành công",
+          type: "success",
+        });
         fetchProducts();
       } else {
-        alert('Error: ' + response.message);
+        setToast({ message: "Lỗi: " + response.message, type: "error" });
       }
     } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('An error occurred. Please try again.');
+      console.error("Error deleting product:", error);
+      setToast({ message: "Đã xảy ra lỗi. Vui lòng thử lại.", type: "error" });
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation />
-      
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <div className="max-w-7xl mx-auto px-4 py-32">
         <div className="bg-white shadow-lg rounded-lg p-8">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Manage Products</h1>
-              <p className="text-gray-600 mt-1">View and remove auction listings</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Quản lý Sản phẩm
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Xem và xóa các danh sách đấu giá
+              </p>
             </div>
             <button
               onClick={fetchProducts}
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
             >
               <RefreshCw className="w-5 h-5" />
-              Refresh
+              Làm mới
             </button>
           </div>
 
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-              <p className="text-gray-600 mt-4">Loading products...</p>
+              <p className="text-gray-600 mt-4">Đang tải sản phẩm...</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -80,28 +95,28 @@ export default function AdminProductsPage() {
                       ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Image
+                      Hình ảnh
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
+                      Tên
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Quantity
+                      Số lượng
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
+                      Danh mục
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Current Bid
+                      Giá hiện tại
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      Trạng thái
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
+                      Ngày tạo
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                      Hành động
                     </th>
                   </tr>
                 </thead>
@@ -113,7 +128,7 @@ export default function AdminProductsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <img
-                          src={product.primaryImageUrl || '/placeholder.svg'}
+                          src={product.primaryImageUrl || "/placeholder.svg"}
                           alt={product.name}
                           className="h-12 w-12 object-cover rounded"
                         />
@@ -125,14 +140,21 @@ export default function AdminProductsPage() {
                         {product.auction.bidCount}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {typeof product.category === 'object' ? product.category?.name : product.category}
+                        {typeof product.category === "object"
+                          ? product.category?.name
+                          : product.category}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${(product.auction.currentPrice || product.auction.currentBid || 0).toLocaleString()}
+                        $
+                        {(
+                          product.auction.currentPrice ||
+                          product.auction.currentBid ||
+                          0
+                        ).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                          {product.status || 'active'}
+                          {product.status || "active"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -159,7 +181,7 @@ export default function AdminProductsPage() {
 
               {products.length === 0 && (
                 <div className="text-center py-12 text-gray-500">
-                  No products found.
+                  Không tìm thấy sản phẩm nào.
                 </div>
               )}
             </div>

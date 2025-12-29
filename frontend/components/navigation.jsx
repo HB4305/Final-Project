@@ -1,12 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  Heart,
-  Search,
-  User,
-  Menu,
-  X,
-  Bell,
-} from "lucide-react";
+import { Heart, Search, User, Menu, X, Bell } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../app/context/AuthContext";
 
@@ -18,7 +11,9 @@ export default function Navigation() {
   const navigate = useNavigate();
 
   // Check if user is admin or superadmin
-  const isAdmin = currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('superadmin');
+  const isAdmin =
+    currentUser?.roles?.includes("admin") ||
+    currentUser?.roles?.includes("superadmin");
   const userMenuRef = useRef(null);
 
   // Close user menu when clicking outside
@@ -208,18 +203,22 @@ export default function Navigation() {
             >
               Categories
             </Link>
-            <Link
-              to="/admin/categories"
-              className="text-orange-600 hover:text-orange-700 transition font-medium"
-            >
-              Admin: Categories
-            </Link>
-            <Link
-              to="/admin/products"
-              className="text-orange-600 hover:text-orange-700 transition font-medium"
-            >
-              Admin: Products
-            </Link>
+            {isAdmin && (
+              <>
+                <Link
+                  to="/admin/categories"
+                  className="text-orange-600 hover:text-orange-700 transition font-medium"
+                >
+                  Admin: Categories
+                </Link>
+                <Link
+                  to="/admin/products"
+                  className="text-orange-600 hover:text-orange-700 transition font-medium"
+                >
+                  Admin: Products
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

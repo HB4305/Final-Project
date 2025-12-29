@@ -243,3 +243,38 @@ export const rejectUpgradeRequest = async (req, res, next) => {
   }
 };
 
+/**
+ * Controller upload avatar (Lưu Base64 vào MongoDB)
+ */
+export const updateAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng chọn ảnh để upload'
+      });
+    }
+
+    // Convert buffer to base64
+    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+
+    // Update user
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { profileImageUrl: dataURI },
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Cập nhật ảnh đại diện thành công',
+      data: {
+        profileImageUrl: user.profileImageUrl
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

@@ -11,6 +11,7 @@ export default function SignupPage() {
   const [formData, setFormData] = useState({
     username: "",
     fullName: "",
+    address: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -32,22 +33,24 @@ export default function SignupPage() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.username.trim()) newErrors.username = "Username is required";
+    if (!formData.username.trim())
+      newErrors.username = "Vui lòng nhập tên đăng nhập";
     if (formData.username.length < 3 || formData.username.length > 30)
-      newErrors.username = "Username must be 3-30 characters";
-    if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
+      newErrors.username = "Tên đăng nhập phải từ 3-30 ký tự";
+    if (!formData.fullName.trim()) newErrors.fullName = "Vui lòng nhập họ tên";
+    if (!formData.address.trim()) newErrors.address = "Vui lòng nhập địa chỉ";
     if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
-      newErrors.email = "Valid email is required";
+      newErrors.email = "Email không hợp lệ";
     if (formData.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
     if (formData.password !== formData.confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match";
+      newErrors.confirmPassword = "Mật khẩu không khớp";
     if (!formData.agreeTerms)
-      newErrors.agreeTerms = "You must agree to the terms";
+      newErrors.agreeTerms = "Bạn phải đồng ý với điều khoản sử dụng";
 
     // Validate reCaptcha
     if (!recaptchaToken)
-      newErrors.recaptcha = "Please verify you are not a robot";
+      newErrors.recaptcha = "Vui lòng xác minh bạn không phải là robot";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -89,6 +92,7 @@ export default function SignupPage() {
       // Gửi data kèm recaptchaToken xuống backend
       await authService.signup({
         username: formData.username,
+        address: formData.address,
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
@@ -99,7 +103,7 @@ export default function SignupPage() {
       // Thành công -> Chuyển sang bước nhập OTP
       setIsLoading(false);
       setToast({
-        message: "Registration successful! Please check your email for OTP.",
+        message: "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.",
         type: "success",
       });
       setTimeout(() => {
@@ -134,7 +138,7 @@ export default function SignupPage() {
         }
       } else {
         setErrors({
-          general: "An unexpected error occurred.",
+          general: "Đã xảy ra lỗi không mong muốn.",
         });
       }
     }
@@ -145,7 +149,7 @@ export default function SignupPage() {
     e.preventDefault();
 
     if (otp.length !== 6) {
-      setErrors({ otp: "Please enter a valid 6-digit OTP" });
+      setErrors({ otp: "Vui lòng nhập mã OTP 6 chữ số hợp lệ" });
       return;
     }
 
@@ -159,7 +163,7 @@ export default function SignupPage() {
       setIsLoading(false);
       // OTP đúng -> Chuyển hướng sang trang Login
       setToast({
-        message: "Account verified successfully! Please login.",
+        message: "Xác thực tài khoản thành công! Vui lòng đăng nhập.",
         type: "success",
       });
       setTimeout(() => {
@@ -167,7 +171,7 @@ export default function SignupPage() {
       }, 2000);
     } catch (err) {
       setIsLoading(false);
-      const errorMsg = err.response?.data?.msg || "Verification failed";
+      const errorMsg = err.response?.data?.msg || "Xác thực thất bại";
       setErrors({ otp: errorMsg });
       setToast({ message: errorMsg, type: "error" });
     }
@@ -188,7 +192,7 @@ export default function SignupPage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-primary mb-2">AuctionHub</h1>
             <p className="text-muted-foreground">
-              {step === 1 ? "Create your account" : "Verify your email"}
+              {step === 1 ? "Tạo tài khoản mới" : "Xác thực email"}
             </p>
           </div>
 
@@ -225,20 +229,40 @@ export default function SignupPage() {
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Full Name
+                  Họ và tên
                 </label>
                 <input
                   type="text"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
-                  placeholder="John Doe"
+                  placeholder="Nguyễn Văn A"
                   className={`w-full px-4 py-2 border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary transition ${
                     errors.fullName ? "border-red-500" : "border-border"
                   }`}
                 />
                 {errors.fullName && (
                   <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>
+                )}
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Địa chỉ
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="123 Đường ABC, Quận 1, TP.HCM"
+                  className={`w-full px-4 py-2 border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary transition ${
+                    errors.address ? "border-red-500" : "border-border"
+                  }`}
+                />
+                {errors.address && (
+                  <p className="text-xs text-red-500 mt-1">{errors.address}</p>
                 )}
               </div>
 

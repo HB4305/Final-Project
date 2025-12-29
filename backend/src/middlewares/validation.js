@@ -20,7 +20,7 @@ export const validateRegisterInput = (req, res, next) => {
     if (!username || !email || !password || !passwordConfirm || !fullName) {
       return next(
         new AppError(
-          "Vui lòng cung cấp đầy đủ thông tin",
+          "Please provide all required fields",
           400,
           ERROR_CODES.INVALID_INPUT
         )
@@ -30,7 +30,7 @@ export const validateRegisterInput = (req, res, next) => {
     if (!isValidUsername(username)) {
       return next(
         new AppError(
-          "Username phải từ 3-30 ký tự, chỉ chứa chữ, số và underscore",
+          "Username must be 3-30 characters, containing only letters, numbers and underscore",
           400,
           ERROR_CODES.INVALID_INPUT
         )
@@ -39,14 +39,14 @@ export const validateRegisterInput = (req, res, next) => {
 
     if (!isValidEmail(email)) {
       return next(
-        new AppError("Email không hợp lệ", 400, ERROR_CODES.INVALID_INPUT)
+        new AppError("Invalid email address", 400, ERROR_CODES.INVALID_INPUT)
       );
     }
 
     if (!isValidPassword(password)) {
       return next(
         new AppError(
-          "Mật khẩu phải ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số",
+          "Password must be at least 8 characters, including uppercase, lowercase and numbers",
           400,
           ERROR_CODES.INVALID_INPUT
         )
@@ -56,7 +56,7 @@ export const validateRegisterInput = (req, res, next) => {
     if (password !== passwordConfirm) {
       return next(
         new AppError(
-          "Mật khẩu xác nhận không khớp",
+          "Password confirmation does not match",
           400,
           ERROR_CODES.INVALID_INPUT
         )
@@ -65,7 +65,7 @@ export const validateRegisterInput = (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("[VALIDATE REGISTER] Lỗi validate đăng ký:", error);
+    console.error("[VALIDATE REGISTER] Validation error:", error);
     next(error);
   }
 };
@@ -80,7 +80,7 @@ export const validateOtpInput = (req, res, next) => {
     if (!email || !otp) {
       return next(
         new AppError(
-          "Vui lòng cung cấp email và mã OTP",
+          "Please provide email and OTP",
           400,
           ERROR_CODES.INVALID_INPUT
         )
@@ -89,13 +89,13 @@ export const validateOtpInput = (req, res, next) => {
 
     if (!isValidEmail(email)) {
       return next(
-        new AppError("Email không hợp lệ", 400, ERROR_CODES.INVALID_INPUT)
+        new AppError("Invalid email address", 400, ERROR_CODES.INVALID_INPUT)
       );
     }
 
     if (typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
       return next(
-        new AppError("Mã OTP phải là 6 chữ số", 400, ERROR_CODES.INVALID_INPUT)
+        new AppError("OTP must be 6 digits", 400, ERROR_CODES.INVALID_INPUT)
       );
     }
 
@@ -105,7 +105,6 @@ export const validateOtpInput = (req, res, next) => {
     next(error);
   }
 };
-
 
 /**
  * Validate dữ liệu đăng nhập

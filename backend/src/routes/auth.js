@@ -1,6 +1,7 @@
 // ROUTES: Authentication Routes
 
 import express from "express";
+import passport from "passport";
 import {
   register,
   login,
@@ -97,49 +98,36 @@ router.post("/reset-password", resetPassword);
  * GET /api/auth/google
  * Redirect to Google for authentication
  */
-router.get("/google", (req, res, next) => {
-  // Import passport dynamically to avoid circular dependency
-  import("../config/passport.js").then((module) => {
-    const passport = module.default;
-    passport.authenticate("google", {
-      scope: ["profile", "email"],
-    })(req, res, next);
-  });
-});
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
 
 /**
  * GET /api/auth/google/callback
- * Google callback after authentication
+ * Google callback URL
  */
 router.get(
   "/google/callback",
-  (req, res, next) => {
-    import("../config/passport.js").then((module) => {
-      const passport = module.default;
-      passport.authenticate("google", {
-        failureRedirect: `${
-          process.env.FRONTEND_URL || "http://localhost:5173"
-        }/auth/login?error=auth_failed`,
-        session: false,
-      })(req, res, next);
-    });
-  },
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/login",
+  }),
   async (req, res) => {
     try {
-      // Import JWT utils
+      // Generate tokens for the authenticated user
       const { generateAccessToken, generateRefreshToken } = await import(
         "../utils/jwt.js"
       );
 
       // Convert Mongoose document to plain object for JWT
       const userPayload = {
-        _id: req.user._id.toString(),
+        _id: req.user._id,
         email: req.user.email,
         username: req.user.username,
         roles: req.user.roles,
       };
 
-      // Generate tokens for the authenticated user
       const accessToken = generateAccessToken(userPayload);
       const refreshToken = generateRefreshToken(userPayload);
 

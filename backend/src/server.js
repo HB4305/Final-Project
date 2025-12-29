@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
+import './config/passport.js'; // Import passport config
 import { connectDB } from './lib/database.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 import dotenv from 'dotenv';

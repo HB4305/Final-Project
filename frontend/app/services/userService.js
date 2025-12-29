@@ -85,6 +85,18 @@ const submitUpgradeRequest = (request) => {
   return api.post("/users/upgrade-requests", request);
 };
 
+/**
+ * Upload avatar
+ * @param {FormData} formData - FormData containing 'avatar' file
+ */
+const uploadAvatar = (formData) => {
+  return api.post("/users/me/avatar", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
+
 export default {
   getMe,
   updateMe,
@@ -98,4 +110,5 @@ export default {
   approveUpgradeRequest,
   rejectUpgradeRequest,
   submitUpgradeRequest,
+  uploadAvatar,
 };

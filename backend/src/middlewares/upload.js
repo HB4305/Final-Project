@@ -60,6 +60,14 @@ export const uploadProductImages = upload.array('images', 10);
 
 /**
  * ============================================
+ * MIDDLEWARE: Upload avatar (1 ảnh)
+ * ============================================
+ */
+export const uploadAvatarMiddleware = upload.single('avatar');
+
+
+/**
+ * ============================================
  * MIDDLEWARE: Validate số lượng ảnh
  * ============================================
  * Kiểm tra:
