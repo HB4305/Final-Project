@@ -16,6 +16,9 @@ export default function Navigation() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+
+  // Check if user is admin or superadmin
+  const isAdmin = currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('superadmin');
   const userMenuRef = useRef(null);
 
   // Close user menu when clicking outside
@@ -79,7 +82,7 @@ export default function Navigation() {
               placeholder="Tìm kiếm sản phẩm... (ít nhất 2 ký tự)"
               className="flex-1 px-4 py-2 text-foreground placeholder-muted-foreground outline-none text-sm"
             />
-            <button 
+            <button
               type="submit"
               className="px-4 py-2 text-primary hover:bg-muted transition"
               title="Tìm kiếm nâng cao"
@@ -133,6 +136,18 @@ export default function Navigation() {
                     >
                       Settings
                     </Link>
+                    {isAdmin && (
+                      <>
+                        <hr className="border-border" />
+                        <Link
+                          to="/admin/dashboard"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="block px-4 py-3 text-sm text-orange-600 hover:bg-orange-50 transition font-semibold"
+                        >
+                          🛡️ Admin Dashboard
+                        </Link>
+                      </>
+                    )}
                     <hr className="border-border" />
                     <button
                       onClick={() => {
@@ -198,22 +213,6 @@ export default function Navigation() {
             >
               Admin: Products
             </Link>
-            {isLoggedIn && (
-              <>
-                <Link
-                  to="/watchlist"
-                  className="text-foreground hover:text-primary transition font-medium flex items-center gap-1"
-                >
-                  <Heart className="w-4 h-4" /> Wishlist
-                </Link>
-                <Link
-                  to="/dashboard"
-                  className="text-foreground hover:text-primary transition font-medium"
-                >
-                  My Purchases
-                </Link>
-              </>
-            )}
           </div>
         </div>
       </div>

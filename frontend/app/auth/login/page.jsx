@@ -41,23 +41,38 @@ export default function LoginPage() {
       return;
     }
 
-    if (!recaptchaToken) {
-      setError("Please verify you are not a robot");
-      return;
-    }
+    // TEMPORARY: Comment recaptcha validation for testing
+    // if (!recaptchaToken) {
+    //   setError("Please verify you are not a robot");
+    //   return;
+    // }
 
     setIsLoading(true);
     setError("");
 
     try {
-      await login(email, password);
+      const response = await login(email, password);
       setIsLoading(false);
+      
+      // Get user data from response
+      const user = response.data.data.user;
+      
+      // Check if user is admin or superadmin
+      const isAdmin = user?.roles?.includes('admin') || user?.roles?.includes('superadmin');
+      
       setToast({
-        message: "Login successful! Redirecting...",
+        message: `Login successful! ${isAdmin ? 'Redirecting to Admin Dashboard...' : 'Redirecting...'}`,
         type: "success",
       });
-      // Chuyển hướng về dashboard sau 1 giây
-      setTimeout(() => navigate("/dashboard"), 1000);
+      
+      // Redirect based on user role
+      setTimeout(() => {
+        if (isAdmin) {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/dashboard");
+        }
+      }, 1000);
     } catch (err) {
       setIsLoading(false);
       // Xử lý lỗi trả về từ backend (auth.js)
@@ -73,7 +88,7 @@ export default function LoginPage() {
 
       setError(errorMessage);
       setToast({ message: errorMessage, type: "error" });
-      setRecaptchaToken(null); // Reset reCAPTCHA on error
+      // setRecaptchaToken(null); // Reset reCAPTCHA on error (commented)
     }
   };
 

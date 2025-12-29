@@ -15,7 +15,20 @@ import {
   validateIdParam
 } from '../middlewares/validation.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true }); // ✅ THÊM DÒNG NÀY
+
+/**
+ * POST /api/products/:productId/bids
+ * Đặt giá cho sản phẩm (mounted từ product routes)
+ * Yêu cầu: đã đăng nhập
+ */
+router.post(
+  '/',
+  authenticate,
+  validateBidInput,
+  placeBid
+);
+
 
 /**
  * POST /api/bids/:auctionId

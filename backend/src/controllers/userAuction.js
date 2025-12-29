@@ -3,6 +3,8 @@
 import Bid from "../models/Bid.js";
 import Auction from "../models/Auction.js";
 import Product from "../models/Product.js";
+import Order from "../models/Order.js";
+import Rating from "../models/Rating.js";
 import { AppError } from "../utils/errors.js";
 
 /**
@@ -88,15 +90,15 @@ export const getWonAuctions = async (req, res, next) => {
     const { page = 1, limit = 10, status } = req.query;
     const skip = (page - 1) * limit;
 
+    // Fix: Query based on Auction schema (currentHighestBidderId and status='ended')
     const query = {
       currentHighestBidderId: req.user._id, 
       status: "ended", 
     };
 
-    // Nếu có filter theo trạng thái giao dịch
-    if (status) {
-      query.transactionStatus = status;
-    }
+    // Note: transactionStatus is not in Auction schema currently.
+    // If filtering by transaction status is needed, we might need to lookup Orders.
+    // For now, we return all won auctions.
 
     const [auctions, total] = await Promise.all([
       Auction.find(query)
@@ -116,10 +118,38 @@ export const getWonAuctions = async (req, res, next) => {
       Auction.countDocuments(query),
     ]);
 
+    // Fetch related orders for these auctions
+    const auctionIds = auctions.map(a => a._id);
+    const orders = await Order.find({ auctionId: { $in: auctionIds } }).select("auctionId status").lean();
+
+    // Fetch existing ratings by this user for these auctions/orders
+    const ratings = await Rating.find({
+      raterId: req.user._id,
+      orderId: { $in: orders.map(o => o._id) }
+    }).select("orderId").lean();
+
+    const ratedOrderIds = new Set(ratings.map(r => r.orderId.toString()));
+
+    // Map orders to auctions
+    const orderMap = {};
+    orders.forEach(order => {
+      orderMap[order.auctionId.toString()] = order;
+    });
+
+    // Determine transaction status and isRated
+    const auctionsWithStatus = auctions.map(a => {
+      const order = orderMap[a._id.toString()];
+      return {
+        ...a,
+        transactionStatus: order ? order.status : 'pending',
+        isRated: order ? ratedOrderIds.has(order._id.toString()) : false
+      };
+    });
+
     res.status(200).json({
       status: "success",
       data: {
-        auctions,
+        auctions: auctionsWithStatus,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -215,10 +245,17 @@ export const getSoldAuctions = async (req, res, next) => {
       Auction.countDocuments(query),
     ]);
 
+    // Rename currentHighestBidderId to winnerId for frontend consistency if needed
+    const auctionsFormatted = auctions.map(a => ({
+      ...a,
+      winnerId: a.currentHighestBidderId,
+      transactionStatus: 'pending' // Placeholder
+    }));
+
     res.status(200).json({
       status: "success",
       data: {
-        auctions,
+        auctions: auctionsFormatted,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

@@ -99,6 +99,9 @@ export const getAllProducts = async (params = {}) => {
  * @returns {Promise}
  */
 export const createProduct = async (productData) => {
+  console.log("Creating product with data:", productData);
+  // In so luong anh
+  console.log("Number of images:", productData.getAll("images").length);
   const response = await api.post("/products", productData);
   return response.data;
 };
@@ -142,6 +145,45 @@ export const placeBid = async (productId, bidData) => {
  */
 export const getBidHistory = async (productId) => {
   const response = await api.get(`/products/${productId}/bids`);
+  return response.data;
+};
+
+/**
+ * API 3.2: Bổ sung thông tin mô tả sản phẩm
+ * @param {string} productId - ID sản phẩm
+ * @param {Object} data - { description, metadata }
+ * @returns {Promise}
+ */
+export const updateProductDescription = async (productId, data) => {
+  const response = await api.put(`/products/${productId}/description`, data);
+  return response.data;
+};
+
+/**
+ * API 3.3a: Từ chối lượt ra giá của bidder
+ * @param {string} productId - ID sản phẩm
+ * @param {string} bidderId - ID bidder cần từ chối
+ * @param {string} reason - Lý do từ chối
+ * @returns {Promise}
+ */
+export const rejectBidder = async (productId, bidderId, reason) => {
+  const response = await api.post(`/products/${productId}/reject-bidder`, {
+    bidderId,
+    reason
+  });
+  return response.data;
+};
+
+/**
+ * API 3.3b: Bidder tự rút lại bid
+ * @param {string} productId - ID sản phẩm
+ * @param {string} reason - Lý do rút bid (optional)
+ * @returns {Promise}
+ */
+export const withdrawBid = async (productId, reason = '') => {
+  const response = await api.post(`/products/${productId}/withdraw-bid`, {
+    reason
+  });
   return response.data;
 };
 

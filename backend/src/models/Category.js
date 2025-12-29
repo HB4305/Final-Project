@@ -37,6 +37,16 @@ const categorySchema = new mongoose.Schema({
     enum: [1, 2],
     required: true
   },
+  // API 4.1: Soft delete support
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  // API 4.1: Cached product count (updated periodically)
+  productCount: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -11,6 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Navigation from "../../components/navigation";
+import UpgradeRequest from "../../components/upgrade-request";
 import userService from "../services/userService";
 
 export default function ProfilePage() {
@@ -544,6 +545,7 @@ export default function ProfilePage() {
               </button>
             </div>
           </div>
+          <UpgradeRequest currentUser={profile} />
 
           {/* Recent Reviews */}
           <div className="space-y-4">

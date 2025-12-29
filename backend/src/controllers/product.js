@@ -652,3 +652,374 @@ export const postProduct = async (req, res) => {
     });
   }
 };
+
+/**
+ * Toggle auto-extend for seller's auction
+ * PUT /api/products/:productId/auto-extend
+ */
+export const toggleAutoExtend = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const { autoExtendEnabled } = req.body;
+    const userId = req.user?._id;
+    const userRoles = req.user?.roles || [];
+
+    // Validate productId
+    if (!isValidObjectId(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID'
+      });
+    }
+
+    // Validate autoExtendEnabled
+    if (typeof autoExtendEnabled !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'autoExtendEnabled must be a boolean'
+      });
+    }
+
+    // Find product and check ownership
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // Check ownership: seller hoặc admin
+    const isAdmin = userRoles.includes('admin') || userRoles.includes('superadmin');
+    const isSeller = userId && product.seller.toString() === userId.toString();
+    
+    if (userId && !isAdmin && !isSeller) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to modify this product'
+      });
+    }
+
+    // Find auction
+    const auction = await Auction.findOne({ product: productId });
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Auction not found for this product'
+      });
+    }
+
+    // Check if auction is still active
+    if (auction.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        message: 'Can only modify auto-extend for active auctions'
+      });
+    }
+
+    // Update auction
+    auction.autoExtendEnabled = autoExtendEnabled;
+    await auction.save();
+
+    res.json({
+      success: true,
+      message: `Auto-extend ${autoExtendEnabled ? 'enabled' : 'disabled'} successfully`,
+      data: {
+        productId,
+        auctionId: auction._id,
+        autoExtendEnabled: auction.autoExtendEnabled,
+        autoExtendCount: auction.autoExtendCount || 0
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * ============================================
+ * API 3.2: Bổ sung thông tin mô tả sản phẩm
+ * PUT /api/products/:productId/description
+ * ============================================
+ * Cho phép seller cập nhật mô tả, metadata của sản phẩm
+ * Không cho phép thay đổi giá, thời gian nếu đã có bid
+ */
+export const updateProductDescription = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const { description, metadata } = req.body;
+    const userId = req.user?._id;
+    const userRoles = req.user?.roles || [];
+
+    console.log(`[PRODUCT CONTROLLER] PUT /api/products/${productId}/description`);
+
+    // Validate productId
+    if (!isValidObjectId(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID sản phẩm không hợp lệ'
+      });
+    }
+
+    // Find product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Sản phẩm không tồn tại'
+      });
+    }
+
+    // Check ownership: seller hoặc admin
+    const isAdmin = userRoles.includes('admin') || userRoles.includes('superadmin');
+    const isSeller = userId && product.sellerId.toString() === userId.toString();
+    
+    if (!isAdmin && !isSeller) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền chỉnh sửa sản phẩm này'
+      });
+    }
+
+    // Find auction
+    const auction = await Auction.findOne({ productId });
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Phiên đấu giá không tồn tại'
+      });
+    }
+
+    // Check auction status - không cho phép edit khi ended/cancelled
+    if (['ended', 'cancelled'].includes(auction.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể cập nhật mô tả cho phiên đấu giá đã kết thúc hoặc bị hủy'
+      });
+    }
+
+    // Validate description nếu có
+    if (description !== undefined) {
+      if (!description || description.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mô tả sản phẩm không được để trống'
+        });
+      }
+
+      if (description.length < PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH) {
+        return res.status(400).json({
+          success: false,
+          message: `Mô tả sản phẩm phải có ít nhất ${PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH} ký tự`
+        });
+      }
+
+      // Add new description to history
+      product.descriptionHistory.push({
+        text: description.trim(),
+        createdAt: new Date(),
+        authorId: userId
+      });
+
+      console.log('[PRODUCT CONTROLLER] Added new description to history');
+    }
+    
+    // Update metadata nếu có
+    if (metadata !== undefined) {
+      product.metadata = { ...product.metadata, ...metadata };
+      console.log('[PRODUCT CONTROLLER] Updated metadata');
+    }
+    
+    product.updatedAt = new Date();
+    await product.save();
+
+    // Populate để trả về đầy đủ
+    await product.populate('categoryId', 'name slug');
+
+    // Get latest description
+    const latestDescription = product.descriptionHistory.length > 0 
+      ? product.descriptionHistory[product.descriptionHistory.length - 1].text 
+      : '';
+
+    res.json({
+      success: true,
+      message: 'Cập nhật mô tả sản phẩm thành công',
+      data: {
+        product: {
+          _id: product._id,
+          title: product.title,
+          description: latestDescription,
+          descriptionHistory: product.descriptionHistory,
+          metadata: product.metadata,
+          primaryImageUrl: product.primaryImageUrl,
+          category: product.categoryId,
+          updatedAt: product.updatedAt
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in updateProductDescription:', error);
+    next(error);
+  }
+};
+
+/**
+ * ============================================
+ * API 3.3: Từ chối lượt ra giá của bidder
+ * POST /api/products/:productId/reject-bidder
+ * ============================================
+ * Seller từ chối một bidder, nếu bidder đang thắng
+ * thì chuyển người thắng sang bidder thứ 2
+ */
+export const rejectBidder = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const { bidderId, reason } = req.body;
+    const userId = req.user?._id;
+    const userRoles = req.user?.roles || [];
+
+    console.log(`[PRODUCT CONTROLLER] POST /api/products/${productId}/reject-bidder`);
+    console.log(`[PRODUCT CONTROLLER] Rejecting bidder: ${bidderId}`);
+
+    // Validate input
+    if (!isValidObjectId(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID sản phẩm không hợp lệ'
+      });
+    }
+
+    if (!isValidObjectId(bidderId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID bidder không hợp lệ'
+      });
+    }
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lý do từ chối là bắt buộc'
+      });
+    }
+
+    // Check user cannot reject themselves
+    if (userId && userId.toString() === bidderId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bạn không thể từ chối chính mình'
+      });
+    }
+
+    // Find product and check ownership
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Sản phẩm không tồn tại'
+      });
+    }
+
+    // Check ownership: seller hoặc admin
+    const isAdmin = userRoles.includes('admin') || userRoles.includes('superadmin');
+    const isSeller = userId && product.sellerId.toString() === userId.toString();
+    
+    if (!isAdmin && !isSeller) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền từ chối bidder cho sản phẩm này'
+      });
+    }
+
+    // Call BidService to handle rejection logic
+    const { BidService: BidServiceClass } = await import('../services/BidService.js');
+    const bidService = new BidServiceClass();
+    
+    const result = await bidService.rejectBidder(productId, bidderId, userId, reason);
+
+    res.json({
+      success: true,
+      message: 'Từ chối bidder thành công',
+      data: result
+    });
+  } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in rejectBidder:', error);
+    
+    if (error.message === 'Auction not found') {
+      return res.status(404).json({
+        success: false,
+        message: 'Phiên đấu giá không tồn tại'
+      });
+    }
+    
+    next(error);
+  }
+};
+
+/**
+ * ============================================
+ * API 3.3: Bidder tự rút lại bid
+ * POST /api/products/:productId/withdraw-bid
+ * ============================================
+ * Bidder có thể tự rút lại tất cả bids của mình
+ */
+export const withdrawBid = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user?._id;
+
+    console.log(`[PRODUCT CONTROLLER] POST /api/products/${productId}/withdraw-bid`);
+    console.log(`[PRODUCT CONTROLLER] User ${userId} withdrawing bid`);
+
+    // Validate input
+    if (!isValidObjectId(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID sản phẩm không hợp lệ'
+      });
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Vui lòng đăng nhập'
+      });
+    }
+
+    // Call BidService to handle withdrawal logic
+    const { BidService: BidServiceClass } = await import('../services/BidService.js');
+    const bidService = new BidServiceClass();
+    
+    const result = await bidService.withdrawBid(
+      productId, 
+      userId.toString(), 
+      reason || 'Bidder tự rút lại giá'
+    );
+
+    res.json({
+      success: true,
+      message: 'Rút giá thành công',
+      data: result
+    });
+  } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in withdrawBid:', error);
+    
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    if (error.message.includes('no active bids') || error.message.includes('only withdraw')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    next(error);
+  }
+};
+

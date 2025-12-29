@@ -274,7 +274,7 @@ export class ProductService {
       console.log('[PRODUCT SERVICE] Category found:', category.name, 'Level:', category.level);
 
       const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
-      
+
       // FIX: If parent category (level 1), get all child categories
       let categoryIds = [categoryObjectId];
       if (category.level === 1) {
@@ -284,7 +284,7 @@ export class ProductService {
         categoryIds = childCategories.map(cat => new mongoose.Types.ObjectId(cat._id));
         categoryIds.unshift(categoryObjectId);
       }
-      
+
       const skip = (page - 1) * limit;
 
       let sortStage = { createdAt: -1 };
@@ -484,17 +484,17 @@ export class ProductService {
         },
         { $unwind: '$auction' },
         { $match: { 'auction.status': 'active' } },
-        
+
         // Lọc theo khoảng giá (nếu có)
         ...(filters.minPrice || filters.maxPrice
           ? [
-              {
-                $match: {
-                  ...(filters.minPrice && { 'auction.currentPrice': { $gte: filters.minPrice } }),
-                  ...(filters.maxPrice && { 'auction.currentPrice': { $lte: filters.maxPrice } })
-                }
+            {
+              $match: {
+                ...(filters.minPrice && { 'auction.currentPrice': { $gte: filters.minPrice } }),
+                ...(filters.maxPrice && { 'auction.currentPrice': { $lte: filters.maxPrice } })
               }
-            ]
+            }
+          ]
           : []),
 
         { $sort: sortQuery },
@@ -536,19 +536,19 @@ export class ProductService {
         },
         { $unwind: '$auction' },
         { $match: { 'auction.status': 'active' } },
-        
+
         // Lọc theo khoảng giá (phải khớp với pipeline lấy dữ liệu)
         ...(filters.minPrice || filters.maxPrice
           ? [
-              {
-                $match: {
-                  ...(filters.minPrice && { 'auction.currentPrice': { $gte: filters.minPrice } }),
-                  ...(filters.maxPrice && { 'auction.currentPrice': { $lte: filters.maxPrice } })
-                }
+            {
+              $match: {
+                ...(filters.minPrice && { 'auction.currentPrice': { $gte: filters.minPrice } }),
+                ...(filters.maxPrice && { 'auction.currentPrice': { $lte: filters.maxPrice } })
               }
-            ]
+            }
+          ]
           : []),
-        
+
         { $count: 'total' }
       ];
 
@@ -613,23 +613,22 @@ export class ProductService {
       const timeRemaining = new Date(auction.endAt) - new Date();
       const isAuctionActive = timeRemaining > 0 && auction.status === 'active';
 
-      // Lấy top 5 bidders gần đây (masked information)
+      // Lấy tất cả bidders
       const topBidders = await Bid.find({ auctionId: auction._id })
         .sort({ amount: -1, createdAt: -1 })
-        .limit(5)
         .populate('bidderId', 'username ratingSummary')
         .select('amount createdAt bidderId')
         .lean();
 
       const formattedBidders = topBidders.map(bid => ({
         amount: bid.amount,
-        bidderUsername: bid.bidderId?.username || 'Unknown', // Hiển thị username
+        bidderUsername: bid.bidderId?.username || 'Unknown',
         bidderRating: bid.bidderId?.ratingSummary?.score || 0,
         createdAt: bid.createdAt
       }));
 
       const categoryIdRef = productObj.categoryId?._id || productObj.categoryId;
-      
+
       const relatedProducts = await Product.aggregate([
         {
           $match: {
