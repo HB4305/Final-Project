@@ -459,24 +459,12 @@ export default function DashboardPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Link
-                              to={`/product/${auction.productId?._id}`}
-                              className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
-                            >
-                              Xem Chi Tiết
-                            </Link>
-
-                            {/* Rate Seller Button */}
-                            {!auction.isRated && (
-                              <button
-                                onClick={() => handleRateSeller(auction)}
-                                className="px-4 py-2 border border-primary text-primary rounded-lg text-sm hover:bg-primary/5"
-                              >
-                                Đánh giá
-                              </button>
-                            )}
-                          </div>
+                          <Link
+                            to={`/product/${auction.productId?._id || auction.productId}`}
+                            className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
+                          >
+                            Xem Chi Tiết
+                          </Link>
                         </div>
                       ))
                     )}
@@ -573,7 +561,7 @@ export default function DashboardPage() {
                                 </span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
-                                Người mua: {auction.winnerId?.username}
+                                Người mua: {auction.currentHighestBidderId?.username}
                               </p>
                             </div>
                           </div>
@@ -589,7 +577,7 @@ export default function DashboardPage() {
                               </button>
                             )}
                             <Link
-                              to={`/product/${auction.productId?._id}`}
+                              to={`/product/${auction.productId?._id || auction.productId}`}
                               className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
                             >
                               Chi Tiết

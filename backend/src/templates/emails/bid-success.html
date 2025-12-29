@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đặt Giá Thành Công</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      .content {
+        padding: 30px;
+        color: #333;
+      }
+      .bid-info {
+        background-color: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .bid-info h2 {
+        margin: 0 0 15px 0;
+        color: #667eea;
+        font-size: 20px;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .info-row:last-child {
+        border-bottom: none;
+      }
+      .label {
+        font-weight: 600;
+        color: #555;
+      }
+      .value {
+        color: #333;
+        font-weight: 500;
+      }
+      .price {
+        color: #28a745;
+        font-size: 24px;
+        font-weight: bold;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 20px 0;
+        font-weight: 600;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Đặt Giá Thành Công!</h1>
+      </div>
+      <div class="content">
+        <p>Xin chào <strong>{{bidderName}}</strong>,</p>
+        <p>Bạn đã đặt giá thành công cho sản phẩm <strong>{{productTitle}}</strong>.</p>
+
+        <div class="bid-info">
+          <h2>Thông Tin Đặt Giá</h2>
+          <div class="info-row">
+            <span class="label">Sản phẩm:</span>
+            <span class="value">{{productTitle}}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Giá đặt của bạn:</span>
+            <span class="value price">{{bidAmount}} VNĐ</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Giá hiện tại:</span>
+            <span class="value">{{currentPrice}} VNĐ</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Thời gian:</span>
+            <span class="value">{{timestamp}}</span>
+          </div>
+        </div>
+
+        {{#if isHighestBidder}}
+        <p style="color: #28a745; font-weight: 600;">
+          Bạn đang là người đặt giá cao nhất!
+        </p>
+        {{else}}
+        <p style="color: #ffc107; font-weight: 600;">
+          Có người đặt giá cao hơn bạn. Hãy đặt giá cao hơn để giành chiến thắng!
+        </p>
+        {{/if}}
+
+        <div style="text-align: center;">
+          <a href="{{productUrl}}" class="button">Xem Sản Phẩm</a>
+        </div>
+
+        <p style="margin-top: 30px; font-size: 14px; color: #666;">
+          Đấu giá sẽ kết thúc vào: <strong>{{auctionEndTime}}</strong>
+        </p>
+      </div>
+      <div class="footer">
+        <p>Đây là email tự động, vui lòng không trả lời.</p>
+        <p>&copy; 2025 Auction Platform. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>

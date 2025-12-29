@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giá Sản Phẩm Được Cập Nhật</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      .content {
+        padding: 30px;
+        color: #333;
+      }
+      .alert-box {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .info-box {
+        background-color: #f8f9fa;
+        border-left: 4px solid #1e3a8a;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .info-row:last-child {
+        border-bottom: none;
+      }
+      .label {
+        font-weight: 600;
+        color: #555;
+      }
+      .value {
+        color: #333;
+        font-weight: 500;
+      }
+      .price {
+        color: #dc3545;
+        font-size: 24px;
+        font-weight: bold;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 20px 0;
+        font-weight: 600;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Giá Sản Phẩm Được Cập Nhật</h1>
+      </div>
+      <div class="content">
+        <p>Xin chào <strong>{{sellerName}}</strong>,</p>
+        
+        <div class="alert-box">
+          <p style="margin: 0; font-weight: 600;">
+            Có người mua vừa đặt giá mới cho sản phẩm của bạn!
+          </p>
+        </div>
+
+        <div class="info-box">
+          <h2 style="margin: 0 0 15px 0; color: #1e3a8a;">Thông Tin Cập Nhật</h2>
+          <div class="info-row">
+            <span class="label">Sản phẩm:</span>
+            <span class="value">{{productTitle}}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Giá cũ:</span>
+            <span class="value">{{previousPrice}} VNĐ</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Giá mới:</span>
+            <span class="value price">{{newPrice}} VNĐ</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Người đặt giá:</span>
+            <span class="value">{{bidderName}}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Tổng số lượt đặt giá:</span>
+            <span class="value">{{totalBids}}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Thời gian:</span>
+            <span class="value">{{timestamp}}</span>
+          </div>
+        </div>
+
+        <div style="text-align: center;">
+          <a href="{{auctionUrl}}" class="button">Xem Chi Tiết Đấu Giá</a>
+        </div>
+
+        <p style="margin-top: 30px; font-size: 14px; color: #666;">
+          Đấu giá sẽ kết thúc vào: <strong>{{auctionEndTime}}</strong>
+        </p>
+      </div>
+      <div class="footer">
+        <p>Đây là email tự động, vui lòng không trả lời.</p>
+        <p>&copy; 2025 Auction Platform. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>

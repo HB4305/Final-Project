@@ -16,7 +16,7 @@ const destEmail = "npvkhai23@clc.fitus.edu.vn";
 const testRealEmail = async () => {
   console.log("Testing REAL email sending via Gmail...\n");
 
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.error("ERROR: Email credentials not configured!");
     console.log("\nPlease follow the guide in SETUP_GMAIL_GUIDE.md");
     console.log("1. Create Gmail App Password");
@@ -25,8 +25,8 @@ const testRealEmail = async () => {
   }
 
   console.log("Email Configuration:");
-  console.log(`SMTP Host: ${process.env.SMTP_HOST}`);
-  console.log(`SMTP User: ${process.env.SMTP_USER}`);
+  console.log(`SMTP Host: ${process.env.EMAIL_HOST}`);
+  console.log(`SMTP User: ${process.env.EMAIL_USER}`);
   console.log(`Sending to: ${destEmail}\n`);
 
   try {
@@ -72,7 +72,7 @@ const testRealEmail = async () => {
     console.log("Tips:");
     console.log("   • Check Spam folder if you don't see emails");
     console.log("   • Emails should arrive within 1-2 minutes");
-    console.log("   • Look for emails from: " + process.env.SMTP_USER);
+    console.log("   • Look for emails from: " + process.env.EMAIL_USER);
     console.log("================================================\n");
 
   } catch (error) {
@@ -80,7 +80,7 @@ const testRealEmail = async () => {
     
     if (error.message.includes("Invalid login")) {
       console.log("\nPossible solutions:");
-      console.log("   1. Check SMTP_USER and SMTP_PASS in .env");
+      console.log("   1. Check EMAIL_USER and EMAIL_PASS in .env");
       console.log("   2. Make sure 2-Step Verification is enabled");
       console.log("   3. Create a new App Password");
       console.log("   4. Remove spaces from App Password\n");

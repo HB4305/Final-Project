@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Người Bán Đã Trả Lời Câu Hỏi</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      .content {
+        padding: 30px;
+        color: #333;
+      }
+      .notification-box {
+        background-color: #d1fae5;
+        border-left: 4px solid #10b981;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .qa-box {
+        background-color: #f8f9fa;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .question-section {
+        background-color: #fff;
+        border-left: 3px solid #6b7280;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+      }
+      .question-section h3 {
+        margin: 0 0 10px 0;
+        color: #6b7280;
+        font-size: 14px;
+        text-transform: uppercase;
+      }
+      .question-text {
+        color: #333;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .answer-section {
+        background-color: #ecfdf5;
+        border-left: 3px solid #10b981;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+      }
+      .answer-section h3 {
+        margin: 0 0 10px 0;
+        color: #059669;
+        font-size: 14px;
+        text-transform: uppercase;
+      }
+      .answer-text {
+        color: #333;
+        font-size: 16px;
+        line-height: 1.6;
+        font-weight: 500;
+      }
+      .product-info {
+        background-color: #fef3c7;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+      }
+      .label {
+        font-weight: 600;
+        color: #555;
+      }
+      .value {
+        color: #333;
+        font-weight: 500;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 20px 0;
+        font-weight: 600;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>💬 Câu Hỏi Đã Được Trả Lời</h1>
+      </div>
+      <div class="content">
+        <p>Xin chào <strong>{{participantName}}</strong>,</p>
+        
+        <div class="notification-box">
+          <p style="margin: 0; font-weight: 600; color: #059669;">
+            Người bán đã trả lời một câu hỏi về sản phẩm <strong>{{productTitle}}</strong> mà bạn quan tâm.
+          </p>
+        </div>
+
+        <div class="qa-box">
+          <h2 style="margin: 0 0 15px 0; color: #6b7280;">Hỏi & Đáp</h2>
+          
+          <div class="question-section">
+            <h3>❓ Câu Hỏi</h3>
+            <p class="question-text">{{questionText}}</p>
+            <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
+              Người hỏi: <strong>{{questionAuthor}}</strong>
+            </p>
+          </div>
+
+          <div class="answer-section">
+            <h3>✅ Câu Trả Lời</h3>
+            <p class="answer-text">{{answerText}}</p>
+            <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
+              Người bán: <strong>{{sellerName}}</strong> • {{timestamp}}
+            </p>
+          </div>
+        </div>
+
+        <div class="product-info">
+          <div class="info-row">
+            <span class="label">Sản phẩm:</span>
+            <span class="value">{{productTitle}}</span>
+          </div>
+          {{#if currentPrice}}
+          <div class="info-row">
+            <span class="label">Giá hiện tại:</span>
+            <span class="value" style="color: #059669; font-weight: 700;">{{currentPrice}} VNĐ</span>
+          </div>
+          {{/if}}
+          {{#if auctionEndTime}}
+          <div class="info-row">
+            <span class="label">Kết thúc vào:</span>
+            <span class="value">{{auctionEndTime}}</span>
+          </div>
+          {{/if}}
+        </div>
+
+        <p>Bạn có thêm câu hỏi? Hãy đặt câu hỏi mới hoặc tham gia đấu giá ngay!</p>
+
+        <div style="text-align: center;">
+          <a href="{{productUrl}}" class="button">Xem Sản Phẩm</a>
+        </div>
+      </div>
+      <div class="footer">
+        <p>Bạn nhận được email này vì bạn đã tham gia đấu giá hoặc đặt câu hỏi về sản phẩm này.</p>
+        <p>&copy; 2025 Auction Platform. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>
