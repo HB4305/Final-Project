@@ -1,8 +1,13 @@
 // SERVICE: Auction Service
 
-import { Auction, Product, Bid, Order } from '../models/index.js';
+import { Auction, Product, Bid, Order, User } from '../models/index.js';
 import { AppError } from '../utils/errors.js';
 import { AUCTION_STATUS, ORDER_STATUS } from '../lib/constants.js';
+import {
+  sendAuctionEndedNoWinnerNotification,
+  sendAuctionEndedSellerNotification,
+  sendAuctionWinnerNotification
+} from '../utils/email.js';
 
 export class AuctionService {
   /**
@@ -91,6 +96,67 @@ export class AuctionService {
       });
       await order.save();
     }
+
+    // Send Auction End Emails (Fire and forget)
+    (async () => {
+        try {
+            const seller = await User.findById(auction.sellerId);
+            const product = await Product.findById(auction.productId);
+            const productUrl = `${process.env.FRONTEND_BASE_URL}/products/${auction.productId}`;
+             
+            if (!auction.currentHighestBidderId) {
+                // No winner
+                if (seller) {
+                    await sendAuctionEndedNoWinnerNotification({
+                        sellerEmail: seller.email,
+                        sellerName: seller.fullName,
+                        productTitle: product ? product.title : 'Product',
+                        startPrice: auction.startPrice,
+                        startTime: auction.startAt,
+                        endTime: auction.endAt,
+                        productUrl: productUrl
+                    });
+                }
+            } else {
+                // Has winner
+                const winner = await User.findById(auction.currentHighestBidderId);
+                const orderUrl = order ? `${process.env.FRONTEND_BASE_URL}/payment?orderId=${order._id}` : `${process.env.FRONTEND_BASE_URL}/profile/orders`;
+
+                if (seller && winner) {
+                    // Email to Seller
+                    await sendAuctionEndedSellerNotification({
+                        sellerEmail: seller.email,
+                        sellerName: seller.fullName,
+                        productTitle: product ? product.title : 'Product',
+                        winnerName: winner.fullName,
+                        winnerEmail: winner.email,
+                        winnerPhone: winner.phoneNumber || 'N/A',
+                        finalPrice: auction.currentPrice,
+                        startPrice: auction.startPrice,
+                        totalBids: auction.bidCount,
+                        endTime: auction.endAt,
+                        orderUrl: orderUrl 
+                    });
+
+                    // Email to Winner
+                    await sendAuctionWinnerNotification({
+                        winnerEmail: winner.email,
+                        winnerName: winner.fullName,
+                        productTitle: product ? product.title : 'Product',
+                        finalPrice: auction.currentPrice,
+                        sellerName: seller.fullName,
+                        sellerEmail: seller.email,
+                        sellerPhone: seller.phoneNumber || 'N/A',
+                        totalBids: auction.bidCount,
+                        endTime: auction.endAt,
+                        orderUrl: orderUrl
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Error sending auction end notifications:", err);
+        }
+    })();
 
     return { auction, order };
   }
