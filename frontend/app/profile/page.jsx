@@ -10,15 +10,13 @@ import {
   X,
   Loader2,
   Lock,
-  Heart,
-  Gavel,
   Trophy,
 } from "lucide-react";
 import Navigation from "../../components/navigation";
 import UpgradeRequest from "../../components/upgrade-request";
 import userService from "../services/userService";
-import watchlistService from "../services/watchlistService";
-import auctionService from "../services/auctionService";
+
+
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -45,15 +43,13 @@ export default function ProfilePage() {
   const [passwordUpdating, setPasswordUpdating] = useState(false);
 
   // Tabs state
-  const [activeTab, setActiveTab] = useState("ratings"); // ratings, watchlist, bidding, won
+
 
   // Lists data
-  const [watchlist, setWatchlist] = useState([]);
-  const [biddingList, setBiddingList] = useState([]);
-  const [wonList, setWonList] = useState([]);
+
 
   const [profile, setProfile] = useState(null);
-  const [ratings, setRatings] = useState([]);
+
   const [editForm, setEditForm] = useState({
     fullName: "",
     dateOfBirth: "",
@@ -75,9 +71,8 @@ export default function ProfilePage() {
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      const [profileRes, ratingsRes] = await Promise.all([
+      const [profileRes] = await Promise.all([
         userService.getUserProfile(),
-        userService.getUserRatings(null, { page: 1, limit: 5 }),
       ]);
 
       if (profileRes.data?.status === "success") {
@@ -99,9 +94,7 @@ export default function ProfilePage() {
         });
       }
 
-      if (ratingsRes.data?.status === "success") {
-        setRatings(ratingsRes.data.data.ratings);
-      }
+
     } catch (err) {
       console.error("Error fetching profile:", err);
       setError("Failed to load profile data");
@@ -111,44 +104,11 @@ export default function ProfilePage() {
   };
 
   // Fetch data based on active tab
-  useEffect(() => {
-    if (activeTab === "watchlist") fetchWatchlist();
-    if (activeTab === "bidding") fetchBiddingList();
-    if (activeTab === "won") fetchWonList();
-  }, [activeTab]);
 
-  const fetchWatchlist = async () => {
-    try {
-      const res = await watchlistService.getWatchlist();
-      if (res.status === "success") {
-        setWatchlist(res.data.watchlist);
-      }
-    } catch (err) {
-      console.error("Error fetching watchlist:", err);
-    }
-  };
 
-  const fetchBiddingList = async () => {
-    try {
-      const res = await auctionService.getParticipatingAuctions();
-      if (res.status === "success") {
-        setBiddingList(res.data.auctions);
-      }
-    } catch (err) {
-      console.error("Error fetching bidding list:", err);
-    }
-  };
 
-  const fetchWonList = async () => {
-    try {
-      const res = await auctionService.getWonAuctions();
-      if (res.status === "success") {
-        setWonList(res.data.auctions);
-      }
-    } catch (err) {
-      console.error("Error fetching won list:", err);
-    }
-  };
+
+
 
   const handleChangePassword = async () => {
     try {
@@ -740,11 +700,10 @@ export default function ProfilePage() {
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-5 h-5 ${
-                        i < Math.floor((profile?.ratingSummary?.score || 0) * 5)
-                          ? "fill-yellow-500 text-yellow-500"
-                          : "text-gray-300"
-                      }`}
+                      className={`w-5 h-5 ${i < Math.floor((profile?.ratingSummary?.score || 0) * 5)
+                        ? "fill-yellow-500 text-yellow-500"
+                        : "text-gray-300"
+                        }`}
                     />
                   ))}
                 </div>
@@ -788,194 +747,12 @@ export default function ProfilePage() {
           </div>
 
           {/* Tabs */}
-          <div className="border-b border-border mb-6 overflow-x-auto">
-            <div className="flex gap-4 min-w-max">
-              <button
-                onClick={() => setActiveTab("ratings")}
-                className={`px-4 py-2 border-b-2 font-medium transition ${
-                  activeTab === "ratings"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4" /> Ratings
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("watchlist")}
-                className={`px-4 py-2 border-b-2 font-medium transition ${
-                  activeTab === "watchlist"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Heart className="w-4 h-4" /> Watchlist
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("bidding")}
-                className={`px-4 py-2 border-b-2 font-medium transition ${
-                  activeTab === "bidding"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Gavel className="w-4 h-4" /> Bidding
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("won")}
-                className={`px-4 py-2 border-b-2 font-medium transition ${
-                  activeTab === "won"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4" /> Won Auctions
-                </div>
-              </button>
-            </div>
-          </div>
+
 
           <UpgradeRequest currentUser={profile} />
 
           {/* Tab Content */}
-          <div className="space-y-4">
-            {activeTab === "ratings" && (
-              <>
-                {ratings.length > 0 ? (
-                  ratings.map((rating) => (
-                    <div
-                      key={rating._id}
-                      className="bg-background border border-border rounded-lg p-6"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <p className="font-semibold">
-                            {rating.raterId?.fullName ||
-                              rating.raterId?.username}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {rating.context.replace(/_/g, " ")} -{" "}
-                            {new Date(rating.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-1">
-                          {rating.score === 1 ? (
-                            <Star className="w-5 h-5 fill-green-500 text-green-500" />
-                          ) : (
-                            <Star className="w-5 h-5 fill-red-500 text-red-500" />
-                          )}
-                        </div>
-                      </div>
-                      {rating.comment && (
-                        <p className="text-sm text-muted-foreground">
-                          {rating.comment}
-                        </p>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="bg-background border border-border rounded-lg p-6 text-center text-muted-foreground">
-                    No ratings yet
-                  </div>
-                )}
-              </>
-            )}
 
-            {activeTab === "watchlist" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {watchlist.length > 0 ? (
-                  watchlist.map((item) => (
-                    <div
-                      key={item._id}
-                      className="bg-background border border-border rounded-lg p-4"
-                    >
-                      <img
-                        src={item.product?.images?.[0] || "/placeholder.svg"}
-                        alt={item.product?.name}
-                        className="w-full h-48 object-cover rounded-md mb-4"
-                      />
-                      <h3 className="font-semibold mb-2">
-                        {item.product?.name}
-                      </h3>
-                      <p className="text-primary font-bold">
-                        ${item.product?.currentPrice?.toLocaleString()}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-full bg-background border border-border rounded-lg p-6 text-center text-muted-foreground">
-                    Your watchlist is empty
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === "bidding" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {biddingList.length > 0 ? (
-                  biddingList.map((auction) => (
-                    <div
-                      key={auction._id}
-                      className="bg-background border border-border rounded-lg p-4"
-                    >
-                      <img
-                        src={auction.images?.[0] || "/placeholder.svg"}
-                        alt={auction.name}
-                        className="w-full h-48 object-cover rounded-md mb-4"
-                      />
-                      <h3 className="font-semibold mb-2">{auction.name}</h3>
-                      <p className="text-primary font-bold">
-                        ${auction.currentPrice?.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Ends: {new Date(auction.endTime).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-full bg-background border border-border rounded-lg p-6 text-center text-muted-foreground">
-                    You are not participating in any auctions
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === "won" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {wonList.length > 0 ? (
-                  wonList.map((auction) => (
-                    <div
-                      key={auction._id}
-                      className="bg-background border border-border rounded-lg p-4"
-                    >
-                      <img
-                        src={auction.images?.[0] || "/placeholder.svg"}
-                        alt={auction.name}
-                        className="w-full h-48 object-cover rounded-md mb-4"
-                      />
-                      <h3 className="font-semibold mb-2">{auction.name}</h3>
-                      <p className="text-green-600 font-bold">
-                        Won at: ${auction.currentPrice?.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Ended: {new Date(auction.endTime).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-full bg-background border border-border rounded-lg p-6 text-center text-muted-foreground">
-                    You haven't won any auctions yet
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

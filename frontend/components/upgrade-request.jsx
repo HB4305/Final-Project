@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react';
-import userService from "../app/services/userService.js" 
+import userService from "../app/services/userService.js"
 
 /**
  * UpgradeRequest Component
  * Bidders can request upgrade to seller status (section 2.6)
  * Admin reviews and approves within 7 days
  */
-export default function UpgradeRequest({ 
+export default function UpgradeRequest({
   currentUser: initialUser,
-  existingRequest = null 
+  existingRequest = null
 }) {
   const [reason, setReason] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(!!existingRequest);
@@ -25,7 +25,7 @@ export default function UpgradeRequest({
         const response = await userService.getMe();
         console.log("[UPGRADE UI]: ", response);
         console.log("[User Data]: ", response.data);
-        
+
         // Lấy data từ response.data.user theo cấu trúc API trả về
         setCurrentUser(response.data.user);
         setIsLoading(false);
@@ -52,7 +52,7 @@ export default function UpgradeRequest({
   // Check if user is already a seller
   const isSeller = currentUser.roles?.includes('seller');
   const isEligible = currentUser.ratingSummary?.totalCount >= 80;
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const response = await userService.submitUpgradeRequest({
@@ -87,10 +87,9 @@ export default function UpgradeRequest({
               <p className="text-sm text-green-600">Click to view seller benefits and dashboard</p>
             </div>
           </div>
-          <ChevronDown 
-            className={`w-6 h-6 text-muted-foreground transition-transform duration-200 ${
-              isExpanded ? 'rotate-180' : ''
-            }`}
+          <ChevronDown
+            className={`w-6 h-6 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+              }`}
           />
         </button>
 
@@ -165,35 +164,31 @@ export default function UpgradeRequest({
           className="w-full flex items-center justify-between p-6 hover:bg-muted/50 transition rounded-lg"
         >
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-              requestStatus === 'pending' ? 'bg-yellow-100' :
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${requestStatus === 'pending' ? 'bg-yellow-100' :
               requestStatus === 'approved' ? 'bg-green-100' : 'bg-red-100'
-            }`}>
+              }`}>
               {requestStatus === 'pending' && <AlertCircle className="w-6 h-6 text-yellow-600" />}
               {requestStatus === 'approved' && <CheckCircle className="w-6 h-6 text-green-600" />}
               {requestStatus === 'rejected' && <AlertCircle className="w-6 h-6 text-red-600" />}
             </div>
             <div className="text-left">
-              <h3 className={`text-xl font-bold ${
-                requestStatus === 'pending' ? 'text-yellow-800' :
+              <h3 className={`text-xl font-bold ${requestStatus === 'pending' ? 'text-yellow-800' :
                 requestStatus === 'approved' ? 'text-green-800' : 'text-red-800'
-              }`}>
+                }`}>
                 {requestStatus === 'pending' && 'Upgrade Request Pending'}
                 {requestStatus === 'approved' && 'Upgrade Request Approved'}
                 {requestStatus === 'rejected' && 'Upgrade Request Rejected'}
               </h3>
-              <p className={`text-sm ${
-                requestStatus === 'pending' ? 'text-yellow-600' :
+              <p className={`text-sm ${requestStatus === 'pending' ? 'text-yellow-600' :
                 requestStatus === 'approved' ? 'text-green-600' : 'text-red-600'
-              }`}>
+                }`}>
                 Click to view details
               </p>
             </div>
           </div>
-          <ChevronDown 
-            className={`w-6 h-6 text-muted-foreground transition-transform duration-200 ${
-              isExpanded ? 'rotate-180' : ''
-            }`}
+          <ChevronDown
+            className={`w-6 h-6 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+              }`}
           />
         </button>
 
@@ -207,7 +202,7 @@ export default function UpgradeRequest({
                   Your seller upgrade request has been submitted successfully.
                   Our admin team will review it within 7 days.
                 </p>
-                
+
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
                   <h3 className="font-semibold mb-2">What happens next?</h3>
                   <ul className="text-sm text-muted-foreground space-y-2">
@@ -261,9 +256,8 @@ export default function UpgradeRequest({
         className="w-full flex items-center justify-between p-6 hover:bg-muted/50 transition rounded-lg"
       >
         <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-            isEligible ? 'bg-primary/10' : 'bg-red-100'
-          }`}>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isEligible ? 'bg-primary/10' : 'bg-red-100'
+            }`}>
             {isEligible ? (
               <ShieldCheck className="w-6 h-6 text-primary" />
             ) : (
@@ -279,10 +273,9 @@ export default function UpgradeRequest({
             </p>
           </div>
         </div>
-        <ChevronDown 
-          className={`w-6 h-6 text-muted-foreground transition-transform duration-200 ${
-            isExpanded ? 'rotate-180' : ''
-          }`}
+        <ChevronDown
+          className={`w-6 h-6 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+            }`}
         />
       </button>
 
@@ -297,8 +290,8 @@ export default function UpgradeRequest({
                 <div>
                   <p className="font-semibold text-red-900 mb-1">Not Eligible</p>
                   <p className="text-sm text-red-800">
-                    You need at least 80% positive ratings to become a seller. 
-                    Current rating: {((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(1)}%
+                    You need at least 80% positive ratings to become a seller.
+                    Current rating: {currentUser.ratingSummary?.totalCount > 0 ? ((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(1) : "0.0"}%
                   </p>
                 </div>
               </div>
@@ -308,7 +301,7 @@ export default function UpgradeRequest({
               {/* User Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-2xl font-bold text-primary">{currentUser.rating || 'N/A'}</p>
+                  <p className="text-2xl font-bold text-primary">{((currentUser.ratingSummary?.score || 0) * 5).toFixed(1)}</p>
                   <p className="text-xs text-muted-foreground">Rating</p>
                 </div>
                 <div className="p-4 bg-muted rounded-lg text-center">
@@ -317,7 +310,7 @@ export default function UpgradeRequest({
                 </div>
                 <div className="p-4 bg-muted rounded-lg text-center">
                   <p className="text-2xl font-bold text-primary">
-                    {currentUser.totalRatings 
+                    {currentUser.totalRatings
                       ? `${((currentUser.positiveRatings / currentUser.totalRatings) * 100).toFixed(0)}%`
                       : '✓'}
                   </p>
@@ -370,7 +363,7 @@ export default function UpgradeRequest({
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h4 className="font-semibold text-blue-900 mb-2">Review Process</h4>
                   <p className="text-sm text-blue-800">
-                    Admin will review your profile within 7 days. You'll be notified via email 
+                    Admin will review your profile within 7 days. You'll be notified via email
                     about the decision. Make sure your email is verified.
                   </p>
                 </div>
