@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import Navigation from '../../components/navigation';
 import productService from '../services/productService.js';
 import categoryService from '../services/categoryService.js';
-import watchlistService from '../services/watchlistService.js';
 
 import {
   ProductGrid,
@@ -15,8 +14,10 @@ import {
   transformProductData,
   buildCategoryMap,
   filterProducts,
-  sortProducts
+  sortProducts,
 } from './_components';
+import CategoryBreadcrumb from './_components/CategoryBreadcrumb';
+import { useLocation } from 'react-router-dom';
 
 // ============================================
 // CUSTOM HOOKS
@@ -30,11 +31,11 @@ const useCategories = () => {
     const fetchCategories = async () => {
       try {
         const response = await categoryService.getAllCategories();
-
+        
         if (response.success) {
           const allCats = response.data;
           const parentCats = allCats.filter(cat => cat.level === 1);
-
+          
           setCategories(['All', ...parentCats.map(cat => cat.name)]);
           setCategoryMap(buildCategoryMap(allCats));
         }
@@ -42,7 +43,7 @@ const useCategories = () => {
         setError('Failed to load categories');
       }
     };
-
+    
     fetchCategories();
   }, []);
 
@@ -59,7 +60,7 @@ const useProducts = () => {
       setLoading(true);
       setError(null);
       const response = await productService.getAllProducts();
-
+      
       if (response.success) {
         const transformedProducts = response.data.map(transformProductData);
         setProducts(transformedProducts);
@@ -80,50 +81,20 @@ const useProducts = () => {
   return { products, loading, error, refetch: fetchProducts };
 };
 
-const useWatchlist = (products) => {
+const useWatchlist = () => {
   const [watchlist, setWatchlist] = useState(new Set());
 
-  // Load watchlist from API when products are loaded
-  useEffect(() => {
-    const loadWatchlist = async () => {
-      if (products.length === 0) return;
-
-      try {
-        const response = await watchlistService.getWatchlist({ page: 1, limit: 100 });
-        const watchedIds = new Set(
-          response.data.watchlist
-            .map(item => item.productId?._id || item.productId)
-            .filter(Boolean)
-        );
-        setWatchlist(watchedIds);
-      } catch (error) {
-        console.error('Error loading watchlist:', error);
-      }
-    };
-
-    loadWatchlist();
-  }, [products]);
-
-  const toggleWatchlist = useCallback(async (productId) => {
-    const isWatched = watchlist.has(productId);
-
-    try {
-      if (isWatched) {
-        await watchlistService.removeFromWatchlist(productId);
-        setWatchlist(prev => {
-          const newWatchlist = new Set(prev);
-          newWatchlist.delete(productId);
-          return newWatchlist;
-        });
+  const toggleWatchlist = useCallback((productId) => {
+    setWatchlist(prev => {
+      const newWatchlist = new Set(prev);
+      if (newWatchlist.has(productId)) {
+        newWatchlist.delete(productId);
       } else {
-        await watchlistService.addToWatchlist(productId);
-        setWatchlist(prev => new Set(prev).add(productId));
+        newWatchlist.add(productId);
       }
-    } catch (error) {
-      console.error('Watchlist error:', error);
-      alert(error.response?.data?.message || 'Không thể cập nhật danh sách theo dõi');
-    }
-  }, [watchlist]);
+      return newWatchlist;
+    });
+  }, []);
 
   return { watchlist, toggleWatchlist };
 };
@@ -203,7 +174,7 @@ export default function ProductsPage() {
   // Custom hooks
   const { categories, categoryMap, error: categoryError } = useCategories();
   const { products, loading, error: productError, refetch } = useProducts();
-  const { watchlist, toggleWatchlist } = useWatchlist(products);
+  const { watchlist, toggleWatchlist } = useWatchlist();
   const {
     searchQuery,
     setSearchQuery,
@@ -225,16 +196,58 @@ export default function ProductsPage() {
   // Combine errors
   const error = categoryError || productError;
 
-  // Filter and sort products
+  const location = useLocation();
+
+  // subcategory local state (kept here để không phải thay đổi hook hiện tại)
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+
+   // Sync URL query -> filters - CẬP NHẬT LOGIC
+  useEffect(() => {
+    if (!location || !location.search) {
+      // Reset về mặc định khi không có query
+      setSelectedCategory('All');
+      setSelectedSubcategory(null);
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const subcategoryParam = params.get('subcategory');
+    const categoryParam = params.get('category') || params.get('categoryId');
+
+    if (subcategoryParam) {
+      // Nếu có subcategory, set nó trực tiếp
+      const subName = decodeURIComponent(subcategoryParam);
+      setSelectedSubcategory(subName);
+      
+      // Tìm parent category của subcategory này
+      const parentCat = categoryMap[subName];
+      if (parentCat) {
+        setSelectedCategory(parentCat);
+      }
+    } else if (categoryParam) {
+      // Nếu chỉ có category (không có subcategory)
+      const catName = decodeURIComponent(categoryParam);
+      setSelectedCategory(catName);
+      setSelectedSubcategory(null); // Clear subcategory
+    } else {
+      setSelectedCategory('All');
+      setSelectedSubcategory(null);
+    }
+  }, [location.search, categoryMap]);
+
+  // Filter products với tất cả tiêu chí
   const filteredProducts = useMemo(() => {
     const filtered = filterProducts(products, {
       searchQuery,
       selectedCategory,
+      selectedSubcategory,
       priceRange,
       categoryMap
     });
+    
+    // Sort sau khi filter
     return sortProducts(filtered, sortBy);
-  }, [products, searchQuery, selectedCategory, sortBy, priceRange, categoryMap]);
+  }, [products, searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap, sortBy]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -260,7 +273,7 @@ export default function ProductsPage() {
           watchlist={watchlist}
           onToggleWatchlist={toggleWatchlist}
         />
-
+        
         {/* Pagination */}
         <Pagination
           currentPage={currentPage}
@@ -270,17 +283,19 @@ export default function ProductsPage() {
           totalItems={filteredProducts.length}
           onItemsPerPageChange={setItemsPerPage}
         />
+
+        <CategoryBreadcrumb selectedCategory={selectedCategory} selectedSubcategory={selectedSubcategory} />
       </>
     );
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation
-        isLoggedIn={isLoggedIn}
-        setIsLoggedIn={setIsLoggedIn}
-        currentUser={currentUser}
-        setCurrentUser={setCurrentUser}
+      <Navigation 
+        isLoggedIn={isLoggedIn} 
+        setIsLoggedIn={setIsLoggedIn} 
+        currentUser={currentUser} 
+        setCurrentUser={setCurrentUser} 
       />
 
       <SearchHeader

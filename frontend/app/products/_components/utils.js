@@ -2,6 +2,10 @@
 // UTILITY FUNCTIONS & CONSTANTS
 // ============================================
 
+import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+// import Navigation from '../../components/navigation';
+
 export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop";
 
 // Sort options - sync với backend API
@@ -43,6 +47,64 @@ export const transformProductData = (product) => ({
   sellerId: product.sellerId
 });
 
+export default function ProductsPage() {
+  const location = useLocation();
+  
+  // State cho filters
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null); // THÊM STATE MỚI
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priceRange, setPriceRange] = useState([0, 100000000]);
+  
+  // ... other states ...
+
+  // Sync URL query -> filters - CẬP NHẬT LOGIC
+  useEffect(() => {
+    if (!location || !location.search) {
+      // Reset về mặc định khi không có query
+      setSelectedCategory('All');
+      setSelectedSubcategory(null);
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const subcategoryParam = params.get('subcategory');
+    const categoryParam = params.get('category') || params.get('categoryId');
+
+    if (subcategoryParam) {
+      // Nếu có subcategory, set nó trực tiếp
+      const subName = decodeURIComponent(subcategoryParam);
+      setSelectedSubcategory(subName);
+      
+      // Tìm parent category của subcategory này
+      const parentCat = categoryMap[subName];
+      if (parentCat) {
+        setSelectedCategory(parentCat);
+      }
+    } else if (categoryParam) {
+      // Nếu chỉ có category (không có subcategory)
+      const catName = decodeURIComponent(categoryParam);
+      setSelectedCategory(catName);
+      setSelectedSubcategory(null); // Clear subcategory
+    } else {
+      setSelectedCategory('All');
+      setSelectedSubcategory(null);
+    }
+  }, [location.search, categoryMap]);
+
+  // Sử dụng filter với subcategory
+  const filteredProducts = useMemo(() => {
+    return filterProducts(allProducts, {
+      searchQuery,
+      selectedCategory,
+      selectedSubcategory, // THÊM THAM SỐ MỚI
+      priceRange,
+      categoryMap
+    });
+  }, [allProducts, searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap]);
+
+}
+
 export const buildCategoryMap = (categories) => {
   const mapping = {};
   const parentCats = categories.filter(cat => cat.level === 1);
@@ -60,25 +122,42 @@ export const buildCategoryMap = (categories) => {
   return mapping;
 };
 
-export const filterProducts = (products, { searchQuery, selectedCategory, priceRange, categoryMap }) => {
+
+
+export const filterProducts = (products, { searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap }) => {
   let filtered = [...products];
 
+  // 1. Lọc theo search query
   if (searchQuery) {
     filtered = filtered.filter(p =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }
 
-  if (selectedCategory !== 'All') {
+  // 2. Lọc theo category/subcategory
+  if (selectedSubcategory && selectedSubcategory !== 'All') {
+    // Ưu tiên lọc theo subcategory nếu có
+    filtered = filtered.filter(p => p.category === selectedSubcategory);
+  } else if (selectedCategory && selectedCategory !== 'All') {
+    // Nếu không có subcategory, lọc theo parent category
     filtered = filtered.filter(p => {
       const parentCategory = categoryMap[p.category];
-      return parentCategory === selectedCategory;
+      return parentCategory === selectedCategory || p.category === selectedCategory;
     });
   }
 
-  filtered = filtered.filter(p => 
-    p.price >= priceRange[0] && p.price <= priceRange[1]
-  );
+  // 3. Lọc theo price range (kiểm tra priceRange hợp lệ)
+  if (priceRange && Array.isArray(priceRange) && priceRange.length === 2) {
+    const [minPrice, maxPrice] = priceRange;
+    
+    // Chỉ lọc nếu không phải giá trị mặc định (0, Infinity)
+    if (minPrice > 0 || maxPrice < Infinity) {
+      filtered = filtered.filter(p => {
+        const price = p.price || 0;
+        return price >= minPrice && price <= maxPrice;
+      });
+    }
+  }
 
   return filtered;
 };
