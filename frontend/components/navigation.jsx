@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Heart, Search, User, Menu, X, Bell } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../app/context/AuthContext";
 
 export default function Navigation() {
@@ -9,6 +9,12 @@ export default function Navigation() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
 
   // Check if user is admin or superadmin
   const isAdmin =
@@ -192,14 +198,23 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between text-sm">
           <div className="flex gap-6">
             <Link
+              to="/"
+              className={`hover:text-primary transition font-medium ${isActive("/") ? "text-primary font-bold" : "text-foreground"
+                }`}
+            >
+              Home
+            </Link>
+            <Link
               to="/products"
-              className="text-foreground hover:text-primary transition font-medium"
+              className={`hover:text-primary transition font-medium ${isActive("/products") ? "text-primary font-bold" : "text-foreground"
+                }`}
             >
               Auctions
             </Link>
             <Link
               to="/categories"
-              className="text-foreground hover:text-primary transition font-medium"
+              className={`hover:text-primary transition font-medium ${isActive("/categories") ? "text-primary font-bold" : "text-foreground"
+                }`}
             >
               Categories
             </Link>
@@ -243,14 +258,23 @@ export default function Navigation() {
               </button>
             </form>
             <Link
+              to="/"
+              className={`hover:text-primary transition font-medium ${isActive("/") ? "text-primary font-bold" : "text-foreground"
+                }`}
+            >
+              Home
+            </Link>
+            <Link
               to="/products"
-              className="text-foreground hover:text-primary transition font-medium"
+              className={`hover:text-primary transition font-medium ${isActive("/products") ? "text-primary font-bold" : "text-foreground"
+                }`}
             >
               Auctions
             </Link>
             <Link
               to="/categories"
-              className="text-foreground hover:text-primary transition font-medium"
+              className={`hover:text-primary transition font-medium ${isActive("/categories") ? "text-primary font-bold" : "text-foreground"
+                }`}
             >
               Categories
             </Link>
