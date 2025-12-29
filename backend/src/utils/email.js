@@ -145,7 +145,6 @@ export const sendBidSuccessNotification = async (data) => {
 export const sendPriceUpdatedNotification = async (data) => {
   try {
     const html = await loadTemplate("price-updated-seller", {
-      sellerEmail: data.sellerEmail,
       sellerName: data.sellerName,
       productTitle: data.productTitle,
       previousPrice: data.previousPrice,
@@ -153,7 +152,16 @@ export const sendPriceUpdatedNotification = async (data) => {
       bidderName: data.bidderName,
       totalBids: data.totalBids,
       auctionUrl: data.auctionUrl,
-      auctionEndTime: data.auctionEndTime,
+      auctionEndTime: new Date(data.auctionEndTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    });
+
+    return sendEmail({
+      to: data.sellerEmail,
+      subject: `Price Update: ${data.productTitle}`,
+      html,
     });
   } catch (error) {
     console.error("Error sending price updated notification:", error);
@@ -166,13 +174,21 @@ export const sendPriceUpdatedNotification = async (data) => {
 export const sendOutbidNotification = async (data) => {
   try {
     const html = await loadTemplate("outbid-notification", {
-      previousBidderEmail: data.previousBidderEmail,
       previousBidderName: data.previousBidderName,
       productTitle: data.productTitle,
       yourBidAmount: data.yourBidAmount,
       currentPrice: data.currentPrice,
       productUrl: data.productUrl,
-      auctionEndTime: data.auctionEndTime,
+      auctionEndTime: new Date(data.auctionEndTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    });
+
+    return sendEmail({
+      to: data.previousBidderEmail,
+      subject: `You have been outbid: ${data.productTitle}`,
+      html,
     });
   } catch (error) {
     console.error("Error sending outbid notification:", error);
@@ -184,13 +200,18 @@ export const sendOutbidNotification = async (data) => {
  */
 export const sendBidRejectedNotification = async (data) => {
   try {
-    const html = await loadTemplate("bid-rejected-notification", {
-      bidderEmail: data.bidderEmail,
+    const html = await loadTemplate("bid-rejected", {
       bidderName: data.bidderName,
       productTitle: data.productTitle,
       sellerName: data.sellerName,
       reason: data.reason,
       homeUrl: data.homeUrl,
+    });
+
+    return sendEmail({
+      to: data.bidderEmail,
+      subject: `Bid Rejected: ${data.productTitle}`,
+      html,
     });
   } catch (error) {
     console.error("Error sending bid rejected notification:", error);
@@ -203,13 +224,24 @@ export const sendBidRejectedNotification = async (data) => {
 export const sendAuctionEndedNoWinnerNotification = async (data) => {
   try {
     const html = await loadTemplate("auction-ended-no-winner", {
-      sellerEmail: data.sellerEmail,
       sellerName: data.sellerName,
       productTitle: data.productTitle,
       startPrice: data.startPrice,
-      startTime: data.startTime,
-      endTime: data.endTime,
+      startTime: new Date(data.startTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      endTime: new Date(data.endTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
       productUrl: data.productUrl,
+    });
+
+    return sendEmail({
+      to: data.sellerEmail,
+      subject: `Auction Ended (No Winner): ${data.productTitle}`,
+      html,
     });
   } catch (error) {
     console.error("Error sending auction ended no winner notification:", error);
@@ -222,7 +254,6 @@ export const sendAuctionEndedNoWinnerNotification = async (data) => {
 export const sendAuctionEndedSellerNotification = async (data) => {
   try {
     const html = await loadTemplate("auction-ended-seller", {
-      sellerEmail: data.sellerEmail,
       sellerName: data.sellerName,
       productTitle: data.productTitle,
       winnerName: data.winnerName,
@@ -231,8 +262,17 @@ export const sendAuctionEndedSellerNotification = async (data) => {
       finalPrice: data.finalPrice,
       startPrice: data.startPrice,
       totalBids: data.totalBids,
-      endTime: data.endTime,
+      endTime: new Date(data.endTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
       orderUrl: data.orderUrl,
+    });
+
+    return sendEmail({
+      to: data.sellerEmail,
+      subject: `Auction Successful: ${data.productTitle}`,
+      html,
     });
   } catch (error) {
     console.error("Error sending auction ended seller notification:", error);
@@ -244,8 +284,7 @@ export const sendAuctionEndedSellerNotification = async (data) => {
  */
 export const sendAuctionWinnerNotification = async (data) => {
   try {
-    const html = await loadTemplate("auction-winner-notification", {
-      winnerEmail: data.winnerEmail,
+    const html = await loadTemplate("auction-winner", {
       winnerName: data.winnerName,
       productTitle: data.productTitle,
       finalPrice: data.finalPrice,
@@ -253,8 +292,17 @@ export const sendAuctionWinnerNotification = async (data) => {
       sellerEmail: data.sellerEmail,
       sellerPhone: data.sellerPhone,
       totalBids: data.totalBids,
-      endTime: data.endTime,
+      endTime: new Date(data.endTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
       orderUrl: data.orderUrl,
+    });
+
+    return sendEmail({
+      to: data.winnerEmail,
+      subject: `Congratulations! You Won: ${data.productTitle}`,
+      html,
     });
   } catch (error) {
     console.error("Error sending auction winner notification:", error);
@@ -266,18 +314,27 @@ export const sendAuctionWinnerNotification = async (data) => {
  */
 export const sendSellerAnswerNotification = async (data) => {
   try {
-    const html = await loadTemplate("seller-answer-notification", {
-      participantEmail: data.participantEmail,
+    // Note: This needs to handle multiple recipients if used in a loop or passed a list
+    // For now assuming single recipient based on the structure, but we might call this in a loop
+    const html = await loadTemplate("seller-answered-notification", {
       participantName: data.participantName,
       productTitle: data.productTitle,
       questionText: data.questionText,
       answerText: data.answerText,
       questionAuthor: data.questionAuthor,
-      answerText: data.answerText,
       sellerName: data.sellerName,
       currentPrice: data.currentPrice,
-      auctionEndTime: data.auctionEndTime,
+      auctionEndTime: new Date(data.auctionEndTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
       productUrl: data.productUrl,
+    });
+
+    return sendEmail({
+      to: data.participantEmail,
+      subject: `New Answer on: ${data.productTitle}`,
+      html,
     });
   } catch (error) {
     console.error("Error sending seller answer notification:", error);

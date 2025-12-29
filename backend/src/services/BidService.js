@@ -9,6 +9,12 @@ import {
 } from "../models/index.js";
 import { AppError } from "../utils/errors.js";
 import { AUCTION_STATUS, ERROR_CODES } from "../lib/constants.js";
+import {
+    sendBidSuccessNotification,
+    sendPriceUpdatedNotification,
+    sendOutbidNotification,
+    sendBidRejectedNotification
+} from '../utils/email.js';
 
 export class BidService {
   /**
@@ -241,6 +247,63 @@ export class BidService {
       // Commit transaction
       await session.commitTransaction();
 
+      // Send Notifications (Fire and forget)
+      (async () => {
+          try {
+              const [product, seller, bidder, prevBidder] = await Promise.all([
+                  Product.findById(auction.productId),
+                  User.findById(auction.sellerId),
+                  User.findById(bidderId),
+                  auction.currentHighestBidderId ? User.findById(auction.currentHighestBidderId) : null
+              ]);
+
+              const auctionUrl = `${process.env.FRONTEND_BASE_URL}/products/${auction.productId}`;
+
+              // 1. Send to new bidder
+              if (bidder && product) {
+                   await sendBidSuccessNotification({
+                      bidderEmail: bidder.email,
+                      bidderName: bidder.fullName,
+                      productTitle: product.title,
+                      bidAmount: bidAmount,
+                      currentPrice: bidAmount,
+                      isHighestBidder: true
+                  });
+              }
+
+              // 2. Send to seller
+              if (seller && product && bidder) {
+                  await sendPriceUpdatedNotification({
+                      sellerEmail: seller.email,
+                      sellerName: seller.fullName,
+                      productTitle: product.title,
+                      previousPrice: auction.currentPrice,
+                      newPrice: bidAmount,
+                      bidderName: bidder.fullName,
+                      totalBids: updated.bidCount,
+                      auctionUrl: auctionUrl,
+                      auctionEndTime: updated.endAt || auction.endAt
+                  });
+              }
+
+              // 3. Send to previous bidder
+              if (prevBidder && prevBidder._id.toString() !== bidderId.toString() && product) {
+                  await sendOutbidNotification({
+                      previousBidderEmail: prevBidder.email,
+                      previousBidderName: prevBidder.fullName,
+                      productTitle: product.title,
+                      yourBidAmount: auction.currentPrice, // The price they were holding
+                      currentPrice: bidAmount,
+                      productUrl: auctionUrl,
+                      auctionEndTime: updated.endAt || auction.endAt
+                  });
+              }
+
+          } catch (err) {
+              console.error("Error sending bid notifications:", err);
+          }
+      })();
+
       return {
         success: true,
         currentPrice: updated.currentPrice,
@@ -312,6 +375,23 @@ export class BidService {
       { reason, createdAt: new Date() },
       { upsert: true, new: true }
     );
+
+    // Send email notification to the rejected bidder
+    const rejectedUser = await User.findById(bidderId);
+    const product = await Product.findById(productId);
+    const seller = await User.findById(product.sellerId);
+
+    if (rejectedUser && product) {
+        const productUrl = `${process.env.FRONTEND_BASE_URL}/products/${productId}`;
+        await sendBidRejectedNotification({
+            bidderEmail: rejectedUser.email,
+            bidderName: rejectedUser.fullName,
+            productTitle: product.title,
+            sellerName: seller ? seller.fullName : 'Seller',
+            reason: reason,
+            homeUrl: process.env.FRONTEND_BASE_URL
+        });
+    }
 
     return rejection;
   }
