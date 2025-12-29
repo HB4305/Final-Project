@@ -161,6 +161,7 @@ export const answerQuestion = async (req, res, next) => {
       buyerEmail: question.authorId.email,
       buyerName: question.authorId.fullName,
       productTitle: question.productId.title,
+      questionText: question.text,
       answerText: text.trim(),
       productUrl,
     });
