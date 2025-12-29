@@ -59,6 +59,11 @@ app.use(errorHandler);
 // Start Server
 async function startServer() {
   await connectDB();
+
+  // Start Scheduler
+  const { startScheduler } = await import('./scheduler.js');
+  startScheduler();
+
   app.listen(PORT, () => {
     console.log(`Local host: http://localhost:${PORT}`);
   });
