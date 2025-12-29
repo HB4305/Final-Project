@@ -150,7 +150,7 @@ export const answerQuestion = async (req, res, next) => {
 
     question.status = "answered";
     await question.save();
-    
+
     // Populate answer author for response
     await question.populate("answers.authorId", "fullName");
 
@@ -161,51 +161,52 @@ export const answerQuestion = async (req, res, next) => {
       buyerEmail: question.authorId.email,
       buyerName: question.authorId.fullName,
       productTitle: question.productId.title,
+      questionText: question.text,
       answerText: text.trim(),
       productUrl,
     });
 
     // Send notification to other interested users (Bidders + Other Askers)
     (async () => {
-        try {
-            // Find all bidders for this product
-            const bids = await Bid.find({ productId: question.productId._id }).distinct('bidderId');
-            
-            // Find all users who asked questions about this product
-            const questions = await Question.find({ productId: question.productId._id }).distinct('authorId');
+      try {
+        // Find all bidders for this product
+        const bids = await Bid.find({ productId: question.productId._id }).distinct('bidderId');
 
-            // Combine and unique
-            const interestedUserIds = [...new Set([...bids.map(id => id.toString()), ...questions.map(id => id.toString())])];
+        // Find all users who asked questions about this product
+        const questions = await Question.find({ productId: question.productId._id }).distinct('authorId');
 
-            // Filter out current question author (already notified) and seller (who is answering)
-            const recipients = interestedUserIds.filter(id => 
-                id !== question.authorId._id.toString() && 
-                id !== userId.toString()
-            );
+        // Combine and unique
+        const interestedUserIds = [...new Set([...bids.map(id => id.toString()), ...questions.map(id => id.toString())])];
 
-            if (recipients.length > 0) {
-                 const users = await User.find({ _id: { $in: recipients } });
-                 const auction = await Auction.findOne({ productId: question.productId._id, status: 'active' });
+        // Filter out current question author (already notified) and seller (who is answering)
+        const recipients = interestedUserIds.filter(id =>
+          id !== question.authorId._id.toString() &&
+          id !== userId.toString()
+        );
 
-                 for (const recipient of users) {
-                     await sendSellerAnswerNotification({
-                        participantEmail: recipient.email,
-                        participantName: recipient.fullName,
-                        productTitle: question.productId.title,
-                        questionText: question.text,
-                        answerText: text.trim(),
-                        questionAuthor: question.authorId.fullName,
-                        sellerName: user.fullName,
-                        currentPrice: auction ? auction.currentPrice : 'N/A',
-                        auctionEndTime: auction ? auction.endAt : null,
-                        productUrl
-                     });
-                 }
-            }
+        if (recipients.length > 0) {
+          const users = await User.find({ _id: { $in: recipients } });
+          const auction = await Auction.findOne({ productId: question.productId._id, status: 'active' });
 
-        } catch (err) {
-            console.error("Error sending seller answer notifications:", err);
+          for (const recipient of users) {
+            await sendSellerAnswerNotification({
+              participantEmail: recipient.email,
+              participantName: recipient.fullName,
+              productTitle: question.productId.title,
+              questionText: question.text,
+              answerText: text.trim(),
+              questionAuthor: question.authorId.fullName,
+              sellerName: user.fullName,
+              currentPrice: auction ? auction.currentPrice : 'N/A',
+              auctionEndTime: auction ? auction.endAt : null,
+              productUrl
+            });
+          }
         }
+
+      } catch (err) {
+        console.error("Error sending seller answer notifications:", err);
+      }
     })();
 
     // TODO: Create notification
