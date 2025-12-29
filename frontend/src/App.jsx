@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider } from "../app/context/AuthContext";
+import ProtectedRoute from "../components/protected-route";
 
 // Pages
 import Home from "../app/page";
@@ -20,6 +21,7 @@ import DashboardPage from "../app/dashboard/page";
 import ProfilePage from "../app/profile/page";
 import SettingsPage from "../app/profile/settings/page";
 import RatingsPage from "../app/profile/ratings/page";
+import AdminDashboardPage from "../app/admin/dashboard/page";
 import AdminCategoriesPage from "../app/admin/categories/page";
 import AdminProductsPage from "../app/admin/products/page";
 import SearchPage from "../app/search/page";
@@ -54,8 +56,41 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/settings" element={<SettingsPage />} />
           <Route path="/profile/ratings" element={<RatingsPage />} />
-          <Route path="/admin/categories" element={<AdminCategoriesPage />} />
-          <Route path="/admin/products" element={<AdminProductsPage />} />
+          <Route path="/profile/ratings/:userId" element={<RatingsPage />} />
+
+          {/* Admin Routes - Protected */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/categories"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                <AdminCategoriesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/products"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                <AdminProductsPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>

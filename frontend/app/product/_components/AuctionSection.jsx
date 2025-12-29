@@ -69,11 +69,11 @@ export default function AuctionSection({ auction, onPlaceBid }) {
         <div className="space-y-3">
           {!showBidForm ? (
             <>
-              <button 
+              <button
                 onClick={() => setShowBidForm(true)}
                 className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-bold text-lg"
               >
-                🔨 Đặt giá
+                🔨 Đặt giá tự động
               </button>
               {auction?.buyNowPrice && (
                 <button className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold">
@@ -83,29 +83,34 @@ export default function AuctionSection({ auction, onPlaceBid }) {
             </>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Đấu giá tự động:</strong> Nhập mức giá tối đa bạn sẵn sàng trả. Hệ thống sẽ tự động tăng giá giúp bạn (vừa đủ để thắng) cho đến mức này.
+                </p>
+              </div>
               <div>
-                <label className="text-sm text-muted-foreground">
-                  Số tiền đặt giá (tối thiểu: {formatPrice(minBid)})
+                <label className="text-sm font-medium text-foreground">
+                  Giá tối đa bạn muốn trả (tối thiểu: {formatPrice(minBid)})
                 </label>
-                <input 
+                <input
                   type="number"
                   value={bidAmount}
                   onChange={(e) => setBidAmount(e.target.value)}
                   min={minBid}
                   step={auction?.priceStep || 50000}
                   placeholder={formatPrice(minBid)}
-                  className="w-full mt-1 px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary text-lg"
+                  className="w-full mt-1 px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary text-lg font-bold"
                   autoFocus
                 />
               </div>
               <div className="flex gap-2">
-                <button 
+                <button
                   type="submit"
                   className="flex-1 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-bold"
                 >
-                  Xác nhận đặt giá
+                  Thiết lập giá tối đa
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowBidForm(false)}
                   className="px-4 py-3 border border-border rounded-lg hover:bg-muted transition"

@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }) => {
     // Set user info
     setCurrentUser(response.data.data?.user || response.data.user);
     setIsLoggedIn(true);
+    console.log("=== END AUTH CONTEXT DEBUG ===");
 
     return response;
   };

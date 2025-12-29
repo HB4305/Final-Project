@@ -84,7 +84,7 @@ export const JWT_EXPIRY = {
 
 export const PRODUCT_VALIDATION = {
   TITLE_MAX_LENGTH: 200,
-  DESCRIPTION_MIN_LENGTH: 50,
+  DESCRIPTION_MIN_LENGTH: 10,
   MIN_IMAGES: 3,
   MAX_IMAGES: 10,
 };
@@ -93,7 +93,7 @@ export const AUCTION_VALIDATION = {
   MIN_START_PRICE: 10000,        // 10,000 VND
   MIN_PRICE_STEP: 1000,          // 1,000 VND
   MIN_DURATION_MS: 60 * 60 * 1000,  // 1 hour in milliseconds
-  MIN_DURATION_HOURS: 1,
+  MIN_DURATION_HOURS: 0,
   MAX_DURATION_DAYS: 30,
   NEW_PRODUCT_DAYS: 7,           // Days to mark as "new"
 };
