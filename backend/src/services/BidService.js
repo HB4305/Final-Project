@@ -115,13 +115,22 @@ export class BidService {
     session.startTransaction();
 
     try {
+      // Check existing bid to preserve priority
+      const existingBid = await AutoBid.findOne({ auctionId, bidderId }).session(session);
+      let updateFields = {
+        maxAmount,
+        active: true
+      };
+
+      // Only update timestamp if amount is DIFFERENT.
+      // If amount is same, keep original timestamp to preserve "First Come First Serve" priority.
+      if (!existingBid || existingBid.maxAmount !== maxAmount) {
+        updateFields.updatedAt = new Date();
+      }
+
       await AutoBid.findOneAndUpdate(
         { auctionId, bidderId },
-        {
-          maxAmount,
-          active: true,
-          updatedAt: new Date()
-        },
+        updateFields,
         { upsert: true, new: true, session }
       );
 

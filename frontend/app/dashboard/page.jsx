@@ -156,9 +156,9 @@ export default function DashboardPage() {
   const handleSubmitRating = async (ratingData) => {
     try {
       await ratingService.createRating(ratingData.targetUserId, {
-        score: ratingData.rating === 1 ? 'positive' : 'negative',
+        score: ratingData.rating, // Pass 1 or -1 directly (backend expects number)
         comment: ratingData.comment,
-        orderId: ratingData.transactionId, // Using auction/order ID
+        orderId: ratingData.transactionId, // This is now correctly the Order ID
         context: 'post_transaction'
       });
 
@@ -449,20 +449,26 @@ export default function DashboardPage() {
                                 </span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
-                                Người bán: {auction.sellerId?.username}
+                                Người bán:{" "}
+                                <Link
+                                  to={`/profile/ratings/${auction.sellerId?._id}`}
+                                  className="text-primary hover:underline"
+                                >
+                                  {auction.sellerId?.username}
+                                </Link>
                               </p>
                             </div>
                           </div>
                           <div className="flex gap-2">
                             <Link
-                              to={`/transactions/${auction._id}`}
+                              to={`/product/${auction.productId?._id}`}
                               className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
                             >
                               Xem Chi Tiết
                             </Link>
 
                             {/* Rate Seller Button */}
-                            {auction.transactionStatus === 'completed' && !auction.isRated && (
+                            {!auction.isRated && (
                               <button
                                 onClick={() => handleRateSeller(auction)}
                                 className="px-4 py-2 border border-primary text-primary rounded-lg text-sm hover:bg-primary/5"
@@ -583,7 +589,7 @@ export default function DashboardPage() {
                               </button>
                             )}
                             <Link
-                              to={`/transactions/${auction._id}`}
+                              to={`/product/${auction.productId?._id}`}
                               className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
                             >
                               Chi Tiết
@@ -617,7 +623,7 @@ export default function DashboardPage() {
                   rating: selectedTransactionForRating.sellerId.ratingSummary?.score || 0,
                   totalRatings: selectedTransactionForRating.sellerId.ratingSummary?.totalCount || 0
                 }}
-                transactionId={selectedTransactionForRating._id}
+                transactionId={selectedTransactionForRating.orderId}
                 userType="buyer"
                 onSubmitRating={handleSubmitRating}
               />

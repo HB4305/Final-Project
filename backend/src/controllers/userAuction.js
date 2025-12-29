@@ -141,6 +141,7 @@ export const getWonAuctions = async (req, res, next) => {
       const order = orderMap[a._id.toString()];
       return {
         ...a,
+        orderId: order ? order._id : null,
         transactionStatus: order ? order.status : 'pending',
         isRated: order ? ratedOrderIds.has(order._id.toString()) : false
       };

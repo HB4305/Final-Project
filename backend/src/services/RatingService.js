@@ -93,18 +93,27 @@ export class RatingService {
    * @param {string} userId - ID user
    * @param {number} page - Trang (mặc định 1)
    * @param {number} limit - Số record mỗi trang (mặc định 10)
+   * @param {string} type - 'received' | 'given' (mặc định 'received')
    * @returns {Object} { ratings, total, page, pages }
    */
-  async getUserRatings(userId, page = 1, limit = 10) {
+  async getUserRatings(userId, page = 1, limit = 10, type = 'received') {
     const skip = (page - 1) * limit;
 
+    const query = type === 'given' ? { raterId: userId } : { rateeId: userId };
+    const populateField = type === 'given' ? 'rateeId' : 'raterId';
+
     const [ratings, total] = await Promise.all([
-      Rating.find({ rateeId: userId })
-        .populate('raterId', 'username profileImageUrl')
+      Rating.find(query)
+        .populate(populateField, 'username profileImageUrl fullName')
+        .populate({
+          path: 'orderId',
+          select: 'productId',
+          populate: { path: 'productId', select: 'title slug primaryImageUrl' }
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Rating.countDocuments({ rateeId: userId })
+      Rating.countDocuments(query)
     ]);
 
     return {

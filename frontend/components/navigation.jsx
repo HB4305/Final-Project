@@ -136,6 +136,13 @@ export default function Navigation() {
                     >
                       Settings
                     </Link>
+                    <Link
+                      to={`/profile/ratings/${currentUser?._id}`}
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
+                    >
+                      My Ratings
+                    </Link>
                     {isAdmin && (
                       <>
                         <hr className="border-border" />

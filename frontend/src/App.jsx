@@ -56,39 +56,40 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/settings" element={<SettingsPage />} />
           <Route path="/profile/ratings" element={<RatingsPage />} />
-          
+          <Route path="/profile/ratings/:userId" element={<RatingsPage />} />
+
           {/* Admin Routes - Protected */}
-          <Route 
-            path="/admin" 
+          <Route
+            path="/admin"
             element={
               <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
                 <AdminDashboardPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/dashboard" 
+          <Route
+            path="/admin/dashboard"
             element={
               <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
                 <AdminDashboardPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/categories" 
+          <Route
+            path="/admin/categories"
             element={
               <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
                 <AdminCategoriesPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/products" 
+          <Route
+            path="/admin/products"
             element={
               <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
                 <AdminProductsPage />
               </ProtectedRoute>
-            } 
+            }
           />
         </Routes>
       </Router>
