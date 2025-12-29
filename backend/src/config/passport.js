@@ -33,10 +33,18 @@ passport.use(
         });
 
         if (user) {
-          // User đã tồn tại, cập nhật googleId nếu chưa có
+          // User đã tồn tại
+          // Nếu tìm thấy qua email nhưng chưa có googleId -> Link account
           if (!user.socialIds?.googleId) {
             user.socialIds = user.socialIds || {};
             user.socialIds.googleId = profile.id;
+
+            // Nếu user chưa verify email, đánh dấu là đã verify vì Google đã xác thực
+            if (!user.emailVerified) {
+              user.emailVerified = true;
+              user.emailVerifiedAt = new Date();
+            }
+
             await user.save();
           }
           return done(null, user);

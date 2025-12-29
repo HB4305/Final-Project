@@ -22,7 +22,7 @@ export const authenticate = (req, res, next) => {
 
     if (!token) {
       return next(
-        new AppError("Vui lòng đăng nhập", 401, ERROR_CODES.UNAUTHORIZED)
+        new AppError("Please login to continue", 401, ERROR_CODES.UNAUTHORIZED)
       );
     }
 
@@ -31,7 +31,7 @@ export const authenticate = (req, res, next) => {
     if (!decoded) {
       return next(
         new AppError(
-          "Token không hợp lệ hoặc đã hết hạn",
+          "Invalid or expired token",
           401,
           ERROR_CODES.UNAUTHORIZED
         )
@@ -42,7 +42,7 @@ export const authenticate = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    console.error("[AUTH MIDDLEWARE] Lỗi xác thực:", error);
+    console.error("[AUTH MIDDLEWARE] Authentication error:", error);
     next(error);
   }
 };

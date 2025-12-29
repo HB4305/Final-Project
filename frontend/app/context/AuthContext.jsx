@@ -30,16 +30,15 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         // Verify token and get user info
         const response = await authService.getCurrentUser();
-        console.log("=== CHECK AUTH STATUS DEBUG ===");
-        console.log("getCurrentUser response:", response);
-        console.log("response.data:", response.data);
-        console.log("response.data.data:", response.data.data);
         
-        // FIXED: Access correct path
-        setCurrentUser(response.data.data?.user);
+        // Backend returns { data: { user } }
+        const userData = response.data.data?.user || response.data.user;
+
+        setCurrentUser(userData);
         setIsLoggedIn(true);
-        console.log("User loaded from token:", response.data.data?.user);
-        console.log("=== END CHECK AUTH DEBUG ===");
+      } else {
+         setIsLoggedIn(false);
+         setCurrentUser(null);
       }
     } catch (error) {
       console.error("Auth check failed:", error);
@@ -55,22 +54,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await authService.signin({ email, password });
 
-    console.log("=== AUTH CONTEXT LOGIN DEBUG ===");
-    console.log("Login response:", response);
-    console.log("response.data:", response.data);
-    console.log("response.data.data:", response.data.data);
-    console.log("response.data.data.user:", response.data.data?.user);
-
-    // Save token - FIXED PATH
-    if (response.data.data?.accessToken) {
-      localStorage.setItem("token", response.data.data.accessToken);
+    // Save token
+    const accessToken = response.data.data?.accessToken || response.data.accessToken;
+    if (accessToken) {
+      localStorage.setItem("token", accessToken);
     }
 
-    // Set user info - FIXED PATH
-    const user = response.data.data?.user;
-    console.log("Setting currentUser to:", user);
-    console.log("User roles:", user?.roles);
-    setCurrentUser(user);
+    // Set user info
+    setCurrentUser(response.data.data?.user || response.data.user);
     setIsLoggedIn(true);
     console.log("=== END AUTH CONTEXT DEBUG ===");
 
@@ -96,9 +87,7 @@ export const AuthProvider = ({ children }) => {
 
       // Get user profile
       const response = await authService.getCurrentUser();
-      
-      // FIXED: Access correct path
-      setCurrentUser(response.data.data?.user);
+      setCurrentUser(response.data.data?.user || response.data.user);
       setIsLoggedIn(true);
 
       return response;

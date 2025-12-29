@@ -3,213 +3,159 @@
 import {
   Auction,
   Bid,
+  AutoBid,
   RejectedBidder,
   SystemSetting,
   User,
 } from "../models/index.js";
 import { AppError } from "../utils/errors.js";
 import { AUCTION_STATUS, ERROR_CODES } from "../lib/constants.js";
+import {
+    sendBidSuccessNotification,
+    sendPriceUpdatedNotification,
+    sendOutbidNotification,
+    sendBidRejectedNotification
+} from '../utils/email.js';
 
 export class BidService {
   /**
-   * Đặt giá cho sản phẩm đấu giá
-   * Kiểm tra: reject bidder, giá hợp lệ, auction active, atomic update
+   * Đặt giá tự động (Auto Bid) cho sản phẩm
+   * User thiết lập giá trần (maxAmount), hệ thống tự động bid
    * @param {string} auctionId - ID cuộc đấu giá
    * @param {string} bidderId - ID người đặt giá
-   * @param {number} bidAmount - Số tiền đặt giá
+   * @param {number} maxAmount - Mức giá tối đa user sẵn sàng trả
    * @returns {Object} { success, currentPrice, currentHighestBidderId }
    */
-  async placeBid(auctionId, bidderId, bidAmount) {
+  async placeBid(auctionId, bidderId, maxAmount) {
+    // ✅ Đảm bảo maxAmount là số
+    maxAmount = Number(maxAmount);
+
+    console.log("[BID SERVICE] Place Auto Bid:", {
+      auctionId,
+      bidderId,
+      maxAmount,
+    });
+
+    if (isNaN(maxAmount)) {
+      throw new AppError("Invalid bid amount", 400);
+    }
+
     // 1. Lấy thông tin auction
     const auction = await Auction.findById(auctionId);
     if (!auction) {
-      throw new AppError("Cuộc đấu giá không tồn tại", 404);
+      throw new AppError("Auction not found", 404);
     }
 
-    // 2. Kiểm tra auction còn hoạt động không
+    // 2. Kiểm tra trạng thái
     if (auction.status !== AUCTION_STATUS.ACTIVE) {
       throw new AppError(
-        "Cuộc đấu giá đã kết thúc hoặc không hoạt động",
+        "Auction has ended or is not active",
         400,
         ERROR_CODES.AUCTION_NOT_ACTIVE
       );
     }
 
-    // 3. Kiểm tra thời gian
-    if (new Date() > new Date(auction.endAt)) {
+    const now = new Date();
+    if (now > new Date(auction.endAt)) {
       throw new AppError(
-        "Cuộc đấu giá đã kết thúc",
+        "Auction has ended",
         400,
         ERROR_CODES.AUCTION_NOT_ACTIVE
       );
     }
 
-    // 4. Kiểm tra bidder đã bị từ chối chưa
+    // 3. Kiểm tra Rejected Bidder
     const isRejected = await RejectedBidder.findOne({
       productId: auction.productId,
       bidderId,
     });
     if (isRejected) {
       throw new AppError(
-        "Bạn không được phép đặt giá cho sản phẩm này",
+        "You are not allowed to bid on this product",
         403,
         ERROR_CODES.BIDDER_REJECTED
       );
     }
 
-    // 5. Kiểm tra rating của bidder (nếu cần)
+    // 4. Kiểm tra User & Rating
     const bidder = await User.findById(bidderId);
     if (!bidder) {
-      throw new AppError("Người dùng không tồn tại", 404);
+      throw new AppError("User not found", 404);
     }
 
-    // 6. Kiểm tra rating phải lớn hơn 80%
     const ratingPercentage = bidder.ratingSummary?.score * 100 || 0;
     if (ratingPercentage < 80) {
       throw new AppError(
-        `Điểm đánh giá của bạn (${ratingPercentage}%) phải >= 80% để đặt giá`,
+        `Your rating (${ratingPercentage}%) must be >= 80% to bid`,
         403,
         ERROR_CODES.RATING_TOO_LOW
       );
     }
 
-    // 7. Tính giá tối thiểu được phép đặt
-    const minAllowedBid = auction.currentPrice + auction.priceStep;
-    if (bidAmount < minAllowedBid) {
+    // 5. Validate Max Amount
+    // Giá trần phải >= Giá hiện tại + Bước giá (nếu người khác đang giữ)
+    // Hoặc >= Giá khởi điểm (nếu chưa ai bid)
+    // Tuy nhiên, logic đúng là: User muốn trả TỐI ĐA bao nhiêu.
+    // Nếu maxAmount < currentPrice, chắc chắn fail.
+    // Nếu maxAmount < currentWinningBid (ẩn), sẽ thua ngay lập tức nhưng vẫn cho phép set?
+    // Để đơn giản và tránh spam: Yêu cầu maxAmount >= Min Bid hợp lệ hiện tại.
+
+    const minRequired = auction.currentPrice + auction.priceStep;
+    // Nếu chưa có ai bid (currentPrice có thể là startPrice), thì min là startPrice?
+    // Giả sử currentPrice luôn được init bằng startPrice khi tạo auction.
+
+    // Logic: Nếu currentPrice = startPrice và bidCount = 0, thì được phép bid >= startPrice.
+    // Nếu đã có bid, phải >= current + step.
+    let minAllowed = minRequired;
+    if (auction.bidCount === 0) {
+      minAllowed = auction.startPrice;
+    }
+
+    if (maxAmount < minAllowed) {
       throw new AppError(
-        `Giá đặt phải ít nhất ${minAllowedBid}`,
+        `Your max bid must be greater than or equal to ${minAllowed.toLocaleString(
+          "vi-VN"
+        )}đ`,
         400,
         ERROR_CODES.BID_TOO_LOW
       );
     }
 
-    /**
-     * API 3.1: Tự động gia hạn
-     * Lấy cấu hình hệ thống (do admin quyết định)
-     */
-    const systemAutoExtendEnabled = await SystemSetting.getSetting(
-      "autoExtendEnabled",
-      true
-    );
-    const autoExtendThreshold = await SystemSetting.getSetting(
-      "autoExtendThreshold",
-      5
-    );
-    const autoExtendDuration = await SystemSetting.getSetting(
-      "autoExtendDuration",
-      10
-    );
-
-    console.log(`[BID SERVICE] Auto-extend config:`);
-    console.log(`  - System enabled: ${systemAutoExtendEnabled}`);
-    console.log(`  - Auction enabled: ${auction.autoExtendEnabled}`);
-    console.log(`  - Threshold: ${autoExtendThreshold} phút`);
-    console.log(`  - Duration: ${autoExtendDuration} phút`);
-
-    let autoExtended = false;
-    let newEndTime = auction.endTime;
-
-    // Chỉ gia hạn khi:
-    // 1. Admin bật tính năng (systemAutoExtendEnabled = true)
-    // 2. Seller enable cho auction này (auction.autoExtendEnabled = true)
-    if (systemAutoExtendEnabled && auction.autoExtendEnabled) {
-      // Tính thời gian còn lại
-      const timeRemaining = auction.endTime - now;
-      const threshold = autoExtendThreshold * 60 * 1000;
-      const duration = autoExtendDuration * 60 * 1000;
-
-      const minutesLeft = Math.floor(timeRemaining / 1000 / 60);
-      console.log(`[BID SERVICE] Thời gian còn lại: ${minutesLeft} phút`);
-
-      // Nếu thời gian còn lại <= threshold, tiến hành gia hạn
-      if (timeRemaining <= threshold && timeRemaining > 0) {
-        console.log(
-          `[BID SERVICE] Tự động gia hạn thêm: ${autoExtendDuration} phút`
-        );
-
-        const oldEndTime = auction.endTime;
-        newEndTime = new Date(auction.endTime.getTime() + duration);
-        autoExtended = true;
-
-        // Cập nhật auction
-        auction.endTime = newEndTime;
-        auction.autoExtendCount = (auction.autoExtendCount || 0) + 1;
-
-        // Lưu lại lịch sử tự động gia hạn
-        if (!auction.autoExtendHistory) {
-          auction.autoExtendHistory = [];
-        }
-        auction.autoExtendHistory.push({
-          extendedAt: now,
-          oldEndTime: oldEndTime,
-          newEndTime: newEndTime,
-          triggeredByBidId: null, // Sẽ cập nhật sau khi tạo bid
-        });
-
-        console.log(
-          `[BID SERVICE] Tự động gia hạn lần: ${auction.autoExtendCount}`
-        );
-        console.log(
-          `[BID SERVICE] Thời gian kết thúc mới: ${newEndTime}`
-        );
-      }
-    } else {
-      if (!systemAutoExtendEnabled) {
-        console.log(`[BID SERVICE] Tự động gia hạn đã bị tắt bởi admin`);
-      }
-      if (!auction.autoExtendEnabled) {
-        console.log(`[BID SERVICE] Seller chưa enable tự động gia hạn cho auction này`);
-      }
-    }
-
-    // Cập nhật auction trước (để có endTime mới nếu auto-extend)
-    auction.currentPrice = bidAmount;
-    auction.winnerId = userId;
-    auction.bidCount += 1;
-
-    await auction.save();
-
-    // 7. Tạo session để đảm bảo atomic operation
+    // 6. Lưu AutoBid (Update nếu đã tồn tại, Create nếu chưa)
+    // Dùng session transaction cho an toàn
     const session = await Auction.startSession();
     session.startTransaction();
 
     try {
-      // 7a. Tạo record bid mới
-      const newBid = await Bid.create(
-        [
-          {
-            auctionId,
-            productId: auction.productId,
-            bidderId,
-            amount: bidAmount,
-            isAuto: false,
-          },
-        ],
-        { session }
-      );
+      // Check existing bid to preserve priority
+      const existingBid = await AutoBid.findOne({ auctionId, bidderId }).session(session);
+      let updateFields = {
+        maxAmount,
+        active: true
+      };
 
-      // 7b. Nếu có auto-extend, cập nhật triggeredByBidId trong history
-      if (autoExtended && auction.autoExtendHistory.length > 0) {
-        const lastHistoryIndex = auction.autoExtendHistory.length - 1;
-        auction.autoExtendHistory[lastHistoryIndex].triggeredByBidId = newBid[0]._id;
-        await auction.save({ session });
+      // Only update timestamp if amount is DIFFERENT.
+      // If amount is same, keep original timestamp to preserve "First Come First Serve" priority.
+      if (!existingBid || existingBid.maxAmount !== maxAmount) {
+        updateFields.updatedAt = new Date();
       }
 
-      // Commit transaction
+      await AutoBid.findOneAndUpdate(
+        { auctionId, bidderId },
+        {
+          maxAmount,
+          active: true,
+          updatedAt: new Date(),
+        },
+        { upsert: true, new: true, session }
+      );
+
+      // 7. Resolve Auction (Tính toán người thắng mới)
+      const resolveResult = await this._resolveAuction(auction, session);
+
       await session.commitTransaction();
 
-      return {
-        success: true,
-        bid: newBid[0],
-        auction: {
-          currentPrice: auction.currentPrice,
-          winnerId: auction.winnerId,
-          bidCount: auction.bidCount,
-          endTime: auction.endTime,
-          autoExtended,
-          autoExtendCount: auction.autoExtendCount || 0
-        }
-      };
+      return resolveResult;
     } catch (error) {
       await session.abortTransaction();
       throw error;
@@ -219,182 +165,298 @@ export class BidService {
   }
 
   /**
-   * ============================================
-   * API 3.3: Từ chối lượt ra giá của một bidder
-   * ============================================
-   * Nếu bidder hiện là highest bidder, chuyển cho bidder thứ 2
-   * @param {string} productId - ID sản phẩm
-   * @param {string} bidderId - ID bidder bị từ chối
-   * @param {string} reason - Lý do từ chối
-   * @param {string} sellerId - ID seller (để ghi audit log)
-   * @returns {Object} Thông tin rejection với winner mới
+   * Logic cốt lõi: Tính toán lại giá và người thắng dựa trên danh sách AutoBid
+   * @param {Object} auction - Auction document
+   * @param {Object} session - Mongoose session
    */
-  async rejectBidder(productId, bidderId, reason = "", sellerId = null) {
+  async _resolveAuction(auction, session) {
+    const auctionId = auction._id;
+
+    // 1. Lấy tất cả AutoBid active, sort giảm dần theo maxAmount, sau đó tăng dần theo time (ưu tiên người đến trước)
+    const autoBids = await AutoBid.find({ auctionId, active: true })
+      .sort({ maxAmount: -1, updatedAt: 1 })
+      .session(session);
+
+    if (autoBids.length === 0) {
+      return { success: true, message: "No bids" };
+    }
+
+    const highestBidder = autoBids[0];
+    const secondBidder = autoBids[1]; // Có thể undefined nếu chỉ có 1 người
+
+    // 2. Tính giá trần mới (New Price)
+    // Nguyên tắc: Giá thắng = (Giá Max của người thứ 2) + Bước giá.
+    // Nếu không có người thứ 2 => Giá = Giá khởi điểm (hoặc giá sàn hiện tại).
+
+    let newPrice = auction.startPrice;
+
+    if (secondBidder) {
+      newPrice = secondBidder.maxAmount + auction.priceStep;
+
+      // Nếu giá tính toán > Max của người nhất (do cộng step) -> Lấy đúng bằng Max của người nhất
+      if (newPrice > highestBidder.maxAmount) {
+        newPrice = highestBidder.maxAmount;
+      }
+    } else {
+      // Chỉ có 1 người duy nhất
+      // Nếu trước đó đã có giá (ví dụ 10M), và người này vào set Max=15M.
+      // Giá vẫn giữ 10M hay tăng?
+      // Theo yêu cầu: "Sản phẩm đang 10tr... nhập 15tr... Hệ thống sẽ không nhảy lên 15tr ngay."
+      // Nghĩa là nếu chưa ai cạnh tranh, giá giữ nguyên mức thấp nhất có thể thắng.
+      // Mức thấp nhất có thể thắng = Min(CurrentPrice, StartPrice).
+      // Nhưng nếu CurrentPrice đang là giá của người cũ?
+      // Trường hợp: A đang thắng 10M. A update Max lên 15M. Giá vẫn là 10M.
+      // Trường hợp: Chưa ai bid. A bid Max 15M. Giá là StartPrice.
+
+      // Nếu auction đang có currentPrice hợp lệ và người giữ đang là chính user này?
+      // Ta cần đảm bảo giá không giảm xuống dưới startPrice.
+      newPrice = Math.max(auction.currentPrice, auction.startPrice);
+
+      // Tuy nhiên, nếu đấu giá mới bắt đầu (bidCount=0), newPrice = startPrice.
+      if (auction.bidCount === 0) {
+        newPrice = auction.startPrice;
+      }
+    }
+
+    // 3. Kiểm tra xem có thay đổi gì không (Người thắng thay đổi HOẶC Giá thay đổi)
+    // Lưu ý: Nếu A thắng với 10M, B vào bid max 9M. A vẫn thắng nhưng giá có thể tăng nếu 9M > giá cũ của A.
+    // Nhưng logic AutoBid lấy Top 1 vs Top 2 đã xử lý việc này.
+
+    // Nếu highestBidder hiện tại khác currentHighestBidder HOẶC giá mới khác giá hiện tại
+    const isWinnerChanged =
+      auction.currentHighestBidderId?.toString() !==
+      highestBidder.bidderId.toString();
+    const isPriceChanged = auction.currentPrice !== newPrice;
+
+    if (!isWinnerChanged && !isPriceChanged) {
+      // Không có gì thay đổi (ví dụ user update max amount nhưng vẫn đang thắng và giá ko đổi)
+      return {
+        success: true,
+        currentPrice: auction.currentPrice,
+        currentHighestBidderId: auction.currentHighestBidderId,
+        bidCount: auction.bidCount,
+      };
+    }
+
+    // 3.1 Xử lý Auto Extend (Tự động gia hạn) -> Chỉ khi có bid mới thành công làm thay đổi cục diện?
+    // Thông thường auto-extend xảy ra khi có "Valid Bid" near end time.
+    // Việc hệ thống tự nhảy giá có tính là bid mới không? Có.
+
+    let updateData = {
+      currentPrice: newPrice,
+      currentHighestBidderId: highestBidder.bidderId,
+      $inc: { bidCount: 1 }, // Tăng bid count cho mỗi lần nhảy giá? Hay chỉ khi user action?
+      // User yêu cầu: "Hệ thống tự động nhảy giá". Mỗi lần nhảy coi như 1 bid.
+      updatedAt: new Date(),
+    };
+
+    // Check Auto Extend
+    const autoExtendEnabled = await SystemSetting.getSetting(
+      "autoExtendEnabled",
+      true
+    );
+    let autoExtended = false;
+    let newEndTime = auction.endAt;
+
+    if (autoExtendEnabled) {
+      const thresholdMinutes = await SystemSetting.getSetting(
+        "autoExtendThreshold",
+        5
+      );
+      const extendMinutes = await SystemSetting.getSetting(
+        "autoExtendDuration",
+        10
+      );
+
+      const now = new Date();
+      const timeLeft = new Date(auction.endAt).getTime() - now.getTime();
+
+      if (timeLeft > 0 && timeLeft <= thresholdMinutes * 60 * 1000) {
+        newEndTime = new Date(
+          new Date(auction.endAt).getTime() + extendMinutes * 60 * 1000
+        );
+        autoExtended = true;
+      }
+    }
+
+    // 4. Tạo Bid record mới (Lịch sử nhảy giá)
+    // Để hiển thị trong lịch sử đấu giá
+    const newBidRecord = await Bid.create(
+      [
+        {
+          auctionId,
+          productId: auction.productId,
+          bidderId: highestBidder.bidderId,
+          amount: newPrice,
+          createdAt: new Date(),
+        },
+      ],
+      { session }
+    );
+
+    updateData.currentHighestBidId = newBidRecord[0]._id;
+
+    if (autoExtended) {
+      updateData.endAt = newEndTime;
+      updateData.$inc.autoExtendCount = 1;
+      updateData.$push = {
+        autoExtendHistory: {
+          extendedAt: new Date(),
+          oldEndTime: auction.endAt,
+          newEndTime: newEndTime,
+          triggeredByBidId: newBidRecord[0]._id,
+        },
+      };
+    }
+
+    // 5. Update Auction
+    const updatedAuction = await Auction.findByIdAndUpdate(
+      auctionId,
+      updateData,
+      { new: true, session }
+    );
+
+    console.log(
+      `[BID SERVICE] Auction Resolved. Winner: ${highestBidder.bidderId}, Price: ${newPrice}`
+    );
+
+    return {
+      success: true,
+      currentPrice: updatedAuction.currentPrice,
+      currentHighestBidderId: updatedAuction.currentHighestBidderId,
+      bidCount: updatedAuction.bidCount,
+    };
+  }
+
+  /**
+   * Từ chối lượt ra giá của một bidder cho sản phẩm
+   * Nếu bidder hiện là highest bidder, cần recalculate lại từ AutoBid
+   */
+  async rejectBidder(productId, bidderId, sellerId, reason = "") {
     const session = await Auction.startSession();
     session.startTransaction();
 
     try {
-      console.log(`[BID SERVICE] Rejecting bidder ${bidderId} for product ${productId}`);
-      console.log(`[BID SERVICE] Reason: ${reason}`);
+      // 1. Lấy thông tin auction
+      const auction = await Auction.findOne({ productId }).session(session);
+      if (!auction) throw new AppError("Auction not found", 404);
 
-      // 2. Check if bidder already rejected (idempotent)
-      const existingRejection = await RejectedBidder.findOne({
-        product: productId,
-        bidder: bidderId
-      }).session(session);
+      // 2. Chặn bidder (Lưu vào danh sách đen)
+      await RejectedBidder.findOneAndUpdate(
+        { productId, bidderId },
+        { reason, rejectedBy: sellerId, createdAt: new Date() },
+        { upsert: true, session }
+      );
 
-      if (existingRejection) {
-        await session.abortTransaction();
-        throw new AppError('Bidder has already been rejected for this product', 400);
-      }
+      // 3. Vô hiệu hóa AutoBid
+      await AutoBid.updateMany(
+        { auctionId: auction._id, bidderId },
+        { active: false },
+        { session }
+      );
 
-      // 2. Tìm cuộc đấu giá cho sản phẩm
-      const auction = await Auction.findOne({ product: productId }).session(session);
-      if (!auction) {
-        throw new AppError('Auction not found for this product', 404);
-      }
-
-      // Chỉ cho phép reject trong auction active
-      if (auction.status !== AUCTION_STATUS.ACTIVE) {
-        throw new AppError('Can only reject bidders in active auctions', 400);
-      }
-
-      const previousWinnerId = auction.winnerId ? auction.winnerId.toString() : null;
-      const isCurrentWinner = previousWinnerId === bidderId;
-
-      console.log(`[BID SERVICE] Current winner: ${previousWinnerId}`);
-      console.log(`[BID SERVICE] Is rejected bidder current winner? ${isCurrentWinner}`);
-
-      // 3. Invalidate ALL bids của rejected bidder
-      const invalidatedResult = await Bid.updateMany(
-        { 
-          auctionId: auction._id,
-          bidderId: bidderId,
-          isValid: true
-        },
-        { 
+      // 4. Vô hiệu hóa các Bid cũ trong lịch sử
+      await Bid.updateMany(
+        { auctionId: auction._id, bidderId, isValid: true },
+        {
           isValid: false,
           invalidatedAt: new Date(),
-          invalidatedReason: `Seller rejected bidder: ${reason}`
+          invalidatedReason: `Seller rejected: ${reason}`,
         },
         { session }
       );
 
-      console.log(`[BID SERVICE] Invalidated ${invalidatedResult.modifiedCount} bids from rejected bidder`);
-
-      let newWinner = null;
-      let newPrice = auction.currentPrice;
-
-      // 4. Nếu bidder bị reject đang là winner, tìm winner mới
-      if (isCurrentWinner) {
-        console.log(`[BID SERVICE] Finding new winner...`);
-
-        // Tìm highest valid bid (không phải của rejected bidder)
-        const newHighestBid = await Bid.findOne({
-          auctionId: auction._id,
-          bidderId: { $ne: bidderId },
-          isValid: true
-        })
-        .sort({ amount: -1, createdAt: -1 })
-        .session(session);
-
-        if (newHighestBid) {
-          // Có winner mới
-          auction.currentPrice = newHighestBid.amount;
-          auction.winnerId = newHighestBid.bidderId;
-          auction.currentHighestBidId = newHighestBid._id;
-          newWinner = newHighestBid.bidderId.toString();
-          newPrice = newHighestBid.amount;
-
-          console.log(`[BID SERVICE] New winner found: ${newWinner} with bid ${newPrice}`);
-        } else {
-          // Không còn bid hợp lệ nào → reset về giá khởi điểm
-          auction.currentPrice = auction.startPrice;
-          auction.winnerId = null;
-          auction.currentHighestBidId = null;
-          newPrice = auction.startPrice;
-
-          console.log(`[BID SERVICE] No valid bids left, reset to start price ${newPrice}`);
-        }
-      }
-
-      // 5. Recalculate bidCount (chỉ đếm valid bids)
-      const validBidCount = await Bid.countDocuments({
-        auctionId: auction._id,
-        isValid: true
-      }).session(session);
-
-      auction.bidCount = validBidCount;
-      auction.updatedAt = new Date();
-      await auction.save({ session });
-
-      console.log(`[BID SERVICE] Updated auction bidCount to ${validBidCount}`);
-
-      // 6. Delete auto-bids của rejected bidder
-      const AutoBid = (await import('../models/AutoBid.js')).default;
-      const deletedAutoBids = await AutoBid.deleteMany({
-        bidderId,
-        productId
-      }).session(session);
-
-      console.log(`[BID SERVICE] Deleted ${deletedAutoBids.deletedCount} auto-bids`);
-
-      // 7. Create rejection record
-      const rejection = new RejectedBidder({
-        product: productId,
-        bidder: bidderId,
-        rejectedBy: sellerId,
-        reason,
-        rejectedAt: new Date()
-      });
-      await rejection.save({ session });
-
-      // 8. Create audit log (optional)
-      const AuditLog = (await import('../models/AuditLog.js')).default;
-      await AuditLog.create([{
-        user: sellerId,
-        action: 'REJECT_BIDDER',
-        resource: 'Auction',
-        resourceId: auction._id,
-        details: {
-          productId,
-          rejectedBidderId: bidderId,
-          reason,
-          wasCurrentWinner: isCurrentWinner,
-          newWinnerId: newWinner,
-          previousPrice: previousWinnerId === bidderId ? auction.currentPrice : null,
-          newPrice
-        }
-      }], { session });
+      // 5. Quan trọng: Tính toán lại người thắng cuộc bằng logic cốt lõi
+      // Sử dụng hàm _resolveAuction đã viết sẵn để đảm bảo tính nhất quán
+      const result = await this._resolveAuction(auction, session);
 
       await session.commitTransaction();
-
-      return {
-        rejection: {
-          bidderId,
-          reason,
-          rejectedAt: rejection.rejectedAt
-        },
-        auction: {
-          auctionId: auction._id,
-          currentPrice: auction.currentPrice,
-          winnerId: auction.winnerId,
-          bidCount: auction.bidCount
-        },
-        previousWinner: previousWinnerId,
-        newWinner,
-        winnerChanged: isCurrentWinner,
-        invalidatedBidsCount: invalidatedResult.modifiedCount,
-        deletedAutoBidsCount: deletedAutoBids.deletedCount
-      };
-
+      return result;
     } catch (error) {
       await session.abortTransaction();
-      console.error('[BID SERVICE] Error rejecting bidder:', error);
-      throw error;
+      console.error("[BID SERVICE] Reject Error:", error);
+      throw error; // Ném lỗi để Controller xử lý
     } finally {
       session.endSession();
     }
+  }
+
+  /**
+   * Từ chối lượt ra giá của một bidder cho sản phẩm
+   * Nếu bidder hiện là highest bidder, chuyển cho bidder thứ 2
+   * @param {string} productId - ID sản phẩm
+   * @param {string} bidderId - ID bidder bị từ chối
+   * @param {string} reason - Lý do từ chối
+   * @returns {Object} Thông tin rejection
+   */
+  async rejectBidder(productId, bidderId, reason = "") {
+    // 1. Tìm cuộc đấu giá active cho sản phẩm
+    const auction = await Auction.findOne({
+      productId,
+      status: AUCTION_STATUS.ACTIVE,
+    });
+
+    // 2. Nếu bidder này là highest bidder, cần chuyển sang bidder thứ 2
+    if (auction && auction.currentHighestBidderId?.toString() === bidderId) {
+      // Tìm bid cao thứ 2
+      const secondBid = await Bid.findOne({
+        auctionId: auction._id,
+        bidderId: { $ne: bidderId },
+      })
+        .sort({ amount: -1 })
+        .limit(1);
+
+      if (secondBid) {
+        // Update auction với highest bidder mới
+        await Auction.updateOne(
+          { _id: auction._id },
+          {
+            currentPrice: secondBid.amount,
+            currentHighestBidId: secondBid._id,
+            currentHighestBidderId: secondBid.bidderId,
+            updatedAt: new Date(),
+          }
+        );
+      } else {
+        // Không có bid nào khác, reset auction
+        await Auction.updateOne(
+          { _id: auction._id },
+          {
+            currentPrice: auction.startPrice,
+            currentHighestBidId: null,
+            currentHighestBidderId: null,
+            bidCount: 0,
+            updatedAt: new Date(),
+          }
+        );
+      }
+    }
+
+    // 3. Thêm bidder vào rejected list
+    const rejection = await RejectedBidder.findOneAndUpdate(
+      { productId, bidderId },
+      { reason, createdAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    // Send email notification to the rejected bidder
+    const rejectedUser = await User.findById(bidderId);
+    const product = await Product.findById(productId);
+    const seller = await User.findById(product.sellerId);
+
+    if (rejectedUser && product) {
+        const productUrl = `${process.env.FRONTEND_BASE_URL}/products/${productId}`;
+        await sendBidRejectedNotification({
+            bidderEmail: rejectedUser.email,
+            bidderName: rejectedUser.fullName,
+            productTitle: product.title,
+            sellerName: seller ? seller.fullName : 'Seller',
+            reason: reason,
+            homeUrl: process.env.FRONTEND_BASE_URL
+        });
+    }
+
+    return rejection;
   }
 
   /**
@@ -450,53 +512,63 @@ export class BidService {
     session.startTransaction();
 
     try {
-      console.log(`[BID SERVICE] Bidder ${bidderId} withdrawing bids for product ${productId}`);
+      console.log(
+        `[BID SERVICE] Bidder ${bidderId} withdrawing bids for product ${productId}`
+      );
       console.log(`[BID SERVICE] Reason: ${reason}`);
 
       // 1. Tìm cuộc đấu giá cho sản phẩm
-      const auction = await Auction.findOne({ productId: productId }).session(session);
+      const auction = await Auction.findOne({ productId: productId }).session(
+        session
+      );
       if (!auction) {
-        throw new AppError('Auction not found for this product', 404);
+        throw new AppError("Auction not found for this product", 404);
       }
 
       // Chỉ cho phép withdraw trong auction active
       if (auction.status !== AUCTION_STATUS.ACTIVE) {
-        throw new AppError('Can only withdraw bids in active auctions', 400);
+        throw new AppError("Can only withdraw bids in active auctions", 400);
       }
 
       // 2. Kiểm tra bidder có bids nào không
       const bidCount = await Bid.countDocuments({
         auctionId: auction._id,
         bidderId: bidderId,
-        isValid: true
+        isValid: true,
       }).session(session);
 
       if (bidCount === 0) {
-        throw new AppError('You have no active bids for this product', 400);
+        throw new AppError("You have no active bids for this product", 400);
       }
 
-      const previousWinnerId = auction.currentHighestBidderId ? auction.currentHighestBidderId.toString() : null;
+      const previousWinnerId = auction.currentHighestBidderId
+        ? auction.currentHighestBidderId.toString()
+        : null;
       const isCurrentWinner = previousWinnerId === bidderId;
 
       console.log(`[BID SERVICE] Current winner: ${previousWinnerId}`);
-      console.log(`[BID SERVICE] Is withdrawing bidder current winner? ${isCurrentWinner}`);
+      console.log(
+        `[BID SERVICE] Is withdrawing bidder current winner? ${isCurrentWinner}`
+      );
 
       // 3. Invalidate ALL bids của bidder
       const invalidatedResult = await Bid.updateMany(
-        { 
+        {
           auctionId: auction._id,
           bidderId: bidderId,
-          isValid: true
+          isValid: true,
         },
-        { 
+        {
           isValid: false,
           invalidatedAt: new Date(),
-          invalidatedReason: reason
+          invalidatedReason: reason,
         },
         { session }
       );
 
-      console.log(`[BID SERVICE] Invalidated ${invalidatedResult.modifiedCount} bids from withdrawing bidder`);
+      console.log(
+        `[BID SERVICE] Invalidated ${invalidatedResult.modifiedCount} bids from withdrawing bidder`
+      );
 
       let newWinner = null;
       let newPrice = auction.currentPrice;
@@ -509,10 +581,10 @@ export class BidService {
         const newHighestBid = await Bid.findOne({
           auctionId: auction._id,
           bidderId: { $ne: bidderId },
-          isValid: true
+          isValid: true,
         })
-        .sort({ amount: -1, createdAt: -1 })
-        .session(session);
+          .sort({ amount: -1, createdAt: -1 })
+          .session(session);
 
         if (newHighestBid) {
           // Có winner mới
@@ -522,7 +594,9 @@ export class BidService {
           newWinner = newHighestBid.bidderId.toString();
           newPrice = newHighestBid.amount;
 
-          console.log(`[BID SERVICE] New winner found: ${newWinner} with bid ${newPrice}`);
+          console.log(
+            `[BID SERVICE] New winner found: ${newWinner} with bid ${newPrice}`
+          );
         } else {
           // Không còn bid hợp lệ nào → reset về giá khởi điểm
           auction.currentPrice = auction.startPrice;
@@ -530,14 +604,16 @@ export class BidService {
           auction.currentHighestBidId = null;
           newPrice = auction.startPrice;
 
-          console.log(`[BID SERVICE] No valid bids left, reset to start price ${newPrice}`);
+          console.log(
+            `[BID SERVICE] No valid bids left, reset to start price ${newPrice}`
+          );
         }
       }
 
       // 5. Recalculate bidCount (chỉ đếm valid bids)
       const validBidCount = await Bid.countDocuments({
         auctionId: auction._id,
-        isValid: true
+        isValid: true,
       }).session(session);
 
       auction.bidCount = validBidCount;
@@ -547,30 +623,37 @@ export class BidService {
       console.log(`[BID SERVICE] Updated auction bidCount to ${validBidCount}`);
 
       // 6. Delete auto-bids của withdrawing bidder
-      const AutoBid = (await import('../models/AutoBid.js')).default;
+      const AutoBid = (await import("../models/AutoBid.js")).default;
       const deletedAutoBids = await AutoBid.deleteMany({
         bidderId,
-        productId
+        productId,
       }).session(session);
 
-      console.log(`[BID SERVICE] Deleted ${deletedAutoBids.deletedCount} auto-bids`);
+      console.log(
+        `[BID SERVICE] Deleted ${deletedAutoBids.deletedCount} auto-bids`
+      );
 
       // 7. Create audit log (optional)
-      const AuditLog = (await import('../models/AuditLog.js')).default;
-      await AuditLog.create([{
-        user: bidderId,
-        action: 'WITHDRAW_BID',
-        resource: 'Auction',
-        resourceId: auction._id,
-        details: {
-          productId,
-          reason,
-          wasCurrentWinner: isCurrentWinner,
-          newWinnerId: newWinner,
-          previousPrice: isCurrentWinner ? auction.currentPrice : null,
-          newPrice
-        }
-      }], { session });
+      const AuditLog = (await import("../models/AuditLog.js")).default;
+      await AuditLog.create(
+        [
+          {
+            user: bidderId,
+            action: "WITHDRAW_BID",
+            resource: "Auction",
+            resourceId: auction._id,
+            details: {
+              productId,
+              reason,
+              wasCurrentWinner: isCurrentWinner,
+              newWinnerId: newWinner,
+              previousPrice: isCurrentWinner ? auction.currentPrice : null,
+              newPrice,
+            },
+          },
+        ],
+        { session }
+      );
 
       await session.commitTransaction();
 
@@ -578,24 +661,23 @@ export class BidService {
         withdrawal: {
           bidderId,
           reason,
-          withdrawnAt: new Date()
+          withdrawnAt: new Date(),
         },
         auction: {
           auctionId: auction._id,
           currentPrice: auction.currentPrice,
           currentHighestBidderId: auction.currentHighestBidderId,
-          bidCount: auction.bidCount
+          bidCount: auction.bidCount,
         },
         previousWinner: previousWinnerId,
         newWinner,
         winnerChanged: isCurrentWinner,
         invalidatedBidsCount: invalidatedResult.modifiedCount,
-        deletedAutoBidsCount: deletedAutoBids.deletedCount
+        deletedAutoBidsCount: deletedAutoBids.deletedCount,
       };
-
     } catch (error) {
       await session.abortTransaction();
-      console.error('[BID SERVICE] Error withdrawing bid:', error);
+      console.error("[BID SERVICE] Error withdrawing bid:", error);
       throw error;
     } finally {
       session.endSession();

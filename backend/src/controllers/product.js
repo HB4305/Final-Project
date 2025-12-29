@@ -751,11 +751,13 @@ export const updateProductDescription = async (req, res, next) => {
     const userId = req.user?._id;
     const userRoles = req.user?.roles || [];
 
+    console.log(`[PRODUCT CONTROLLER] PUT /api/products/${productId}/description`);
+
     // Validate productId
     if (!isValidObjectId(productId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid product ID'
+        message: 'ID sản phẩm không hợp lệ'
       });
     }
 
@@ -764,27 +766,27 @@ export const updateProductDescription = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found'
+        message: 'Sản phẩm không tồn tại'
       });
     }
 
     // Check ownership: seller hoặc admin
     const isAdmin = userRoles.includes('admin') || userRoles.includes('superadmin');
-    const isSeller = userId && product.seller.toString() === userId.toString();
+    const isSeller = userId && product.sellerId.toString() === userId.toString();
     
-    if (userId && !isAdmin && !isSeller) {
+    if (!isAdmin && !isSeller) {
       return res.status(403).json({
         success: false,
-        message: 'You are not authorized to modify this product'
+        message: 'Bạn không có quyền chỉnh sửa sản phẩm này'
       });
     }
 
     // Find auction
-    const auction = await Auction.findOne({ product: productId });
+    const auction = await Auction.findOne({ productId });
     if (!auction) {
       return res.status(404).json({
         success: false,
-        message: 'Auction not found for this product'
+        message: 'Phiên đấu giá không tồn tại'
       });
     }
 
@@ -792,42 +794,47 @@ export const updateProductDescription = async (req, res, next) => {
     if (['ended', 'cancelled'].includes(auction.status)) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot update product description for ended or cancelled auctions'
+        message: 'Không thể cập nhật mô tả cho phiên đấu giá đã kết thúc hoặc bị hủy'
       });
     }
 
-    // Prepare update object
-    const updateFields = {};
-    
-    // Add new description to history if provided
-    if (description !== undefined && description.trim().length > 0) {
+    // Validate description nếu có
+    if (description !== undefined) {
+      if (!description || description.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mô tả sản phẩm không được để trống'
+        });
+      }
+
+      if (description.length < PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH) {
+        return res.status(400).json({
+          success: false,
+          message: `Mô tả sản phẩm phải có ít nhất ${PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH} ký tự`
+        });
+      }
+
+      // Add new description to history
       product.descriptionHistory.push({
         text: description.trim(),
         createdAt: new Date(),
         authorId: userId
       });
+
+      console.log('[PRODUCT CONTROLLER] Added new description to history');
     }
     
-    // Update metadata if provided
+    // Update metadata nếu có
     if (metadata !== undefined) {
-      updateFields.metadata = { ...product.metadata, ...metadata };
+      product.metadata = { ...product.metadata, ...metadata };
+      console.log('[PRODUCT CONTROLLER] Updated metadata');
     }
     
-    updateFields.updatedAt = new Date();
+    product.updatedAt = new Date();
+    await product.save();
 
-    // Save product to update descriptionHistory
-    if (description !== undefined) {
-      await product.save();
-    }
-
-    // Update other fields if needed
-    if (Object.keys(updateFields).length > 0) {
-      await Product.findByIdAndUpdate(
-        productId,
-        { $set: updateFields },
-        { new: false, runValidators: false }
-      );
-    }
+    // Populate để trả về đầy đủ
+    await product.populate('categoryId', 'name slug');
 
     // Get latest description
     const latestDescription = product.descriptionHistory.length > 0 
@@ -836,20 +843,22 @@ export const updateProductDescription = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Product description updated successfully',
+      message: 'Cập nhật mô tả sản phẩm thành công',
       data: {
         product: {
           _id: product._id,
           title: product.title,
           description: latestDescription,
           descriptionHistory: product.descriptionHistory,
-          metadata: metadata ? { ...product.metadata, ...metadata } : product.metadata,
+          metadata: product.metadata,
           primaryImageUrl: product.primaryImageUrl,
-          updatedAt: new Date()
+          category: product.categoryId,
+          updatedAt: product.updatedAt
         }
       }
     });
   } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in updateProductDescription:', error);
     next(error);
   }
 };
@@ -869,25 +878,28 @@ export const rejectBidder = async (req, res, next) => {
     const userId = req.user?._id;
     const userRoles = req.user?.roles || [];
 
+    console.log(`[PRODUCT CONTROLLER] POST /api/products/${productId}/reject-bidder`);
+    console.log(`[PRODUCT CONTROLLER] Rejecting bidder: ${bidderId}`);
+
     // Validate input
     if (!isValidObjectId(productId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid product ID'
+        message: 'ID sản phẩm không hợp lệ'
       });
     }
 
     if (!isValidObjectId(bidderId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid bidder ID'
+        message: 'ID bidder không hợp lệ'
       });
     }
 
     if (!reason || reason.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Rejection reason is required'
+        message: 'Lý do từ chối là bắt buộc'
       });
     }
 
@@ -895,7 +907,7 @@ export const rejectBidder = async (req, res, next) => {
     if (userId && userId.toString() === bidderId.toString()) {
       return res.status(400).json({
         success: false,
-        message: 'You cannot reject yourself'
+        message: 'Bạn không thể từ chối chính mình'
       });
     }
 
@@ -904,33 +916,42 @@ export const rejectBidder = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found'
+        message: 'Sản phẩm không tồn tại'
       });
     }
 
     // Check ownership: seller hoặc admin
     const isAdmin = userRoles.includes('admin') || userRoles.includes('superadmin');
-    const isSeller = userId && product.seller.toString() === userId.toString();
+    const isSeller = userId && product.sellerId.toString() === userId.toString();
     
-    if (userId && !isAdmin && !isSeller) {
+    if (!isAdmin && !isSeller) {
       return res.status(403).json({
         success: false,
-        message: 'You are not authorized to reject bidders for this product'
+        message: 'Bạn không có quyền từ chối bidder cho sản phẩm này'
       });
     }
 
     // Call BidService to handle rejection logic
-    const { default: BidService } = await import('../services/BidService.js');
-    const bidService = new BidService();
+    const { BidService: BidServiceClass } = await import('../services/BidService.js');
+    const bidService = new BidServiceClass();
     
-    const result = await bidService.rejectBidder(productId, bidderId, reason, userId);
+    const result = await bidService.rejectBidder(productId, bidderId, userId, reason);
 
     res.json({
       success: true,
-      message: 'Bidder rejected successfully',
+      message: 'Từ chối bidder thành công',
       data: result
     });
   } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in rejectBidder:', error);
+    
+    if (error.message === 'Auction not found') {
+      return res.status(404).json({
+        success: false,
+        message: 'Phiên đấu giá không tồn tại'
+      });
+    }
+    
     next(error);
   }
 };
@@ -948,37 +969,56 @@ export const withdrawBid = async (req, res, next) => {
     const { reason } = req.body;
     const userId = req.user?._id;
 
+    console.log(`[PRODUCT CONTROLLER] POST /api/products/${productId}/withdraw-bid`);
+    console.log(`[PRODUCT CONTROLLER] User ${userId} withdrawing bid`);
+
     // Validate input
     if (!isValidObjectId(productId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid product ID'
+        message: 'ID sản phẩm không hợp lệ'
       });
     }
 
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: 'Authentication required'
+        message: 'Vui lòng đăng nhập'
       });
     }
 
     // Call BidService to handle withdrawal logic
-    const { default: BidService } = await import('../services/BidService.js');
-    const bidService = new BidService();
+    const { BidService: BidServiceClass } = await import('../services/BidService.js');
+    const bidService = new BidServiceClass();
     
     const result = await bidService.withdrawBid(
       productId, 
       userId.toString(), 
-      reason || 'Bidder withdrew bid'
+      reason || 'Bidder tự rút lại giá'
     );
 
     res.json({
       success: true,
-      message: 'Bid withdrawn successfully',
+      message: 'Rút giá thành công',
       data: result
     });
   } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in withdrawBid:', error);
+    
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    if (error.message.includes('no active bids') || error.message.includes('only withdraw')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
     next(error);
   }
 };

@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
+import './config/passport.js'; // Import passport config
 import { connectDB } from './lib/database.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 import dotenv from 'dotenv';
@@ -14,6 +16,7 @@ import watchlistRoutes from './routes/watchlist.js';
 import categoryRoutes from './routes/category.js';
 import productRoutes from './routes/product.js';
 import questionRoutes from './routes/question.js';
+import orderRoutes from './routes/order.js';
 import adminRoutes from './routes/admin.js';
 
 dotenv.config();
@@ -45,6 +48,7 @@ app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/orders', orderRoutes);
 // Admin routes
 app.use("/api/admin", adminRoutes);
 
@@ -57,6 +61,11 @@ app.use(errorHandler);
 // Start Server
 async function startServer() {
   await connectDB();
+
+  // Start Scheduler
+  const { startScheduler } = await import('./scheduler.js');
+  startScheduler();
+
   app.listen(PORT, () => {
     console.log(`Local host: http://localhost:${PORT}`);
   });

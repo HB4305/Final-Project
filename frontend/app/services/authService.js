@@ -8,6 +8,7 @@ const signup = (userData) => {
   return api.post("/auth/register", {
     username: userData.username || userData.name,
     fullName: userData.fullName || userData.name,
+    address: userData.address,
     email: userData.email,
     password: userData.password,
     passwordConfirm: userData.passwordConfirm,

@@ -1,9 +1,10 @@
-import { Question, Product, User } from "../models/index.js";
+import { Question, Product, User, Bid, Auction } from "../models/index.js";
 import { AppError } from "../utils/errors.js";
 import { NotificationService } from "../services/NotificationService.js";
 import {
   sendAnswerNotification,
   sendQuestionNotification,
+  sendSellerAnswerNotification,
 } from "../utils/email.js";
 
 export const createQuestion = async (req, res, next) => {
@@ -163,6 +164,49 @@ export const answerQuestion = async (req, res, next) => {
       answerText: text.trim(),
       productUrl,
     });
+
+    // Send notification to other interested users (Bidders + Other Askers)
+    (async () => {
+        try {
+            // Find all bidders for this product
+            const bids = await Bid.find({ productId: question.productId._id }).distinct('bidderId');
+            
+            // Find all users who asked questions about this product
+            const questions = await Question.find({ productId: question.productId._id }).distinct('authorId');
+
+            // Combine and unique
+            const interestedUserIds = [...new Set([...bids.map(id => id.toString()), ...questions.map(id => id.toString())])];
+
+            // Filter out current question author (already notified) and seller (who is answering)
+            const recipients = interestedUserIds.filter(id => 
+                id !== question.authorId._id.toString() && 
+                id !== userId.toString()
+            );
+
+            if (recipients.length > 0) {
+                 const users = await User.find({ _id: { $in: recipients } });
+                 const auction = await Auction.findOne({ productId: question.productId._id, status: 'active' });
+
+                 for (const recipient of users) {
+                     await sendSellerAnswerNotification({
+                        participantEmail: recipient.email,
+                        participantName: recipient.fullName,
+                        productTitle: question.productId.title,
+                        questionText: question.text,
+                        answerText: text.trim(),
+                        questionAuthor: question.authorId.fullName,
+                        sellerName: user.fullName,
+                        currentPrice: auction ? auction.currentPrice : 'N/A',
+                        auctionEndTime: auction ? auction.endAt : null,
+                        productUrl
+                     });
+                 }
+            }
+
+        } catch (err) {
+            console.error("Error sending seller answer notifications:", err);
+        }
+    })();
 
     // TODO: Create notification
     // await NotificationService.createNotification({

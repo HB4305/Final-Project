@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Heart, Clock, TrendingUp, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import productService from '../app/services/productService';
+import watchlistService from '../app/services/watchlistService';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=300&fit=crop';
 const FETCH_CONFIG = { limit: 12, sortBy: 'newest', status: 'active', page: 1 };
@@ -11,13 +12,13 @@ const HOT_BID_THRESHOLD = 10;
 // Helper functions
 const calculateTimeRemaining = (endAt) => {
   if (!endAt) return 'N/A';
-  
+
   const diff = new Date(endAt) - new Date();
   if (diff < 0) return 'Ended';
-  
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  
+
   return days > 0 ? `${days}d ${hours}h` : `${hours}h`;
 };
 
@@ -99,10 +100,10 @@ const ProductCard = ({ product, isWatched, onToggleWatchlist }) => (
       <div className="relative">
         <ProductImage product={product} />
         <ProductBadges auction={product.auction} />
-        <WatchlistButton 
-          productId={product._id} 
-          isWatched={isWatched} 
-          onToggle={onToggleWatchlist} 
+        <WatchlistButton
+          productId={product._id}
+          isWatched={isWatched}
+          onToggle={onToggleWatchlist}
         />
       </div>
 
@@ -128,11 +129,10 @@ const ProductCard = ({ product, isWatched, onToggleWatchlist }) => (
             </span>
           </div>
 
-          <span className={`inline-block text-xs px-2 py-1 rounded ${
-            product.auction?.status === 'active' 
-              ? 'bg-green-100 text-green-700' 
+          <span className={`inline-block text-xs px-2 py-1 rounded ${product.auction?.status === 'active'
+              ? 'bg-green-100 text-green-700'
               : 'bg-gray-100 text-gray-700'
-          }`}>
+            }`}>
             {product.auction?.status || 'N/A'}
           </span>
         </div>
@@ -166,13 +166,47 @@ export default function FeaturedProducts() {
     fetchProducts();
   }, []);
 
-  const toggleWatchlist = useCallback((productId) => {
-    setWatchlist(prev => {
-      const updated = new Set(prev);
-      updated.has(productId) ? updated.delete(productId) : updated.add(productId);
-      return updated;
-    });
-  }, []);
+  // Load watchlist status for displayed products
+  useEffect(() => {
+    const loadWatchlistStatus = async () => {
+      if (products.length === 0) return;
+
+      try {
+        const watchlistData = await watchlistService.getWatchlist({ page: 1, limit: 100 });
+        const watchedIds = new Set(
+          watchlistData.data.watchlist
+            .map(item => item.productId?._id || item.productId)
+            .filter(Boolean)
+        );
+        setWatchlist(watchedIds);
+      } catch (error) {
+        console.error('Error loading watchlist:', error);
+      }
+    };
+
+    loadWatchlistStatus();
+  }, [products]);
+
+  const toggleWatchlist = useCallback(async (productId) => {
+    const isWatched = watchlist.has(productId);
+
+    try {
+      if (isWatched) {
+        await watchlistService.removeFromWatchlist(productId);
+        setWatchlist(prev => {
+          const updated = new Set(prev);
+          updated.delete(productId);
+          return updated;
+        });
+      } else {
+        await watchlistService.addToWatchlist(productId);
+        setWatchlist(prev => new Set(prev).add(productId));
+      }
+    } catch (error) {
+      console.error('Error toggling watchlist:', error);
+      alert(error.response?.data?.message || 'Không thể cập nhật danh sách theo dõi');
+    }
+  }, [watchlist]);
 
   if (loading) {
     return (
@@ -201,8 +235,8 @@ export default function FeaturedProducts() {
           <h2 className="text-2xl font-bold text-foreground mb-1">Trending Now</h2>
           <p className="text-sm text-muted-foreground">Hot items people are bidding on</p>
         </div>
-        <Link 
-          to="/products" 
+        <Link
+          to="/products"
           className="text-primary hover:text-primary/90 font-semibold text-sm flex items-center gap-1"
         >
           View All →

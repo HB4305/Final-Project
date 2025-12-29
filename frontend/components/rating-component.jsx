@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare, Star } from 'lucide-react';
+import orderService from '../app/services/orderService';
 
 /**
  * RatingComponent
@@ -17,7 +18,7 @@ export default function RatingComponent({
   const [comment, setComment] = useState(existingRating?.comment || '');
   const [isSubmitted, setIsSubmitted] = useState(!!existingRating);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!rating) {
@@ -30,14 +31,26 @@ export default function RatingComponent({
       return;
     }
 
-    onSubmitRating && onSubmitRating({
-      transactionId,
-      targetUserId: targetUser.id,
-      rating,
-      comment: comment.trim()
-    });
+    try {
+      await orderService.rateTransaction(transactionId, {
+        score: rating,
+        comment: comment.trim(),
+      });
+      
+      setIsSubmitted(true);
+    
+      onSubmitRating && onSubmitRating({
+        transactionId,
+        targetUserId: targetUser.id,
+        rating,
+        comment: comment.trim(),
+      });
 
-    setIsSubmitted(true);
+      alert('Rating submitted successfully.');
+    } catch (error) {
+      alert('Error: ' + (error.message || 'Failed to submit rating'));
+    }
+
   };
 
   const handleUpdate = () => {

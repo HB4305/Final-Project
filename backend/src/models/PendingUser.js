@@ -20,6 +20,10 @@ const pendingUserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  address: {
+    type: String,
+    default: "",
+  },
   otp: {
     code: String,
     expiresAt: Date,

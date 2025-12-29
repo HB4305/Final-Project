@@ -1,49 +1,50 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Paperclip, Image, X } from 'lucide-react';
+import { useOrderchat } from '../hooks/useOrderchat.js';
 
 /**
  * ChatComponent
  * Real-time chat between buyer and seller during order completion (section 7)
  */
 export default function ChatComponent({ 
-  orderId, 
-  currentUserId,
-  currentUserName,
-  otherUserId,
-  otherUserName,
-  messages = [],
-  onSendMessage 
+  order,
+  currentUser
 }) {
+  const orderId = order._id;
+  const currentUserId = currentUser._id;
+  const currentUserName = currentUser.username || currentUser.fullName;
+
+  // Determine other user
+  const isBuyer = order.buyerId._id === currentUserId || order.buyerId === currentUserId;
+  const otherUser = isBuyer ? order.sellerId : order.buyerId;
+  const otherUserId = otherUser?._id || otherUser;
+  const otherUserName = otherUser?.fullName || otherUser?.username || 'User';
+
+  const { messages, loading, sending, sendMessage } = useOrderchat(orderId);
   const [newMessage, setNewMessage] = useState('');
   const [attachment, setAttachment] = useState(null);
   const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  const prevMessagesLengthRef = useRef(0);
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > prevMessagesLengthRef.current) {
+       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!newMessage.trim() && !attachment) return;
 
-    const message = {
-      orderId,
-      senderId: currentUserId,
-      senderName: currentUserName,
-      receiverId: otherUserId,
-      text: newMessage.trim(),
-      attachment: attachment,
-      timestamp: new Date().toISOString()
-    };
-
-    onSendMessage && onSendMessage(message);
-    setNewMessage('');
-    setAttachment(null);
+    try {
+      await sendMessage(newMessage.trim(), attachment?.url);
+      setNewMessage('');
+      setAttachment(null);
+    } catch (error) {
+      alert('Failed to send message: ' + error.message);
+    }
   };
 
   const handleFileSelect = (e) => {
@@ -93,7 +94,10 @@ export default function ChatComponent({
           </div>
         ) : (
           messages.map((msg, index) => {
-            const isOwnMessage = msg.senderId === currentUserId;
+            // Check if senderId is populated (object) or raw ID (string)
+            const senderId = msg.senderId?._id || msg.senderId;
+            const isOwnMessage = senderId?.toString() === currentUserId?.toString();
+            const senderName = msg.senderId?.username || msg.senderId?.fullName || 'User';
             
             return (
               <div 
@@ -102,7 +106,7 @@ export default function ChatComponent({
               >
                 <div className={`max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col`}>
                   {!isOwnMessage && (
-                    <span className="text-xs text-muted-foreground mb-1">{msg.senderName}</span>
+                    <span className="text-xs text-muted-foreground mb-1">{senderName}</span>
                   )}
                   
                   <div className={`rounded-lg p-3 ${
@@ -110,7 +114,7 @@ export default function ChatComponent({
                       ? 'bg-primary text-white' 
                       : 'bg-muted text-foreground'
                   }`}>
-                    {msg.text && <p className="text-sm break-words">{msg.text}</p>}
+                    {msg.message && <p className="text-sm break-words">{msg.message}</p>}
                     
                     {msg.attachment && (
                       <div className="mt-2">
@@ -131,7 +135,7 @@ export default function ChatComponent({
                   </div>
                   
                   <span className="text-xs text-muted-foreground mt-1">
-                    {formatTime(msg.timestamp)}
+                    {formatTime(msg.createdAt)}
                   </span>
                 </div>
               </div>

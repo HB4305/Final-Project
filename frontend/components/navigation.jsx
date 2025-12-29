@@ -1,12 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  Heart,
-  Search,
-  User,
-  Menu,
-  X,
-  Bell,
-} from "lucide-react";
+import { Heart, Search, User, Menu, X, Bell } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../app/context/AuthContext";
 
@@ -16,9 +9,11 @@ export default function Navigation() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
-  
+
   // Check if user is admin or superadmin
-  const isAdmin = currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('superadmin');
+  const isAdmin =
+    currentUser?.roles?.includes("admin") ||
+    currentUser?.roles?.includes("superadmin");
   const userMenuRef = useRef(null);
 
   // Close user menu when clicking outside
@@ -82,7 +77,7 @@ export default function Navigation() {
               placeholder="Tìm kiếm sản phẩm... (ít nhất 2 ký tự)"
               className="flex-1 px-4 py-2 text-foreground placeholder-muted-foreground outline-none text-sm"
             />
-            <button 
+            <button
               type="submit"
               className="px-4 py-2 text-primary hover:bg-muted transition"
               title="Tìm kiếm nâng cao"
@@ -135,6 +130,13 @@ export default function Navigation() {
                       className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
                     >
                       Settings
+                    </Link>
+                    <Link
+                      to={`/profile/ratings/${currentUser?._id}`}
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
+                    >
+                      My Ratings
                     </Link>
                     {isAdmin && (
                       <>
@@ -202,26 +204,18 @@ export default function Navigation() {
               Categories
             </Link>
             {isAdmin && (
-              <Link
-                to="/admin/dashboard"
-                className="text-orange-600 hover:text-orange-700 transition font-semibold flex items-center gap-1"
-              >
-                🛡️ Admin Panel
-              </Link>
-            )}
-            {isLoggedIn && (
               <>
                 <Link
-                  to="/watchlist"
-                  className="text-foreground hover:text-primary transition font-medium flex items-center gap-1"
+                  to="/admin/categories"
+                  className="text-orange-600 hover:text-orange-700 transition font-medium"
                 >
-                  <Heart className="w-4 h-4" /> Wishlist
+                  Admin: Categories
                 </Link>
                 <Link
-                  to="/dashboard"
-                  className="text-foreground hover:text-primary transition font-medium"
+                  to="/admin/products"
+                  className="text-orange-600 hover:text-orange-700 transition font-medium"
                 >
-                  My Purchases
+                  Admin: Products
                 </Link>
               </>
             )}

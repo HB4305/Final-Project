@@ -8,7 +8,7 @@ import { formatPrice, formatDateShort } from './utils';
 
 // Badge icons for top 3 bidders
 const getBadge = (rank) => {
-  switch(rank) {
+  switch (rank) {
     case 1:
       return <Trophy className="w-5 h-5 text-yellow-500" />;
     case 2:
@@ -22,7 +22,7 @@ const getBadge = (rank) => {
 
 // Badge color for top 3
 const getBadgeColor = (rank) => {
-  switch(rank) {
+  switch (rank) {
     case 1:
       return 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-300';
     case 2:
@@ -43,21 +43,27 @@ export default function TopBiddersSection({ bidders = [] }) {
     );
   }
 
-  // Sort by amount descending and take top 5
-  const topBidders = [...bidders]
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 5);
+  // ✅ Mask username function - hiển thị phần đầu, mask phần sau
+  const maskUsername = (username) => {
+    if (!username || username === 'Người dùng ẩn danh') return username;
+    if (username.length <= 3) return '****';
+    // Lấy 3 ký tự đầu + ****
+    return username.slice(0, 3) + '****';
+  };
+
+  // Sort by amount descending - hiển thị tất cả
+  const allBidders = [...bidders].sort((a, b) => b.amount - a.amount);
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-bold">Top người đặt giá cao nhất</h3>
-      <div className="space-y-2">
-        {topBidders.map((bidder, index) => {
+      <h3 className="text-xl font-bold">Danh sách người đặt giá ({allBidders.length})</h3>
+      <div className="space-y-2 max-h-[600px] overflow-y-auto">
+        {allBidders.map((bidder, index) => {
           const rank = index + 1;
           const isTop3 = rank <= 3;
 
           return (
-            <div 
+            <div
               key={bidder._id || index}
               className={`${getBadgeColor(rank)} border rounded-lg p-4 transition hover:shadow-md`}
             >
@@ -72,7 +78,7 @@ export default function TopBiddersSection({ bidders = [] }) {
                   {/* User Info */}
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">
-                      {bidder.bidderUsername || bidder.username || 'Người dùng ẩn danh'}
+                      {maskUsername(bidder.bidderUsername || bidder.username || 'Người dùng ẩn danh')}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDateShort(bidder.createdAt)}

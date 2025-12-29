@@ -8,11 +8,18 @@ import { AppError } from "../utils/errors.js";
  */
 export const register = async (req, res, next) => {
   try {
-    const { username, email, password, fullName, recaptchaToken } = req.body;
+    const { username, email, password, fullName, address, recaptchaToken } =
+      req.body;
+
+    console.log("[REGISTER CONTROLLER] Received body:", {
+      ...req.body,
+      password: "***",
+    });
+    console.log("[REGISTER CONTROLLER] Address:", address);
 
     // 1. Xác thực reCaptcha
     if (!recaptchaToken) {
-      throw new AppError("Vui lòng xác thực reCaptcha.", 400);
+      throw new AppError("Please verify reCaptcha.", 400);
     }
 
     // NOTE: Cần có biến RECAPTCHA_SECRET_KEY trong file .env
@@ -21,7 +28,7 @@ export const register = async (req, res, next) => {
       console.error(
         "RECAPTCHA_SECRET_KEY is not set in environment variables."
       );
-      throw new AppError("Lỗi hệ thống, không thể xác thực reCaptcha.", 500);
+      throw new AppError("System error, cannot verify reCaptcha.", 500);
     }
 
     const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${recaptchaSecret}&response=${recaptchaToken}`;
@@ -29,7 +36,7 @@ export const register = async (req, res, next) => {
     const { data: recaptchaResult } = await axios.post(verifyUrl);
 
     if (!recaptchaResult.success) {
-      throw new AppError("Xác thực reCaptcha thất bại.", 400);
+      throw new AppError("reCaptcha verification failed.", 400);
     }
 
     // 2. Gọi service để đăng ký và gửi OTP
@@ -38,6 +45,7 @@ export const register = async (req, res, next) => {
       email,
       password,
       fullName,
+      address,
     });
 
     res.status(201).json({
@@ -92,7 +100,7 @@ export const login = async (req, res, next) => {
 
     res.status(200).json({
       status: "success",
-      message: "Đăng nhập thành công",
+      message: "Login successful",
       data: {
         user: result.user,
         accessToken: result.accessToken,

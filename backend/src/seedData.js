@@ -18,9 +18,11 @@ async function seedData() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('[SEED] Connected to MongoDB');
+
+    const now = new Date();
     const hashedPassword = await bcrypt.hash('password123', 10);
 
-    // 1. Xóa dữ liệu cũ
+    // 1. Dọn dẹp Database
     await Promise.all([
       Category.deleteMany({}),
       Product.deleteMany({}),
@@ -30,489 +32,220 @@ async function seedData() {
     ]);
     console.log('[SEED] Cleaned up old data');
 
-    // 2. Tạo người dùng
+    // 2. Tạo User (1 Seller, 2 Bidders)
     const seller = await User.create({
-      username: 'seller_test_001',
-      email: 'seller@test.com',
-      emailVerified: true,
-      passwordHash: hashedPassword, // bcrypt hash of 'password123'
-      fullName: 'Người Bán Test',
-      contactPhone: '+84912345678',
-      roles: ['seller'],
-      ratingSummary: {
-        countPositive: 150,
-        countNegative: 5,
-        totalCount: 155,
-        score: 0.97
-      },
-      status: 'active'
+      username: 'seller_test_001', email: 'seller@test.com', emailVerified: true,
+      passwordHash: hashedPassword, fullName: 'Người Bán Test', roles: ['seller'], status: 'active',
+      ratingSummary: { countPositive: 150, countNegative: 5, totalCount: 155, score: 0.97 }
     });
-    console.log('[SEED] Created seller:', seller._id);
-
     const bidder1 = await User.create({
-      username: 'bidder_test_001',
-      email: 'bidder1@test.com',
-      emailVerified: true,
-      passwordHash: hashedPassword,
-      fullName: 'Người Mua Test 1',
-      roles: ['bidder'],
-      ratingSummary: {
-        countPositive: 45,
-        countNegative: 2,
-        totalCount: 47,
-        score: 0.96
-      },
-      status: 'active'
+      username: 'bidder_test_001', email: 'bidder1@test.com', emailVerified: true,
+      passwordHash: hashedPassword, fullName: 'Người Mua Test 1', roles: ['bidder'], status: 'active'
     });
-
     const bidder2 = await User.create({
-      username: 'bidder_test_002',
-      email: 'bidder2@test.com',
-      emailVerified: true,
-      passwordHash: hashedPassword,
-      fullName: 'Người Mua Test 2',
-      roles: ['bidder'],
-      ratingSummary: {
-        countPositive: 80,
-        countNegative: 3,
-        totalCount: 83,
-        score: 0.96
-      },
-      status: 'active'
+      username: 'bidder_test_002', email: 'bidder2@test.com', emailVerified: true,
+      passwordHash: hashedPassword, fullName: 'Người Mua Test 2', roles: ['bidder'], status: 'active'
     });
 
-    console.log('[SEED] Created bidders:', bidder1._id, bidder2._id);
-
-    // 3. Tạo danh mục (5 parent + 10 child)
-    const parentCategories = await Category.insertMany([
+    // 3. Tạo Danh mục
+    const parentCats = await Category.insertMany([
       { name: 'Điện tử', slug: 'dien-tu', parentId: null, path: [], level: 1 },
       { name: 'Thời trang', slug: 'thoi-trang', parentId: null, path: [], level: 1 },
       { name: 'Nhà cửa', slug: 'nha-cua', parentId: null, path: [], level: 1 },
       { name: 'Thể thao', slug: 'the-thao', parentId: null, path: [], level: 1 },
       { name: 'Sách & Học tập', slug: 'sach-hoc-tap', parentId: null, path: [], level: 1 }
     ]);
-    console.log('[SEED] Created 5 parent categories');
 
-    const childCategories = await Category.insertMany([
-      // Điện tử
-      { name: 'Điện thoại', slug: 'dien-thoai', parentId: parentCategories[0]._id, path: [parentCategories[0]._id], level: 2 },
-      { name: 'Laptop', slug: 'laptop', parentId: parentCategories[0]._id, path: [parentCategories[0]._id], level: 2 },
-      // Thời trang
-      { name: 'Áo', slug: 'ao', parentId: parentCategories[1]._id, path: [parentCategories[1]._id], level: 2 },
-      { name: 'Giày', slug: 'giay', parentId: parentCategories[1]._id, path: [parentCategories[1]._id], level: 2 },
-      // Nhà cửa
-      { name: 'Nội thất', slug: 'noi-that', parentId: parentCategories[2]._id, path: [parentCategories[2]._id], level: 2 },
-      { name: 'Điều hòa', slug: 'dieu-hoa', parentId: parentCategories[2]._id, path: [parentCategories[2]._id], level: 2 },
-      // Thể thao
-      { name: 'Bóng đá', slug: 'bong-da', parentId: parentCategories[3]._id, path: [parentCategories[3]._id], level: 2 },
-      { name: 'Cầu lông', slug: 'cau-long', parentId: parentCategories[3]._id, path: [parentCategories[3]._id], level: 2 },
-      // Sách
-      { name: 'Sách tiếng Việt', slug: 'sach-tieng-viet', parentId: parentCategories[4]._id, path: [parentCategories[4]._id], level: 2 },
-      { name: 'Sách nước ngoài', slug: 'sach-nuoc-ngoai', parentId: parentCategories[4]._id, path: [parentCategories[4]._id], level: 2 }
+    const childCats = await Category.insertMany([
+      { name: 'Điện thoại', slug: 'dien-thoai', parentId: parentCats[0]._id, path: [parentCats[0]._id], level: 2 },
+      { name: 'Laptop', slug: 'laptop', parentId: parentCats[0]._id, path: [parentCats[0]._id], level: 2 },
+      { name: 'Áo', slug: 'ao', parentId: parentCats[1]._id, path: [parentCats[1]._id], level: 2 },
+      { name: 'Giày', slug: 'giay', parentId: parentCats[1]._id, path: [parentCats[1]._id], level: 2 },
+      { name: 'Nội thất', slug: 'noi-that', parentId: parentCats[2]._id, path: [parentCats[2]._id], level: 2 },
+      { name: 'Điều hòa', slug: 'dieu-hoa', parentId: parentCats[2]._id, path: [parentCats[2]._id], level: 2 },
+      { name: 'Bóng đá', slug: 'bong-da', parentId: parentCats[3]._id, path: [parentCats[3]._id], level: 2 },
+      { name: 'Cầu lông', slug: 'cau-long', parentId: parentCats[3]._id, path: [parentCats[3]._id], level: 2 },
+      { name: 'Sách tiếng Việt', slug: 'sach-tieng-viet', parentId: parentCats[4]._id, path: [parentCats[4]._id], level: 2 },
+      { name: 'Sách nước ngoài', slug: 'sach-nuoc-ngoai', parentId: parentCats[4]._id, path: [parentCats[4]._id], level: 2 }
     ]);
-    console.log('[SEED] Created 10 child categories');
 
-    // 4. Tạo 20 sản phẩm
-    let products;
-    try {
-      products = await Product.insertMany([
-        // Điện thoại (6 sản phẩm)
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[0]._id,
-          title: 'iPhone 15 Pro Max',
-          slug: 'iphone-15-pro-max',
-          descriptionHistory: [
-            {
-              text: 'iPhone 15 Pro Max 256GB Space Black, hàng chính hãng Apple, chưa kích hoạt, bao gồm đầy đủ phụ kiện.',
-              createdAt: new Date(),
-              authorId: seller._id
-            }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=500&h=500&fit=crop',
-          imageUrls: [
-            'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=500&h=500&fit=crop',
-            'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=500&h=500&fit=crop',
-            'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&h=500&fit=crop'
-          ],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: {
-            brand: 'Apple',
-            model: 'iPhone 15 Pro Max',
-            condition: 'Mới 100%',
-            specs: { storage: '256GB', color: 'Space Black', processor: 'A17 Pro' }
-          },
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[0]._id,
-          title: 'Samsung Galaxy S24 Ultra',
-          slug: 'samsung-galaxy-s24-ultra',
-          descriptionHistory: [
-            { text: 'Samsung Galaxy S24 Ultra 512GB Titanium Black, mở hộp 1 lần, có bảo hành 2 năm', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: {
-            brand: 'Samsung',
-            model: 'Galaxy S24 Ultra',
-            condition: 'Như mới',
-            specs: { storage: '512GB', color: 'Titanium Black' }
-          },
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[0]._id,
-          title: 'iPhone 14 Pro',
-          slug: 'iphone-14-pro',
-          descriptionHistory: [
-            { text: 'iPhone 14 Pro 128GB Gold, hàng chính hãng, đã sử dụng 3 tháng', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1632661674386-33e7e8601d5e?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Apple', model: 'iPhone 14 Pro', condition: 'Đã dùng', specs: { storage: '128GB', color: 'Gold' } },
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[0]._id,
-          title: 'Google Pixel 8 Pro',
-          slug: 'google-pixel-8-pro',
-          descriptionHistory: [
-            { text: 'Google Pixel 8 Pro 256GB Obsidian, mới 100%', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Google', model: 'Pixel 8 Pro', condition: 'Mới', specs: { storage: '256GB', color: 'Obsidian' } },
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[0]._id,
-          title: 'OnePlus 12',
-          slug: 'oneplus-12',
-          descriptionHistory: [
-            { text: 'OnePlus 12 256GB Silky Black, hàng chính hãng', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1557180295-76eee20ae8aa?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'OnePlus', model: '12', condition: 'Mới', specs: { storage: '256GB' } },
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[0]._id,
-          title: 'Xiaomi 14 Ultra',
-          slug: 'xiaomi-14-ultra',
-          descriptionHistory: [
-            { text: 'Xiaomi 14 Ultra 512GB Space Black, mới 100%', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1567581935884-3349723552ca?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1567581935884-3349723552ca?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1605236453806-6ff36851218e?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Xiaomi', model: '14 Ultra', condition: 'Mới', specs: { storage: '512GB' } },
-          createdAt: new Date()
-        },
+    // 4. Danh sách 18 sản phẩm chi tiết
+    const productsData = [
+      // ĐIỆN THOẠI
+      {
+        title: 'iPhone 15 Pro Max', slug: 'iphone-15-pro-max', catIdx: 0,
+        img: 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=500',
+        imgs: ['https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=500', 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=500', 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500']
+      },
+      {
+        title: 'Samsung Galaxy S24 Ultra', slug: 'samsung-galaxy-s24-ultra', catIdx: 0,
+        img: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500',
+        imgs: ['https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500', 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500']
+      },
+      {
+        title: 'iPhone 14 Pro', slug: 'iphone-14-pro', catIdx: 0,
+        img: 'https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=500',
+        imgs: ['https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=500', 'https://images.unsplash.com/photo-1632661674386-33e7e8601d5e?w=500', 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=500']
+      },
+      {
+        title: 'Google Pixel 8 Pro', slug: 'google-pixel-8-pro', catIdx: 0,
+        img: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500',
+        imgs: ['https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500', 'https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?w=500', 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?w=500']
+      },
+      {
+        title: 'OnePlus 12', slug: 'oneplus-12', catIdx: 0,
+        img: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500',
+        imgs: ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500', 'https://images.unsplash.com/photo-1557180295-76eee20ae8aa?w=500', 'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=500']
+      },
+      {
+        title: 'Xiaomi 14 Ultra', slug: 'xiaomi-14-ultra', catIdx: 0,
+        img: 'https://images.unsplash.com/photo-1567581935884-3349723552ca?w=500',
+        imgs: ['https://images.unsplash.com/photo-1567581935884-3349723552ca?w=500', 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=500', 'https://images.unsplash.com/photo-1605236453806-6ff36851218e?w=500']
+      },
 
-        // Laptop (4 sản phẩm)
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[1]._id,
-          title: 'MacBook Pro 16 M3 Max',
-          slug: 'macbook-pro-16-m3-max',
-          descriptionHistory: [
-            { text: 'MacBook Pro 16" M3 Max 48GB 1TB, hàng chính hãng Apple', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Apple', model: 'MacBook Pro 16', condition: 'Mới', specs: { cpu: 'M3 Max', ram: '48GB', storage: '1TB' } },
-          createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[1]._id,
-          title: 'Dell XPS 15',
-          slug: 'dell-xps-15',
-          descriptionHistory: [
-            { text: 'Dell XPS 15 i7 RTX 4060, 32GB RAM, 1TB SSD', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Dell', model: 'XPS 15', condition: 'Như mới', specs: { cpu: 'i7-13700H', ram: '32GB', storage: '1TB' } },
-          createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[1]._id,
-          title: 'HP Pavilion 15',
-          slug: 'hp-pavilion-15',
-          descriptionHistory: [
-            { text: 'HP Pavilion 15 i5 MX550, 16GB RAM, 512GB SSD', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'HP', model: 'Pavilion 15', condition: 'Đã dùng', specs: { cpu: 'i5-12450H', ram: '16GB', storage: '512GB' } },
-          createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[1]._id,
-          title: 'Lenovo ThinkPad X1 Carbon',
-          slug: 'lenovo-thinkpad-x1-carbon',
-          descriptionHistory: [
-            { text: 'Lenovo ThinkPad X1 Carbon i7, 16GB, 512GB', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1602080858428-57174f9431cf?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Lenovo', model: 'ThinkPad X1', condition: 'Mới', specs: { cpu: 'i7-1365U', ram: '16GB', storage: '512GB' } },
-          createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
-        },
+      // LAPTOP
+      {
+        title: 'MacBook Pro 16 M3 Max', slug: 'macbook-pro-16-m3-max', catIdx: 1,
+        img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500',
+        imgs: ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500', 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500']
+      },
+      {
+        title: 'Dell XPS 15', slug: 'dell-xps-15', catIdx: 1,
+        img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500',
+        imgs: ['https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500', 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500', 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500']
+      },
+      {
+        title: 'HP Pavilion 15', slug: 'hp-pavilion-15', catIdx: 1,
+        img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500',
+        imgs: ['https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500', 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=500', 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500']
+      },
+      {
+        title: 'Lenovo ThinkPad X1 Carbon', slug: 'lenovo-thinkpad-x1-carbon', catIdx: 1,
+        img: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500',
+        imgs: ['https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500', 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=500', 'https://images.unsplash.com/photo-1602080858428-57174f9431cf?w=500']
+      },
 
-        // Thời trang & Khác (10 sản phẩm khác)
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[2]._id,
-          title: 'Áo Thun Nike Dri-FIT',
-          slug: 'ao-thun-nike-dri-fit',
-          descriptionHistory: [
-            { text: 'Áo thun Nike Dri-FIT chính hãng, size L, màu đen', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Nike', condition: 'Mới', specs: { size: 'L', material: '100% Cotton' } },
-          createdAt: new Date()
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[3]._id,
-          title: 'Giày Air Jordan 1 Retro',
-          slug: 'giay-air-jordan-1',
-          descriptionHistory: [
-            { text: 'Giày Air Jordan 1 Retro High OG Chicago, size 9.5US', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Jordan', condition: 'Như mới', specs: { size: '9.5US' } },
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[4]._id,
-          title: 'Bàn Làm Việc Gỗ Sồi',
-          slug: 'ban-lam-viec-go-soi',
-          descriptionHistory: [
-            { text: 'Bàn làm việc gỗ sồi nguyên khối, kích thước 120x60cm', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'HandMade', condition: 'Mới', specs: { material: 'Gỗ sồi', size: '120x60cm' } },
-          createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[5]._id,
-          title: 'Điều Hòa LG Inverter 1.5HP',
-          slug: 'dieu-hoa-lg-1-5hp',
-          descriptionHistory: [
-            { text: 'Điều hòa LG Inverter 1.5HP, tiết kiệm điện, bảo hành 3 năm', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1545259742-12f0cb57b28d?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1635840420193-0fc6c3e67e90?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'LG', condition: 'Mới', specs: { power: '1.5HP', type: 'Inverter' } },
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[6]._id,
-          title: 'Quả Bóng FIFA Pro',
-          slug: 'qua-bong-fifa-pro',
-          descriptionHistory: [
-            { text: 'Quả bóng đá FIFA Pro, chất lượng chuyên nghiệp', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aad?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1552667466-07770ae110d0?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'FIFA', condition: 'Mới', specs: { material: 'PVC' } },
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[7]._id,
-          title: 'Vợt Cầu Lông Yonex Nanoray',
-          slug: 'vot-cau-long-yonex',
-          descriptionHistory: [
-            { text: 'Vợt cầu lông Yonex Nanoray, dành cho chuyên nghiệp', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1593786481241-86f4f98c5840?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Yonex', condition: 'Như mới', specs: { series: 'Nanoray' } },
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[8]._id,
-          title: 'Nhà Giả Kim - Paulo Coelho',
-          slug: 'nha-gia-kim',
-          descriptionHistory: [
-            { text: 'Sách Nhà Giả Kim của Paulo Coelho, bìa cứng, tái bản lần 10', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'Skybooks', condition: 'Như mới', specs: { author: 'Paulo Coelho', pages: 320 } },
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-        },
-        {
-          sellerId: seller._id,
-          categoryId: childCategories[9]._id,
-          title: 'The Alchemist - English Version',
-          slug: 'the-alchemist-english',
-          descriptionHistory: [
-            { text: 'Sách The Alchemist bản tiếng Anh, bìa mềm', createdAt: new Date(), authorId: seller._id }
-          ],
-          primaryImageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&h=500&fit=crop',
-          imageUrls: ['https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=500&h=500&fit=crop', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=500&h=500&fit=crop'],
-          isActive: true,
-          baseCurrency: 'VND',
-          metadata: { brand: 'HarperCollins', condition: 'Mới', specs: { author: 'Paulo Coelho', pages: 224 } },
-          createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
-        }
-      ], { ordered: false }); // FIX: ordered: false để insert dù có lỗi
-      console.log(`[SEED] Created ${products.length} products`);
-    } catch (error) {
-      console.error('[SEED] ❌ Lỗi khi tạo products:', error.message);
-      if (error.errors) {
-        console.error('[SEED] Validation errors:', Object.keys(error.errors));
+      // THỜI TRANG & KHÁC
+      {
+        title: 'Áo Thun Nike Dri-FIT', slug: 'ao-thun-nike-dri-fit', catIdx: 2,
+        img: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500',
+        imgs: ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500', 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500', 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=500']
+      },
+      {
+        title: 'Giày Air Jordan 1 Retro', slug: 'giay-air-jordan-1', catIdx: 3,
+        img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500',
+        imgs: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500', 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500', 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=500']
+      },
+      {
+        title: 'Bàn Làm Việc Gỗ Sồi', slug: 'ban-lam-viec-go-soi', catIdx: 4,
+        img: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=500',
+        imgs: ['https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=500', 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=500', 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500']
+      },
+      {
+        title: 'Điều Hòa LG Inverter 1.5HP', slug: 'dieu-hoa-lg-1-5hp', catIdx: 5,
+        img: 'https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?w=500',
+        imgs: ['https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?w=500', 'https://images.unsplash.com/photo-1545259742-12f0cb57b28d?w=500', 'https://images.unsplash.com/photo-1635840420193-0fc6c3e67e90?w=500']
+      },
+      {
+        title: 'Quả Bóng FIFA Pro', slug: 'qua-bong-fifa-pro', catIdx: 6,
+        img: 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=500',
+        imgs: ['https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=500', 'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aad?w=500', 'https://images.unsplash.com/photo-1552667466-07770ae110d0?w=500']
+      },
+      {
+        title: 'Vợt Cầu Lông Yonex Nanoray', slug: 'vot-cau-long-yonex', catIdx: 7,
+        img: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500',
+        imgs: ['https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500', 'https://images.unsplash.com/photo-1593786481241-86f4f98c5840?w=500', 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=500']
+      },
+      {
+        title: 'Nhà Giả Kim - Paulo Coelho', slug: 'nha-gia-kim', catIdx: 8,
+        img: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500',
+        imgs: ['https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500', 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=500', 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=500']
+      },
+      {
+        title: 'The Alchemist - English Version', slug: 'the-alchemist-english', catIdx: 9,
+        img: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500',
+        imgs: ['https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500', 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=500', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=500']
       }
-      throw error;
-    }
-
-    // Kiểm tra số lượng products
-    if (!products || products.length === 0) {
-      throw new Error(`Lỗi: Không tạo được product nào!`);
-    }
-    console.log(`[SEED] Tạo ${products.length}/20 products thành công (${20 - products.length} lỗi)`);
-
-    // 5. Tạo phiên đấu giá cho tất cả sản phẩm
-    const now = new Date();
-    const auctionConfigs = [
-      // Điện thoại - 6 phiên
-      { productIndex: 0, startPrice: 20000000, currentPrice: 25000000, bidCount: 12, endHours: 10 },
-      { productIndex: 1, startPrice: 18000000, currentPrice: 22500000, bidCount: 20, endHours: 30 },
-      { productIndex: 2, startPrice: 12000000, currentPrice: 15500000, bidCount: 8, endHours: 48 },
-      { productIndex: 3, startPrice: 16000000, currentPrice: 19200000, bidCount: 15, endHours: 5 },
-      { productIndex: 4, startPrice: 14000000, currentPrice: 18300000, bidCount: 25, endHours: 72 },
-      { productIndex: 5, startPrice: 15000000, currentPrice: 17800000, bidCount: 10, endHours: 20 },
-      // Laptop - 4 phiên
-      { productIndex: 6, startPrice: 30000000, currentPrice: 38500000, bidCount: 18, endHours: 3 },
-      { productIndex: 7, startPrice: 25000000, currentPrice: 31200000, bidCount: 14, endHours: 40 },
-      { productIndex: 8, startPrice: 18000000, currentPrice: 22800000, bidCount: 11, endHours: 60 },
-      { productIndex: 9, startPrice: 15000000, currentPrice: 19500000, bidCount: 9, endHours: 35 },
-      // Thời trang - 2 phiên
-      { productIndex: 10, startPrice: 500000, currentPrice: 750000, bidCount: 5, endHours: 24 },
-      { productIndex: 11, startPrice: 2000000, currentPrice: 3500000, bidCount: 8, endHours: 48 },
-      // Nhà cửa - 2 phiên
-      { productIndex: 12, startPrice: 5000000, currentPrice: 7200000, bidCount: 6, endHours: 36 },
-      { productIndex: 13, startPrice: 8000000, currentPrice: 11500000, bidCount: 10, endHours: 28 },
-      // Thể thao - 2 phiên
-      { productIndex: 14, startPrice: 300000, currentPrice: 550000, bidCount: 4, endHours: 72 },
-      { productIndex: 15, startPrice: 1500000, currentPrice: 2800000, bidCount: 7, endHours: 54 },
-      // Sách - 2 phiên
-      { productIndex: 16, startPrice: 150000, currentPrice: 280000, bidCount: 3, endHours: 60 },
-      { productIndex: 17, startPrice: 200000, currentPrice: 400000, bidCount: 5, endHours: 42 }
     ];
 
-    const auctions = [];
-    for (const config of auctionConfigs) {
-      if (config.productIndex >= products.length) break;
+    const products = await Product.insertMany(productsData.map((p, idx) => ({
+      sellerId: seller._id,
+      categoryId: childCats[p.catIdx]._id,
+      title: p.title,
+      slug: `${p.slug}-${Date.now()}-${idx}`,
+      descriptionHistory: [{ text: `Sản phẩm ${p.title} chất lượng cao, đầy đủ phụ kiện.`, createdAt: now, authorId: seller._id }],
+      primaryImageUrl: p.img,
+      imageUrls: p.imgs,
+      isActive: true,
+      baseCurrency: 'VND',
+      createdAt: new Date(now.getTime() - (idx * 3600000))
+    })));
+    console.log(`[SEED] Created ${products.length} products`);
 
-      auctions.push({
-        productId: products[config.productIndex]._id,
+    // 5. Cấu hình Phiên đấu giá
+    const auctionConfigs = [
+      { startPrice: 20000000, currentPrice: 25000000, bidCount: 12, endHours: 10 },
+      { startPrice: 18000000, currentPrice: 22500000, bidCount: 20, endHours: 30 },
+      { startPrice: 12000000, currentPrice: 15500000, bidCount: 8, endHours: 48 },
+      { startPrice: 16000000, currentPrice: 19200000, bidCount: 15, endHours: 5 },
+      { startPrice: 14000000, currentPrice: 18300000, bidCount: 25, endHours: 72 },
+      { startPrice: 15000000, currentPrice: 17800000, bidCount: 10, endHours: 20 },
+      { startPrice: 30000000, currentPrice: 38500000, bidCount: 18, endHours: 3 },
+      { startPrice: 25000000, currentPrice: 31200000, bidCount: 14, endHours: 40 },
+      { startPrice: 18000000, currentPrice: 22800000, bidCount: 11, endHours: 60 },
+      { startPrice: 15000000, currentPrice: 19500000, bidCount: 9, endHours: 35 },
+      { startPrice: 500000, currentPrice: 750000, bidCount: 5, endHours: 24 },
+      { startPrice: 2000000, currentPrice: 3500000, bidCount: 8, endHours: 48 },
+      { startPrice: 5000000, currentPrice: 7200000, bidCount: 6, endHours: 36 },
+      { startPrice: 8000000, currentPrice: 11500000, bidCount: 10, endHours: 28 },
+      { startPrice: 300000, currentPrice: 550000, bidCount: 4, endHours: 72 },
+      { startPrice: 1500000, currentPrice: 2800000, bidCount: 7, endHours: 54 },
+      { startPrice: 150000, currentPrice: 280000, bidCount: 3, endHours: 60 },
+      { startPrice: 200000, currentPrice: 400000, bidCount: 5, endHours: 42 }
+    ];
+
+    const auctions = products.map((prod, i) => {
+      const config = auctionConfigs[i] || { startPrice: 1000000, currentPrice: 1200000, bidCount: 5, endHours: 24 };
+      return {
+        productId: prod._id,
         sellerId: seller._id,
         startPrice: config.startPrice,
         currentPrice: config.currentPrice,
         bidCount: config.bidCount,
-        buyNowPrice: config.currentPrice + Math.ceil(config.currentPrice * 0.05), // 5% markup
+        buyNowPrice: Math.ceil(config.currentPrice * 1.15),
         priceStep: Math.floor(config.startPrice / 100),
-        startAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        endAt: new Date(now.getTime() + config.endHours * 60 * 60 * 1000),
+        startAt: new Date(now.getTime() - 24 * 60 * 60 * 1000), // Bắt đầu từ hôm qua
+        endAt: new Date(now.getTime() + config.endHours * 60 * 60 * 1000), // Kết thúc trong tương lai
         status: 'active',
-        autoExtendEnabled: true,
-        autoExtendWindowSec: 300,
-        autoExtendAmountSec: 600
-      });
-    }
+        autoExtendEnabled: true
+      };
+    });
 
-    const createdAuctions = await Auction.insertMany(auctions, { ordered: false });
+    const createdAuctions = await Auction.insertMany(auctions);
     console.log(`[SEED] Created ${createdAuctions.length} auctions`);
 
-    // 6. FIX: Tạo bids dựa trên auctions thực tế từ DB
+    // 6. Tạo Bids
     const bids = [];
-    for (let i = 0; i < createdAuctions.length; i++) {
-      const auctionBidCount = createdAuctions[i].bidCount;
-
-      for (let j = 0; j < auctionBidCount; j++) {
-        const isBidder1 = j % 2 === 0;
-        const bidder = isBidder1 ? bidder1 : bidder2;
-
+    createdAuctions.forEach(auc => {
+      for (let j = 0; j < auc.bidCount; j++) {
         bids.push({
-          auctionId: createdAuctions[i]._id,
-          productId: createdAuctions[i].productId,
-          bidderId: bidder._id,
-          amount: createdAuctions[i].startPrice + (createdAuctions[i].priceStep * (j + 1)),
-          createdAt: new Date(now.getTime() - (auctionBidCount - j) * 60 * 1000),
-          isAuto: j > auctionBidCount / 2 // nửa sau là auto-bid
+          auctionId: auc._id,
+          productId: auc.productId,
+          bidderId: j % 2 === 0 ? bidder1._id : bidder2._id,
+          amount: auc.startPrice + (auc.priceStep * (j + 1)),
+          createdAt: new Date(auc.startAt.getTime() + (j + 1) * 15 * 60 * 1000), // Mỗi bid cách nhau 15p
+          isAuto: j > auc.bidCount / 2
         });
       }
-    }
+    });
 
-    await Bid.insertMany(bids, { ordered: false });
+    await Bid.insertMany(bids);
     console.log(`[SEED] Created ${bids.length} bids`);
 
-    console.log('[SEED] Seed data completed successfully!');
-    console.log(`\n📊 Summary:
-    - Users: 1 seller + 2 bidders
-    - Categories: 5 parent + 10 child
-    - Products: ${products.length}
-    - Auctions: ${createdAuctions.length}
-    - Bids: ${bids.length}
-    `);
-
+    console.log('\n✅ [SUCCESS] Seed hoàn tất! Mọi sản phẩm đã sẵn sàng để test.');
     process.exit(0);
   } catch (error) {
-    console.error('[SEED] ❌ Error:', error);
+    console.error('[SEED] ❌ Lỗi:', error);
     process.exit(1);
   }
 }

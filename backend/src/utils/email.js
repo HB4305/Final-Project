@@ -115,6 +115,235 @@ export const sendAnswerNotification = async (data) => {
   }
 };
 
+/**
+ * Send email bid success notification
+ */
+export const sendBidSuccessNotification = async (data) => {
+  try {
+    const html = await loadTemplate("bid-success", {
+      bidderEmail: data.bidderEmail,
+      bidderName: data.bidderName,
+      productTitle: data.productTitle,
+      bidAmount: data.bidAmount,
+      currentPrice: data.currentPrice,
+      isHighestBidder: data.isHighestBidder,
+    });
+
+    return sendEmail({
+      to: data.bidderEmail,
+      subject: `Bid Success Notification: ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending bid success notification:", error);
+  }
+};
+
+/**
+ * Send price updated notification
+ */
+export const sendPriceUpdatedNotification = async (data) => {
+  try {
+    const html = await loadTemplate("price-updated-seller", {
+      sellerName: data.sellerName,
+      productTitle: data.productTitle,
+      previousPrice: data.previousPrice,
+      newPrice: data.newPrice,
+      bidderName: data.bidderName,
+      totalBids: data.totalBids,
+      auctionUrl: data.auctionUrl,
+      auctionEndTime: new Date(data.auctionEndTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    });
+
+    return sendEmail({
+      to: data.sellerEmail,
+      subject: `Price Update: ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending price updated notification:", error);
+  }
+};
+
+/**
+ * Send outbid notification
+ */
+export const sendOutbidNotification = async (data) => {
+  try {
+    const html = await loadTemplate("outbid-notification", {
+      previousBidderName: data.previousBidderName,
+      productTitle: data.productTitle,
+      yourBidAmount: data.yourBidAmount,
+      currentPrice: data.currentPrice,
+      productUrl: data.productUrl,
+      auctionEndTime: new Date(data.auctionEndTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    });
+
+    return sendEmail({
+      to: data.previousBidderEmail,
+      subject: `You have been outbid: ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending outbid notification:", error);
+  }
+};
+
+/**
+ * Bid rejected notification
+ */
+export const sendBidRejectedNotification = async (data) => {
+  try {
+    const html = await loadTemplate("bid-rejected", {
+      bidderName: data.bidderName,
+      productTitle: data.productTitle,
+      sellerName: data.sellerName,
+      reason: data.reason,
+      homeUrl: data.homeUrl,
+    });
+
+    return sendEmail({
+      to: data.bidderEmail,
+      subject: `Bid Rejected: ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending bid rejected notification:", error);
+  }
+};
+
+/**
+ * Send auction ended no winner notification
+ */
+export const sendAuctionEndedNoWinnerNotification = async (data) => {
+  try {
+    const html = await loadTemplate("auction-ended-no-winner", {
+      sellerName: data.sellerName,
+      productTitle: data.productTitle,
+      startPrice: data.startPrice,
+      startTime: new Date(data.startTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      endTime: new Date(data.endTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      productUrl: data.productUrl,
+    });
+
+    return sendEmail({
+      to: data.sellerEmail,
+      subject: `Auction Ended (No Winner): ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending auction ended no winner notification:", error);
+  }
+};
+
+/**
+ * Send auction ended seller notification
+ */
+export const sendAuctionEndedSellerNotification = async (data) => {
+  try {
+    const html = await loadTemplate("auction-ended-seller", {
+      sellerName: data.sellerName,
+      productTitle: data.productTitle,
+      winnerName: data.winnerName,
+      winnerEmail: data.winnerEmail,
+      winnerPhone: data.winnerPhone,
+      finalPrice: data.finalPrice,
+      startPrice: data.startPrice,
+      totalBids: data.totalBids,
+      endTime: new Date(data.endTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      orderUrl: data.orderUrl,
+    });
+
+    return sendEmail({
+      to: data.sellerEmail,
+      subject: `Auction Successful: ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending auction ended seller notification:", error);
+  }
+};
+
+/**
+ * Send auction winner notification
+ */
+export const sendAuctionWinnerNotification = async (data) => {
+  try {
+    const html = await loadTemplate("auction-winner", {
+      winnerName: data.winnerName,
+      productTitle: data.productTitle,
+      finalPrice: data.finalPrice,
+      sellerName: data.sellerName,
+      sellerEmail: data.sellerEmail,
+      sellerPhone: data.sellerPhone,
+      totalBids: data.totalBids,
+      endTime: new Date(data.endTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      orderUrl: data.orderUrl,
+    });
+
+    return sendEmail({
+      to: data.winnerEmail,
+      subject: `Congratulations! You Won: ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending auction winner notification:", error);
+  }
+};
+
+/**
+ * Send seller answer notification
+ */
+export const sendSellerAnswerNotification = async (data) => {
+  try {
+    // Note: This needs to handle multiple recipients if used in a loop or passed a list
+    // For now assuming single recipient based on the structure, but we might call this in a loop
+    const html = await loadTemplate("seller-answered-notification", {
+      participantName: data.participantName,
+      productTitle: data.productTitle,
+      questionText: data.questionText,
+      answerText: data.answerText,
+      questionAuthor: data.questionAuthor,
+      sellerName: data.sellerName,
+      currentPrice: data.currentPrice,
+      auctionEndTime: new Date(data.auctionEndTime).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      productUrl: data.productUrl,
+    });
+
+    return sendEmail({
+      to: data.participantEmail,
+      subject: `New Answer on: ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending seller answer notification:", error);
+  }
+};
+
+/**
+ * Verify email configuration
+ */
 export const verifyEmailConfiguration = async () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.log(

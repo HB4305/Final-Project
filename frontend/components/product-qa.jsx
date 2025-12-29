@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { MessageSquare, Send, User, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageSquare, Send, User, Clock, AlertCircle } from 'lucide-react';
+import { useAuth } from '../app/context/AuthContext.jsx';
+import questionService from '../app/services/questionService';
 
 /**
  * ProductQA Component
@@ -8,30 +10,97 @@ import { MessageSquare, Send, User, Clock } from 'lucide-react';
  * All users see Q&A history
  */
 export default function ProductQA({ 
-  questions = [], 
-  onSubmitQuestion, 
-  onSubmitAnswer,
-  currentUserId,
+  productId,
   sellerId,
-  isSeller = false 
 }) {
+  const { currentUser, isLoggedIn } = useAuth();
+
   const [newQuestion, setNewQuestion] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
 
-  const handleSubmitQuestion = (e) => {
-    e.preventDefault();
-    if (newQuestion.trim()) {
-      onSubmitQuestion && onSubmitQuestion(newQuestion);
-      setNewQuestion('');
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const isSeller = currentUser?._id === sellerId;
+
+  useEffect(() => {
+    loadQuestions();
+  }, [productId]);
+
+  const loadQuestions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await questionService.getProductQuestions(productId);
+
+      if (result.success) {
+        setQuestions(result.data.questions || []);
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Failed to load questions.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSubmitReply = (questionId) => {
-    if (replyText.trim()) {
-      onSubmitAnswer && onSubmitAnswer(questionId, replyText);
-      setReplyText('');
-      setReplyingTo(null);
+  const handleSubmitQuestion = async (e) => {
+    e.preventDefault();
+    
+    if (!isLoggedIn) {
+      alert('Please log in to ask a question.');
+      return;
+    }
+
+    if (!newQuestion.trim()) return;
+
+    if (isSeller) {
+      alert('Sellers cannot ask questions about their own products.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const result = await questionService.createQuestion(productId, newQuestion);
+      
+      if (result.success) {
+        setNewQuestion('');
+        await loadQuestions();
+        alert('Your question has been submitted.');
+      }
+      else {
+        alert(result.error);
+      }
+    } catch (err) {
+      alert('Failed to submit question.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmitReply = async (questionId) => {
+    if (!replyText.trim()) return;
+
+    try {
+      setSubmitting(true);
+      const result = await questionService.answerQuestion(questionId, replyText);
+
+      if (result.success) {
+        setReplyText('');
+        setReplyingTo(null);
+        await loadQuestions();
+        alert('Your answer has been submitted.');
+      } else {
+        alert(result.error || 'Failed to submit answer.');
+      }
+    } catch (err) {
+      alert('Failed to submit answer.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -48,6 +117,31 @@ export default function ProductQA({
     return `${diffDays} days ago`;
   };
 
+  if (loading) {
+    return (
+      <div className="bg-background border border-border rounded-lg p-6">
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary">
+            <span className="ml-3 text-muted-foreground">
+              Loading...
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-background border border-border rounded-lg p-6">
+        <div className="flex items-center gap-2 text-red-600">
+          <AlertCircle className="w-5 h-5" />
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-background border border-border rounded-lg p-6">
       <div className="flex items-center gap-2 mb-6">
@@ -57,7 +151,7 @@ export default function ProductQA({
       </div>
 
       {/* Ask Question Form - Only for buyers */}
-      {!isSeller && (
+      {isLoggedIn && !isSeller && (
         <form onSubmit={handleSubmitQuestion} className="mb-6">
           <label className="block text-sm font-medium mb-2">Ask the seller a question</label>
           <div className="flex gap-2">
@@ -70,7 +164,7 @@ export default function ProductQA({
             />
             <button
               type="submit"
-              disabled={!newQuestion.trim()}
+              disabled={!newQuestion.trim() || submitting}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed self-end"
             >
               <Send className="w-5 h-5" />
@@ -82,6 +176,15 @@ export default function ProductQA({
         </form>
       )}
 
+      {/* Login prompt */}
+      {!isLoggedIn && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-blue-800">
+            Vui lòng <a href="/auth/signin" className="underline font-semibold">đăng nhập</a> để đặt câu hỏi
+          </p>
+        </div>
+      )}
+
       {/* Questions List */}
       <div className="space-y-4">
         {questions.length === 0 ? (
@@ -91,7 +194,7 @@ export default function ProductQA({
           </div>
         ) : (
           questions.map((q) => (
-            <div key={q.id} className="border border-border rounded-lg p-4 space-y-3">
+            <div key={q._id} className="border border-border rounded-lg p-4 space-y-3">
               {/* Question */}
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -99,33 +202,35 @@ export default function ProductQA({
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm">{q.askerName}</span>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatRelativeTime(q.timestamp)}
+                    <span className="font-semibold text-sm">
+                      {q.authorId.fullName || 'Người dùng'}
                     </span>
                   </div>
-                  <p className="text-sm">{q.question}</p>
+                  <p className="text-sm">{q.text}</p>
                 </div>
               </div>
 
               {/* Answer */}
-              {q.answer ? (
-                <div className="ml-11 pl-4 border-l-2 border-primary/30">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm text-primary">
-                      Seller Response
-                    </span>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatRelativeTime(q.answerTimestamp)}
-                    </span>
-                  </div>
-                  <p className="text-sm">{q.answer}</p>
+              {q.answer && q.answers.length > 0 ? (
+                <div className="ml-11 space-y-2">
+                  {q.answers.map((answer, index) => (
+                    <div key={index} className="pl-4 border-l-2 border-primary/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm text-primary">
+                          {answer.authorId?.fullName || 'Người bán'}
+                        </span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatRelativeTime(answer.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-sm">{answer.text}</p>
+                    </div>
+                  ))}
                 </div>
-              ) : isSeller && currentUserId === sellerId ? (
+              ) : isSeller && q.status === 'open' ? (
                 <div className="ml-11">
-                  {replyingTo === q.id ? (
+                  {replyingTo === q._id ? (
                     <div className="space-y-2">
                       <textarea
                         value={replyText}
@@ -137,7 +242,8 @@ export default function ProductQA({
                       />
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleSubmitReply(q.id)}
+                          onClick={() => handleSubmitReply(q._id)}
+                          disabled={submitting}
                           className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90 transition"
                         >
                           Send Answer
@@ -155,7 +261,7 @@ export default function ProductQA({
                     </div>
                   ) : (
                     <button
-                      onClick={() => setReplyingTo(q.id)}
+                      onClick={() => setReplyingTo(q._id)}
                       className="text-sm text-primary hover:underline font-medium"
                     >
                       Reply to this question

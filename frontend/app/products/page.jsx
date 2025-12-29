@@ -14,8 +14,10 @@ import {
   transformProductData,
   buildCategoryMap,
   filterProducts,
-  sortProducts
+  sortProducts,
 } from './_components';
+import CategoryBreadcrumb from './_components/CategoryBreadcrumb';
+import { useLocation } from 'react-router-dom';
 
 // ============================================
 // CUSTOM HOOKS
@@ -194,16 +196,58 @@ export default function ProductsPage() {
   // Combine errors
   const error = categoryError || productError;
 
-  // Filter and sort products
+  const location = useLocation();
+
+  // subcategory local state (kept here để không phải thay đổi hook hiện tại)
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+
+   // Sync URL query -> filters - CẬP NHẬT LOGIC
+  useEffect(() => {
+    if (!location || !location.search) {
+      // Reset về mặc định khi không có query
+      setSelectedCategory('All');
+      setSelectedSubcategory(null);
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const subcategoryParam = params.get('subcategory');
+    const categoryParam = params.get('category') || params.get('categoryId');
+
+    if (subcategoryParam) {
+      // Nếu có subcategory, set nó trực tiếp
+      const subName = decodeURIComponent(subcategoryParam);
+      setSelectedSubcategory(subName);
+      
+      // Tìm parent category của subcategory này
+      const parentCat = categoryMap[subName];
+      if (parentCat) {
+        setSelectedCategory(parentCat);
+      }
+    } else if (categoryParam) {
+      // Nếu chỉ có category (không có subcategory)
+      const catName = decodeURIComponent(categoryParam);
+      setSelectedCategory(catName);
+      setSelectedSubcategory(null); // Clear subcategory
+    } else {
+      setSelectedCategory('All');
+      setSelectedSubcategory(null);
+    }
+  }, [location.search, categoryMap]);
+
+  // Filter products với tất cả tiêu chí
   const filteredProducts = useMemo(() => {
     const filtered = filterProducts(products, {
       searchQuery,
       selectedCategory,
+      selectedSubcategory,
       priceRange,
       categoryMap
     });
+    
+    // Sort sau khi filter
     return sortProducts(filtered, sortBy);
-  }, [products, searchQuery, selectedCategory, sortBy, priceRange, categoryMap]);
+  }, [products, searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap, sortBy]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -239,6 +283,8 @@ export default function ProductsPage() {
           totalItems={filteredProducts.length}
           onItemsPerPageChange={setItemsPerPage}
         />
+
+        <CategoryBreadcrumb selectedCategory={selectedCategory} selectedSubcategory={selectedSubcategory} />
       </>
     );
   };
