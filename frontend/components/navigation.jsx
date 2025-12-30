@@ -74,7 +74,7 @@ export default function Navigation() {
           {/* Search Bar - Full-text search */}
           <form
             onSubmit={handleSearch}
-            className="hidden md:flex items-center flex-1 max-w-xl bg-white rounded-sm ml-4"
+            className="hidden xl:flex items-center flex-1 max-w-xl bg-white rounded-sm ml-4"
           >
             <input
               type="text"
@@ -86,7 +86,7 @@ export default function Navigation() {
             <button
               type="submit"
               className="px-4 py-2 text-primary hover:bg-muted transition"
-              title="Tìm kiếm nâng cao"
+              title="Tìm kiếm"
             >
               <Search className="w-5 h-5" />
             </button>

@@ -41,9 +41,9 @@ const SearchHeader = ({
           </div>
         </div>
         
-        {/* Search Bar */}
-        <div className="flex gap-2">
-          <form onSubmit={handleFullSearch} className="flex-1 relative">
+        {/* Search Bar (mobile-only) */}
+        <div className="flex gap-2 lg:hidden">
+          <form onSubmit={handleFullSearch} className="flex-1 relative flex items-center">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <input
               type="text"
@@ -52,28 +52,39 @@ const SearchHeader = ({
                 setLocalQuery(e.target.value);
                 onSearchChange(e.target.value); // Local filter
               }}
-              placeholder="Tìm kiếm sản phẩm... (Enter để tìm kiếm nâng cao)"
+              placeholder="Tìm kiếm sản phẩm... (Enter xem kết quả nâng cao)"
               className="w-full pl-10 pr-4 py-2 rounded-lg bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            <button
+              type="submit"
+              className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-medium"
+              title="Tìm kiếm"
+            >
+              <Search className="w-5 h-5" />
+            </button>
           </form>
-          <Link 
-            to={localQuery.trim().length >= 2 ? `/search?q=${encodeURIComponent(localQuery.trim())}` : '/search'}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-medium"
-            title="Tìm kiếm nâng cao"
-          >
-            <Search className="w-5 h-5" /> Tìm nâng cao
-          </Link>
-          <button 
-            onClick={onToggleFilters}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 font-medium"
-          >
-            <Filter className="w-5 h-5" /> Bộ lọc
-          </button>
+          <div className="flex gap-2">
+            <Link
+              to={localQuery.trim().length >= 2 ? `/search?q=${encodeURIComponent(localQuery.trim())}` : '/search'}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-medium lg:hidden"
+              title="Tìm nâng cao (mobile)"
+            >
+              <Search className="w-5 h-5" /> Tìm nâng cao
+            </Link>
+
+            <button
+              onClick={onToggleFilters}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 font-medium lg:hidden"
+              aria-label="Mở bộ lọc (mobile)"
+            >
+              <Filter className="w-5 h-5" /> Bộ lọc
+            </button>
+          </div>
         </div>
 
         {/* Quick tip */}
         <p className="text-xs text-muted-foreground mt-2">
-          💡 Gợi ý: Nhấn "Tìm nâng cao" để sử dụng full-text search với nhiều bộ lọc và sắp xếp
+          💡 Gợi ý: Gõ từ khóa để lọc nhanh; nhấn Enter để xem kết quả tìm nâng cao với bộ lọc
         </p>
       </div>
     </div>

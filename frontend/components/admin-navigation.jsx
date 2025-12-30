@@ -98,7 +98,7 @@ export default function AdminNavigation() {
           {/* Search Bar */}
           <form
             onSubmit={handleSearch}
-            className="hidden md:flex items-center flex-1 max-w-xl bg-white/10 backdrop-blur-sm rounded-lg border border-white/20"
+            className="hidden xl:flex items-center flex-1 max-w-xl bg-white/10 backdrop-blur-sm rounded-lg border border-white/20"
           >
             <input
               type="text"
