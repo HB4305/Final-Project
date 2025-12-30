@@ -32,20 +32,50 @@ export const calculateTimeLeft = (endDate) => {
   return days === 1 ? '1 day' : `${days} days`;
 };
 
-export const transformProductData = (product) => ({
-  id: product._id,
-  name: product.title,
-  category: product.category?.name || product.categoryId?.name || 'Uncategorized',
-  price: product.auction?.currentPrice || product.auction?.startPrice || 0,
-  bids: product.auction?.bidCount || 0,
-  timeLeft: calculateTimeLeft(product.auction?.endAt),
-  image: product.primaryImageUrl || product.imageUrls?.[0] || '/placeholder.svg',
-  rating: 4.5,
-  images: product.imageUrls,
-  description: product.descriptionHistory?.[0]?.text,
-  auction: product.auction,
-  sellerId: product.sellerId
-});
+export const transformProductData = (product) => {
+  // Prefer rating from seller's ratingSummary if available, otherwise use product.rating
+  // or compute average from product.reviews as a fallback. Normalize to 0..5 scale.
+  // Prefer explicit normalized seller rating returned by backend, then seller.ratingSummary.score,
+  // then product.rating, then compute average from product.reviews.
+  const rawRating =
+    product.seller?.rating ??
+    product.seller?.ratingSummary?.score ??
+    product.rating ??
+    (product.reviews && product.reviews.length
+      ? product.reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / product.reviews.length
+      : null);
+
+  let ratingValue = null;
+  if (rawRating !== null && rawRating !== undefined) {
+    const num = Number(rawRating) || 0;
+    // If backend score is a fraction (0..1), convert to 0..5 scale
+    ratingValue = num <= 1 ? Number((num * 5).toFixed(1)) : Number(num.toFixed(1));
+  }
+
+  return {
+    id: product._id,
+    name: product.title,
+    category: product.category?.name || product.categoryId?.name || 'Uncategorized',
+    price: product.auction?.currentPrice || product.auction?.startPrice || 0,
+    bids: product.auction?.bidCount || 0,
+    timeLeft: calculateTimeLeft(product.auction?.endAt),
+    image: product.primaryImageUrl || product.imageUrls?.[0] || '/placeholder.svg',
+    rating: ratingValue !== null ? Number(ratingValue.toFixed(1)) : null,
+    images: product.imageUrls,
+    description: product.descriptionHistory?.[0]?.text,
+    auction: product.auction,
+    createdAt: product.createdAt,
+    currentHighestBidder:
+      product.auction?.currentHighestBidder || product.currentHighestBidder || product.auction?.currentHighestBidderId?.username,
+    sellerId: product.sellerId,
+    // include seller info if backend provided it (aggregated)
+    seller: product.seller ? {
+      username: product.seller.username,
+      rating: product.seller.rating ?? (product.seller.ratingSummary?.score ? Number((product.seller.ratingSummary.score * 5).toFixed(1)) : null),
+      ratingSummary: product.seller.ratingSummary
+    } : null,
+  };
+};
 
 export default function ProductsPage() {
   const location = useLocation();

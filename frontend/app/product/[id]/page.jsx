@@ -3,6 +3,7 @@ import { Heart, Share2, Shield, MessageSquare, Loader, AlertCircle, TrendingUp, 
 import { Link, useParams } from 'react-router-dom';
 import Navigation from '../../../components/navigation';
 import productService from '../../services/productService.js';
+import watchlistService from '../../services/watchlistService.js';
 import ProductQA from '../../../components/product-qa.jsx';
 import { orderService } from '../../services/orderService.js';
 import OrderCompletion from '../../../components/order-completion';

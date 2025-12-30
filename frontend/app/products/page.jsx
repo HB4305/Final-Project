@@ -63,6 +63,8 @@ const useProducts = () => {
       
       if (response.success) {
         const transformedProducts = response.data.map(transformProductData);
+        // Debug: log first 5 transformed products to verify rating/source
+        console.debug('[ProductsPage] Transformed products (first 5):', transformedProducts.slice(0,5).map(p => ({ id: p.id, rating: p.rating, seller: p.seller })));
         setProducts(transformedProducts);
       } else {
         setError(response.error || 'Failed to load products');

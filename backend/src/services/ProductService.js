@@ -53,6 +53,15 @@ export class ProductService {
             preserveNullAndEmptyArrays: false
           }
         },
+        // Stage 3b: Lookup current highest bidder for the auction
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'auction.currentHighestBidderId',
+            foreignField: '_id',
+            as: 'auction_highestBidder'
+          }
+        },
         // Stage 4: Match auction status
         {
           $match: {
@@ -118,12 +127,21 @@ export class ProductService {
               bidCount: '$auction.bidCount',
               endAt: '$auction.endAt',
               startPrice: '$auction.startPrice',
+              buyNowPrice: '$auction.buyNowPrice',
+              currentHighestBidder: { $arrayElemAt: ['$auction_highestBidder.username', 0] },
               status: '$auction.status'
             },
             seller: {
               _id: '$seller._id',
               username: '$seller.username',
-              ratingSummary: '$seller.ratingSummary'
+              ratingSummary: '$seller.ratingSummary',
+              rating: {
+                $cond: [
+                  { $ifNull: ['$seller.ratingSummary.score', false] },
+                  { $round: [{ $multiply: ['$seller.ratingSummary.score', 5] }, 1] },
+                  null
+                ]
+              }
             },
             category: {
               _id: '$category._id',
@@ -317,6 +335,31 @@ export class ProductService {
             preserveNullAndEmptyArrays: false
           }
         },
+        // Lookup highest bidder username for this auction
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'auction.currentHighestBidderId',
+            foreignField: '_id',
+            as: 'auction_highestBidder'
+          }
+        },
+
+        // Lookup seller info so we can expose seller rating in search results
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'sellerId',
+            foreignField: '_id',
+            as: 'seller'
+          }
+        },
+        {
+          $unwind: {
+            path: '$seller',
+            preserveNullAndEmptyArrays: true
+          }
+        },
         // Stage 4: Match only active auctions
         {
           $match: {
@@ -366,12 +409,21 @@ export class ProductService {
               bidCount: '$auction.bidCount',
               endAt: '$auction.endAt',
               startPrice: '$auction.startPrice',
+              buyNowPrice: '$auction.buyNowPrice',
+              currentHighestBidder: { $arrayElemAt: ['$auction_highestBidder.username', 0] },
               status: '$auction.status'
             },
             seller: {
               _id: '$seller._id',
               username: '$seller.username',
-              ratingSummary: '$seller.ratingSummary'
+              ratingSummary: '$seller.ratingSummary',
+              rating: {
+                $cond: [
+                  { $ifNull: ['$seller.ratingSummary.score', false] },
+                  { $round: [{ $multiply: ['$seller.ratingSummary.score', 5] }, 1] },
+                  null
+                ]
+              }
             }
           }
         }
@@ -485,6 +537,16 @@ export class ProductService {
         { $unwind: '$auction' },
         { $match: { 'auction.status': 'active' } },
 
+        // Lookup highest bidder username for this auction
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'auction.currentHighestBidderId',
+            foreignField: '_id',
+            as: 'auction_highestBidder'
+          }
+        },
+
         // Lọc theo khoảng giá (nếu có)
         ...(filters.minPrice || filters.maxPrice
           ? [
@@ -510,8 +572,22 @@ export class ProductService {
               currentPrice: '$auction.currentPrice',
               bidCount: '$auction.bidCount',
               endAt: '$auction.endAt',
+              buyNowPrice: '$auction.buyNowPrice',
               startPrice: '$auction.startPrice',
+              currentHighestBidder: { $arrayElemAt: ['$auction_highestBidder.username', 0] },
               status: '$auction.status'
+            },
+            seller: {
+              _id: '$seller._id',
+              username: '$seller.username',
+              ratingSummary: '$seller.ratingSummary',
+              rating: {
+                $cond: [
+                  { $ifNull: ['$seller.ratingSummary.score', false] },
+                  { $round: [{ $multiply: ['$seller.ratingSummary.score', 5] }, 1] },
+                  null
+                ]
+              }
             },
             ...(searchQuery && { score: { $meta: 'textScore' } })
           }
@@ -662,6 +738,14 @@ export class ProductService {
       ]);
 
       console.log(`[PRODUCT SERVICE] Chi tiết sản phẩm lấy thành công`);
+
+      // Normalize seller rating (0..5) for frontend convenience
+      if (productObj.sellerId && productObj.sellerId.ratingSummary && typeof productObj.sellerId.ratingSummary.score === 'number') {
+        productObj.sellerId.rating = Math.round((productObj.sellerId.ratingSummary.score * 5) * 10) / 10; // one decimal
+      } else {
+        productObj.sellerId = productObj.sellerId || {};
+        productObj.sellerId.rating = productObj.sellerId.rating || null;
+      }
 
       return {
         product: {

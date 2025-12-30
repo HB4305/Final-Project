@@ -75,6 +75,27 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
           {/* Category */}
           <p className="text-xs text-muted-foreground mb-2">{product.category}</p>
 
+          {/* Highest bidder (nếu có) */}
+          {(product.currentHighestBidder || product.auction?.currentHighestBidder) && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+              <User className="w-3 h-3" />
+              <span>Nhà đấu giá cao nhất: <span className="font-medium text-foreground">{product.currentHighestBidder || product.auction?.currentHighestBidder}</span></span>
+            </div>
+          )}
+
+          {/* Buy Now price (nếu có) */}
+          {product.auction?.buyNowPrice && (
+            <div className="mb-2 text-sm">
+              <span className="text-xs text-muted-foreground">Giá mua ngay: </span>
+              <span className="font-semibold text-primary">{formatPrice(product.auction.buyNowPrice)}</span>
+            </div>
+          )}
+
+          {/* Ngày đăng sản phẩm */}
+          {product.createdAt && (
+            <p className="text-xs text-muted-foreground mb-2">Đăng: {new Date(product.createdAt).toLocaleDateString('vi-VN')}</p>
+          )}
+
           {/* Seller info (nếu có) */}
           {product.sellerId && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">

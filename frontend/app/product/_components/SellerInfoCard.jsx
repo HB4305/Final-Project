@@ -9,11 +9,12 @@ export default function SellerInfoCard({ seller }) {
   const rating = seller.ratingSummary || {};
   const positiveRate = calculatePositiveRate(seller);
   const avatarUrl = seller.profileImageUrl || seller.avatar || FALLBACK_IMAGE.AVATAR;
-  const averageRating = rating.score || seller.averageRating || 0;
-  const ratingCount = rating.totalRatings || seller.ratingCount || 0;
-  const positiveRatings = rating.positiveCount || seller.positiveRatings || 0;
-  const neutralRatings = rating.neutralCount || seller.neutralRatings || 0;
-  const negativeRatings = rating.negativeCount || seller.negativeRatings || 0;
+  // Prefer backend-provided normalized `seller.rating` (0..5). If absent, fall back to ratingSummary.score (0..1) converted to 0..5.
+  const averageRating = seller.rating ?? (typeof rating.score === 'number' ? Number((rating.score * 5).toFixed(1)) : (seller.averageRating ?? 0));
+  const ratingCount = rating.totalCount || rating.totalRatings || seller.ratingCount || 0;
+  const positiveRatings = rating.countPositive || rating.positiveCount || seller.positiveRatings || 0;
+  const neutralRatings = rating.countNeutral || rating.neutralCount || seller.neutralRatings || 0;
+  const negativeRatings = rating.countNegative || rating.negativeCount || seller.negativeRatings || 0;
 
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 space-y-4">
