@@ -292,11 +292,10 @@ export default function DashboardPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${
-                    activeTab === tab.key
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${activeTab === tab.key
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
@@ -476,14 +475,23 @@ export default function DashboardPage() {
                               </p>
                             </div>
                           </div>
-                          <Link
-                            to={`/product/${
-                              auction.productId?._id || auction.productId
-                            }`}
-                            className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
-                          >
-                            Xem Chi Tiết
-                          </Link>
+                          <div className="flex gap-2">
+                            {!auction.isRated && (
+                              <button
+                                onClick={() => handleRateSeller(auction)}
+                                className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
+                              >
+                                Đánh giá người bán
+                              </button>
+                            )}
+                            <Link
+                              to={`/product/${auction.productId?._id || auction.productId
+                                }`}
+                              className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
+                            >
+                              Xem Chi Tiết
+                            </Link>
+                          </div>
                         </div>
                       ))
                     )}
@@ -597,9 +605,8 @@ export default function DashboardPage() {
                               </button>
                             )}
                             <Link
-                              to={`/product/${
-                                auction.productId?._id || auction.productId
-                              }`}
+                              to={`/product/${auction.productId?._id || auction.productId
+                                }`}
                               className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
                             >
                               Chi Tiết
