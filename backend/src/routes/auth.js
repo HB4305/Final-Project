@@ -146,9 +146,9 @@ router.get(
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
 
-      // Redirect to frontend dashboard with token
+      // Redirect to frontend home with token
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-      res.redirect(`${frontendUrl}/dashboard?token=${accessToken}`);
+      res.redirect(`${frontendUrl}/?token=${accessToken}`);
     } catch (error) {
       console.error("Google auth callback error:", error);
       res.redirect(

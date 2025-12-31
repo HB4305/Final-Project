@@ -75,7 +75,7 @@ export default function LoginPage() {
         if (isAdmin) {
           navigate("/admin/dashboard");
         } else {
-          navigate("/dashboard");
+          navigate("/");
         }
       }, 1000);
     } catch (err) {

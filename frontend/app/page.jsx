@@ -1,10 +1,34 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Zap } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 import Navigation from "../components/navigation";
 import TopProductsSection from "../components/top-products-section";
 import CategoryNav from "../components/category-nav";
 
 export default function Home() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { loginWithToken } = useAuth();
+
+  // Handle OAuth callback token
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token) {
+      // Login with token from OAuth
+      loginWithToken(token)
+        .then(() => {
+          // Remove token from URL
+          searchParams.delete("token");
+          setSearchParams(searchParams);
+        })
+        .catch((error) => {
+          console.error("OAuth login failed:", error);
+          navigate("/auth/login?error=oauth_failed");
+        });
+    }
+  }, [searchParams]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
