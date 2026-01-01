@@ -16,6 +16,7 @@ import auctionService from "../services/auctionService";
 import transactionService from "../services/transactionService";
 import ratingService from "../services/ratingService";
 import RatingComponent from "../../components/rating-component";
+import UpdateProductDescription from "../../components/update-product-description";
 import { useAuth } from "../context/AuthContext";
 import Toast from "../../components/Toast";
 
@@ -57,6 +58,10 @@ export default function DashboardPage() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedTransactionForRating, setSelectedTransactionForRating] =
     useState(null);
+
+  // Edit Product Description Modal State
+  const [showEditDescModal, setShowEditDescModal] = useState(false);
+  const [selectedProductForEdit, setSelectedProductForEdit] = useState(null);
 
   // Handle OAuth callback token
   useEffect(() => {
@@ -540,10 +545,26 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-sm text-blue-500 font-semibold">
-                                {formatTimeLeft(auction.endAt)}
-                              </p>
+                            <div className="flex items-center gap-2">
+                              <div className="text-right mr-4">
+                                <p className="text-sm text-blue-500 font-semibold">
+                                  {formatTimeLeft(auction.endAt)}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setSelectedProductForEdit({
+                                    id: auction.productId?._id,
+                                    description: auction.productId?.descriptionHistory?.[auction.productId.descriptionHistory.length - 1]?.text || '',
+                                    metadata: auction.productId?.metadata || {}
+                                  });
+                                  setShowEditDescModal(true);
+                                }}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
+                                title="Sửa mô tả sản phẩm"
+                              >
+                                Sửa Mô Tả
+                              </button>
                             </div>
                           </div>
                         ))
@@ -649,6 +670,40 @@ export default function DashboardPage() {
                 transactionId={selectedTransactionForRating.orderId}
                 userType="buyer"
                 onSubmitRating={handleSubmitRating}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Product Description Modal */}
+      {showEditDescModal && selectedProductForEdit && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+            <button
+              onClick={() => {
+                setShowEditDescModal(false);
+                setSelectedProductForEdit(null);
+              }}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10 bg-white rounded-full p-2"
+            >
+              <XCircle className="w-6 h-6" />
+            </button>
+            <div className="p-6">
+              <UpdateProductDescription
+                productId={selectedProductForEdit.id}
+                currentDescription={selectedProductForEdit.description}
+                currentMetadata={selectedProductForEdit.metadata}
+                onUpdate={async (updatedProduct) => {
+                  // Refresh selling auctions after update
+                  await fetchAllData();
+                  setShowEditDescModal(false);
+                  setSelectedProductForEdit(null);
+                  setToast({
+                    type: 'success',
+                    message: 'Cập nhật mô tả sản phẩm thành công!'
+                  });
+                }}
               />
             </div>
           </div>

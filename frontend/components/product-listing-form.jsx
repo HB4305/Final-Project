@@ -194,10 +194,10 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
         console.log("=".repeat(50));
         
         const statusMsg = result.data.auction.status === 'scheduled' 
-          ? '\n\n⏰ Auction is scheduled and will start at the specified time.'
-          : '\n\n✅ Auction is now active!';
+          ? '\n\nCuộc đấu giá đã được lên lịch và sẽ bắt đầu vào thời gian đã chỉ định.'
+          : '\n\nCuộc đấu giá hiện đang hoạt động!';
         
-        alert("✅ " + result.message + statusMsg);
+        alert(result.message + statusMsg);
         
         // Force reload to fetch fresh data
         window.location.href = "/products";
@@ -234,18 +234,18 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       <div className="max-w-3xl mx-auto">
         <div className="bg-white shadow-lg rounded-lg p-8">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Auction Listing</h2>
-            <p className="text-gray-600">Fill in the details to list your product for auction</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Tạo sản phẩm đấu giá mới</h2>
+            <p className="text-gray-600">Điền thông tin để đăng sản phẩm đấu giá</p>
           </div>
 
           <form onSubmit={(e) => {
-            console.log("📝 Form submit event triggered");
+            console.log("📝 Sự kiện gửi form đã được kích hoạt");
             handleSubmit(submitForm)(e);
           }} className="space-y-6">
             {/* Display all validation errors at top */}
             {Object.keys(errors).length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h3 className="text-red-800 font-semibold mb-2">⚠️ Please fix the following errors:</h3>
+                <h3 className="text-red-800 font-semibold mb-2">⚠️ Vui lòng sửa các lỗi sau:</h3>
                 <ul className="list-disc list-inside text-red-700 text-sm space-y-1">
                   {Object.entries(errors).map(([field, error]) => (
                     <li key={field}>{field}: {error.message}</li>
@@ -258,11 +258,11 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Type className="inline w-4 h-4 mr-1" />
-                Product Title *
+                Tiêu đề sản phẩm *
               </label>
               <input
                 {...register("title")}
-                placeholder="Enter product title"
+                placeholder="Nhập tiêu đề sản phẩm"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
               {errors.title && (
@@ -277,7 +277,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Tag className="inline w-4 h-4 mr-1" />
-                Category *
+                Danh mục *
               </label>
               <select 
                 {...register("categoryId")} 
@@ -285,7 +285,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 disabled={loadingCategories}
               >
                 <option value="">
-                  {loadingCategories ? 'Loading categories...' : 'Select a category'}
+                  {loadingCategories ? 'Đang tải danh mục...' : 'Chọn một danh mục'}
                 </option>
                 {categories.flatMap((cat) => {
                   const items = [];
@@ -307,7 +307,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                       if (childId) {
                         items.push(
                           <option key={childId} value={childId}>
-                            &nbsp;&nbsp;→ {child.name}
+                            &nbsp;&nbsp; {child.name}
                           </option>
                         );
                       }
@@ -318,10 +318,10 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 })}
               </select>
               {loadingCategories && (
-                <p className="text-blue-500 text-sm mt-1">Loading categories from database...</p>
+                <p className="text-blue-500 text-sm mt-1">Đang tải danh mục từ cơ sở dữ liệu...</p>
               )}
               {!loadingCategories && categories.length === 0 && (
-                <p className="text-yellow-600 text-sm mt-1">⚠️ No categories available. Please contact admin.</p>
+                <p className="text-yellow-600 text-sm mt-1">⚠️ Không có danh mục nào. Vui lòng liên hệ quản trị viên.</p>
               )}
               {errors.categoryId && (
                 <p className="text-red-500 text-sm mt-1 flex items-center">
@@ -335,7 +335,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <DollarSign className="inline w-4 h-4 mr-1" />
-                Starting Price *
+                Giá khởi điểm *
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-3 text-gray-500">$</span>
@@ -359,7 +359,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <DollarSign className="inline w-4 h-4 mr-1" />
-                Step Price * (Minimum bid increment)
+                Bước giá * (Bước tăng giá tối thiểu)
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-3 text-gray-500">$</span>
@@ -383,7 +383,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <DollarSign className="inline w-4 h-4 mr-1" />
-                Buy Now Price (Optional)
+                Giá mua ngay (Tùy chọn)
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-3 text-gray-500">$</span>
@@ -395,14 +395,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                   className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
               </div>
-              <p className="text-sm text-gray-500 mt-1">Leave empty if not applicable</p>
+              <p className="text-sm text-gray-500 mt-1">Để trống nếu không áp dụng</p>
             </div>
 
             {/* Start Time */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Clock className="inline w-4 h-4 mr-1" />
-                Auction Start Time *
+                Thời gian bắt đầu đấu giá *
               </label>
               <input 
                 type="datetime-local"
@@ -421,7 +421,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Clock className="inline w-4 h-4 mr-1" />
-                Auction End Time *
+                Thời gian kết thúc đấu giá *
               </label>
               <input 
                 type="datetime-local"
@@ -434,7 +434,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                   {errors.endTime.message}
                 </p>
               )}
-              <p className="text-sm text-gray-500 mt-1">Must be after start time</p>
+              <p className="text-sm text-gray-500 mt-1">Phải sau thời gian bắt đầu</p>
             </div>
 
             {/* Auto Extend */}
@@ -446,14 +446,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="autoExtend" className="ml-2 text-sm font-medium text-gray-700">
-                Enable auto-extend (adds 10 minutes if bid placed in last 5 minutes)
+                Bật tự động gia hạn (thêm 10 phút nếu có đặt giá trong 5 phút cuối)
               </label>
             </div>
 
             {/* Description */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Description * (minimum 10 characters)
+                Mô tả * (tối thiểu 10 ký tự)
               </label>
               <div className="border border-gray-300 rounded-lg overflow-hidden">
                 <ReactQuill
@@ -482,7 +482,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <ImageIcon className="inline w-4 h-4 mr-1" />
-                Product Images * (minimum 3 images)
+                Ảnh sản phẩm * (Tối thiểu 3 ảnh)
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer">
                 <input 
@@ -495,8 +495,8 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 />
                 <label htmlFor="image-upload" className="cursor-pointer">
                   <Upload className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                  <p className="text-gray-600">Click to upload or drag and drop</p>
-                  <p className="text-sm text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+                  <p className="text-gray-600">Nhấp để tải lên hoặc kéo và thả</p>
+                  <p className="text-sm text-gray-500 mt-1">PNG, JPG, GIF tối đa 10MB</p>
                 </label>
               </div>
               {errors.images && (
@@ -540,7 +540,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" />
-                Create Auction Listing
+                Tạo sản phẩm đấu giá
               </button>
             </div>
           </form>

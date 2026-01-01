@@ -8,6 +8,7 @@ import ProductQA from '../../../components/product-qa.jsx';
 import { orderService } from '../../services/orderService.js';
 import OrderCompletion from '../../../components/order-completion';
 import ChatComponent from '../../../components/chat-component';
+import Toast from '../../../components/Toast';
 import { useAuth } from '../../context/AuthContext'
 
 // Import all components from _components folder
@@ -51,6 +52,7 @@ export default function ProductDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('description');
   const [isWatchlisted, setIsWatchlisted] = useState(false);
+  const [toast, setToast] = useState(null);
   const qaRef = useRef(null);
   
   // Order states
@@ -377,7 +379,15 @@ export default function ProductDetailPage() {
                   <DetailsTab product={product} />
                 )}
                 {activeTab === 'bidders' && (
-                  <BiddersTab bidders={product.auction?.topBidders} />
+                  <BiddersTab 
+                    bidders={product.auction?.topBidders}
+                    productId={id}
+                    isSeller={user && product.sellerId?._id === user._id}
+                    onReject={async () => {
+                      await refetch();
+                      setToast({ type: 'success', message: 'Đã từ chối bidder thành công!' });
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -474,6 +484,15 @@ export default function ProductDetailPage() {
         {/* Related Products Section */}
         <RelatedProductsSection products={product.relatedProducts} />
       </main>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

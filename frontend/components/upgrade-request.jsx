@@ -44,7 +44,7 @@ export default function UpgradeRequest({
   if (isLoading || !currentUser) {
     return (
       <div className="bg-background border border-border rounded-lg p-6 mb-8 text-center">
-        <p className="text-muted-foreground">Loading user data...</p>
+        <p className="text-muted-foreground">Đang tải dữ liệu người dùng...</p>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function UpgradeRequest({
               {/* Seller Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-white rounded-lg shadow-sm">
-                  <p className="text-2xl font-bold text-green-600">{currentUser.ratingSummary.score}</p>
+                  <p className="text-2xl font-bold text-green-600">{currentUser.ratingSummary?.score}</p>
                   <p className="text-xs text-gray-600">Your Rating</p>
                 </div>
                 <div className="p-4 bg-white rounded-lg shadow-sm">
@@ -207,7 +207,6 @@ export default function UpgradeRequest({
                   <h3 className="font-semibold mb-2">What happens next?</h3>
                   <ul className="text-sm text-muted-foreground space-y-2">
                     <li>✓ Admin will review your profile and bidding history</li>
-                    <li>✓ You'll receive an email notification about the decision</li>
                     <li>✓ If approved, seller features will be activated immediately</li>
                     <li>✓ Review typically takes 3-7 business days</li>
                   </ul>
@@ -232,7 +231,6 @@ export default function UpgradeRequest({
                 <h2 className="text-2xl font-bold mb-2 text-red-700">Request Denied</h2>
                 <p className="text-muted-foreground mb-6">
                   Unfortunately, your seller upgrade request was not approved at this time.
-                  You can reapply after 30 days.
                 </p>
                 {existingRequest?.rejectionReason && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-left mb-4">
@@ -301,7 +299,7 @@ export default function UpgradeRequest({
               {/* User Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-2xl font-bold text-primary">{((currentUser.ratingSummary?.score || 0) * 5).toFixed(1)}</p>
+                  <p className="text-2xl font-bold text-primary">{currentUser.rating || 0}</p>
                   <p className="text-xs text-muted-foreground">Rating</p>
                 </div>
                 <div className="p-4 bg-muted rounded-lg text-center">
@@ -310,9 +308,9 @@ export default function UpgradeRequest({
                 </div>
                 <div className="p-4 bg-muted rounded-lg text-center">
                   <p className="text-2xl font-bold text-primary">
-                    {currentUser.totalRatings
-                      ? `${((currentUser.positiveRatings / currentUser.totalRatings) * 100).toFixed(0)}%`
-                      : '✓'}
+                    {currentUser.ratingSummary.totalCount 
+                      ? `${((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(0)}%`
+                      : '0%'}
                   </p>
                   <p className="text-xs text-muted-foreground">Positive</p>
                 </div>
@@ -363,8 +361,7 @@ export default function UpgradeRequest({
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h4 className="font-semibold text-blue-900 mb-2">Review Process</h4>
                   <p className="text-sm text-blue-800">
-                    Admin will review your profile within 7 days. You'll be notified via email
-                    about the decision. Make sure your email is verified.
+                    Admin will review your profile within 7 days.
                   </p>
                 </div>
 

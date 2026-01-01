@@ -5,6 +5,7 @@
 
 import { Trophy, Medal, Award } from 'lucide-react';
 import { formatPrice, formatDateShort } from './utils';
+import RejectBidder from '../../../components/reject-bidder';
 
 // Badge icons for top 3 bidders
 const getBadge = (rank) => {
@@ -34,7 +35,7 @@ const getBadgeColor = (rank) => {
   }
 };
 
-export default function TopBiddersSection({ bidders = [] }) {
+export default function TopBiddersSection({ bidders = [], productId, isSeller = false, onReject }) {
   if (!bidders || bidders.length === 0) {
     return (
       <div className="bg-muted/30 rounded-xl p-8 text-center">
@@ -86,15 +87,30 @@ export default function TopBiddersSection({ bidders = [] }) {
                   </div>
                 </div>
 
-                {/* Right: Bid Amount */}
-                <div className="text-right shrink-0">
-                  <p className={`font-bold ${isTop3 ? 'text-lg' : 'text-base'}`}>
-                    {formatPrice(bidder.amount)}
-                  </p>
-                  {isTop3 && (
-                    <p className="text-xs text-muted-foreground">
-                      {rank === 1 ? 'Giá cao nhất' : rank === 2 ? 'Á quân' : 'Thứ 3'}
+                {/* Right: Bid Amount + Actions */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right">
+                    <p className={`font-bold ${isTop3 ? 'text-lg' : 'text-base'}`}>
+                      {formatPrice(bidder.amount)}
                     </p>
+                    {isTop3 && (
+                      <p className="text-xs text-muted-foreground">
+                        {rank === 1 ? 'Giá cao nhất' : rank === 2 ? 'Á quân' : 'Thứ 3'}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Reject Button - Only visible to seller */}
+                  {isSeller && productId && (
+                    <RejectBidder
+                      productId={productId}
+                      bidder={{
+                        _id: bidder.bidderId || bidder._id,
+                        username: bidder.bidderUsername || bidder.username,
+                        currentBid: bidder.amount
+                      }}
+                      onReject={onReject}
+                    />
                   )}
                 </div>
               </div>

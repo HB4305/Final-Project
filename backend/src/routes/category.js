@@ -8,8 +8,12 @@
 import express from 'express';
 import {
   getAllCategories,
-  getCategoryBySlug
+  getCategoryBySlug,
+  createCategory,
+  updateCategory,
+  deleteCategory
 } from '../controllers/category.js';
+import { authenticate } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -25,5 +29,36 @@ router.get('/', getAllCategories);
  * GET /api/categories/:slug
  */
 router.get('/:slug', getCategoryBySlug);
+
+/**
+ * API: Tạo danh mục mới (Admin only)
+ * POST /api/categories
+ * Body: { name, slug, parentId (optional) }
+ */
+router.post('/',
+  authenticate,
+  createCategory
+);
+
+/**
+ * API: Cập nhật danh mục (Admin only)
+ * PUT /api/categories/:categoryId
+ * Body: { name, slug, isActive }
+ */
+router.put('/:categoryId',
+  authenticate,
+  updateCategory
+);
+
+/**
+ * API: Xóa danh mục (Admin only)
+ * DELETE /api/categories/:categoryId
+ * Xóa category và tất cả products liên quan
+ * Không xóa nếu có auction đang active với bids
+ */
+router.delete('/:categoryId',
+  authenticate,
+  deleteCategory
+);
 
 export default router;

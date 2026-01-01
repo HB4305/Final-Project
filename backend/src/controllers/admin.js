@@ -98,33 +98,60 @@ export const updateAutoExtendSettings = async (req, res, next) => {
  */
 export const getAllUsers = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, role, status } = req.query;
-    const skip = (page - 1) * limit;
+    console.log('Admin fetching all users with query:', req.query);
+    const { page, limit, role, status } = req.query;
 
     const filter = {};
     if (role) filter.role = role;
     if (status) filter.status = status;
 
-    const users = await User.find(filter)
-      .select('-password')
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+    // If no pagination params, return all users
+    if (!page && !limit) {
+      const users = await User.find(filter)
+        .select('-password')
+        .sort({ createdAt: -1 });
 
-    const total = await User.countDocuments(filter);
+      const total = users.length;
 
-    res.json({
-      success: true,
-      data: {
-        users,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
+      res.json({
+        success: true,
+        data: {
+          users,
+          pagination: {
+            page: 1,
+            limit: total,
+            total,
+            pages: 1
+          }
         }
-      }
-    });
+      });
+    } else {
+      // Use pagination
+      const pageNum = parseInt(page) || 1;
+      const limitNum = parseInt(limit) || 20;
+      const skip = (pageNum - 1) * limitNum;
+
+      const users = await User.find(filter)
+        .select('-password')
+        .skip(skip)
+        .limit(limitNum)
+        .sort({ createdAt: -1 });
+
+      const total = await User.countDocuments(filter);
+
+      res.json({
+        success: true,
+        data: {
+          users,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum)
+          }
+        }
+      });
+    }
   } catch (error) {
     next(error);
   }
@@ -602,11 +629,11 @@ export const removeProduct = async (req, res, next) => {
 
     // Create audit log
     await AuditLog.create({
-      user: adminId,
+      entityType: 'Product',
+      entityId: productId,
       action: 'REMOVE_PRODUCT',
-      resource: 'Product',
-      resourceId: productId,
-      details: {
+      performedBy: adminId,
+      changes: {
         action,
         auctionStatus: auction.status,
         bidCount: auction.bidCount,
@@ -641,33 +668,61 @@ export const removeProduct = async (req, res, next) => {
  */
 export const getAllUpgradeRequests = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
-    const skip = (page - 1) * limit;
+    console.log('Admin fetching upgrade requests with query:', req.query);
+    const { page, limit, status } = req.query;
 
     const filter = {};
     if (status) filter.status = status;
 
-    const requests = await UpgradeRequest.find(filter)
-      .populate('user', 'fullName email username roles sellerExpiresAt')
-      .populate('reviewedBy', 'fullName email')
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+    // If no pagination params, return all requests
+    if (!page && !limit) {
+      const requests = await UpgradeRequest.find(filter)
+        .populate('user', 'fullName email username roles sellerExpiresAt')
+        .populate('reviewedBy', 'fullName email')
+        .sort({ createdAt: -1 });
 
-    const total = await UpgradeRequest.countDocuments(filter);
+      const total = requests.length;
 
-    res.json({
-      success: true,
-      data: {
-        requests,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
+      res.json({
+        success: true,
+        data: {
+          requests,
+          pagination: {
+            page: 1,
+            limit: total,
+            total,
+            pages: 1
+          }
         }
-      }
-    });
+      });
+    } else {
+      // Use pagination
+      const pageNum = parseInt(page) || 1;
+      const limitNum = parseInt(limit) || 20;
+      const skip = (pageNum - 1) * limitNum;
+
+      const requests = await UpgradeRequest.find(filter)
+        .populate('user', 'fullName email username roles sellerExpiresAt')
+        .populate('reviewedBy', 'fullName email')
+        .skip(skip)
+        .limit(limitNum)
+        .sort({ createdAt: -1 });
+
+      const total = await UpgradeRequest.countDocuments(filter);
+
+      res.json({
+        success: true,
+        data: {
+          requests,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum)
+          }
+        }
+      });
+    }
   } catch (error) {
     next(error);
   }
@@ -708,7 +763,7 @@ export const getUpgradeRequestById = async (req, res, next) => {
 export const approveUpgradeRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { reviewNote } = req.body;
+    const reviewNote = req.body?.reviewNote || '';
     const adminId = req.user?._id;
 
     const request = await UpgradeRequest.findById(id).populate('user');
@@ -748,16 +803,23 @@ export const approveUpgradeRequest = async (req, res, next) => {
     request.status = 'approved';
     request.reviewedBy = adminId;
     request.reviewedAt = new Date();
-    request.reviewNote = reviewNote || '';
+    request.reviewNote = reviewNote;
     await request.save();
+
+    // Populate request to return full data
+    await request.populate([
+      { path: 'user', select: 'fullName email username roles sellerExpiresAt' },
+      { path: 'reviewedBy', select: 'fullName email' }
+    ]);
 
     // Create audit log
     await AuditLog.create({
-      user: adminId,
+      entityType: 'UpgradeRequest',
+      entityId: id,
       action: 'APPROVE_UPGRADE_REQUEST',
-      resource: 'UpgradeRequest',
-      resourceId: id,
-      details: {
+      performedBy: adminId,
+      changes: {
+        status: 'approved',
         userId: user._id,
         sellerExpiresAt: expiresAt,
         reviewNote
@@ -768,10 +830,7 @@ export const approveUpgradeRequest = async (req, res, next) => {
       success: true,
       message: 'Upgrade request approved successfully',
       data: {
-        requestId: request._id,
-        userId: user._id,
-        sellerExpiresAt: expiresAt,
-        status: request.status
+        request: request
       }
     });
   } catch (error) {
@@ -786,7 +845,7 @@ export const approveUpgradeRequest = async (req, res, next) => {
 export const rejectUpgradeRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { reviewNote } = req.body;
+    const reviewNote = req.body?.reviewNote || req.body?.reason || '';
     const adminId = req.user?._id;
 
     if (!reviewNote || reviewNote.trim().length === 0) {
@@ -818,13 +877,20 @@ export const rejectUpgradeRequest = async (req, res, next) => {
     request.reviewNote = reviewNote.trim();
     await request.save();
 
+    // Populate request to return full data
+    await request.populate([
+      { path: 'user', select: 'fullName email username roles sellerExpiresAt' },
+      { path: 'reviewedBy', select: 'fullName email' }
+    ]);
+
     // Create audit log
     await AuditLog.create({
-      user: adminId,
+      entityType: 'UpgradeRequest',
+      entityId: id,
       action: 'REJECT_UPGRADE_REQUEST',
-      resource: 'UpgradeRequest',
-      resourceId: id,
-      details: {
+      performedBy: adminId,
+      changes: {
+        status: 'rejected',
         userId: request.user._id,
         reviewNote
       }
@@ -834,9 +900,7 @@ export const rejectUpgradeRequest = async (req, res, next) => {
       success: true,
       message: 'Upgrade request rejected',
       data: {
-        requestId: request._id,
-        status: request.status,
-        reviewNote: request.reviewNote
+        request: request
       }
     });
   } catch (error) {

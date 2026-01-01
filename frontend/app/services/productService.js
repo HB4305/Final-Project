@@ -123,8 +123,20 @@ export const updateProduct = async (productId, productData) => {
  * @returns {Promise}
  */
 export const deleteProduct = async (productId) => {
-  const response = await api.delete(`/products/${productId}`);
-  return response.data;
+  try {
+    const response = await api.delete(`/products/${productId}`);
+    return {
+      success: true,
+      message: response.data.message || 'Xóa sản phẩm thành công',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || error.response?.data?.error || 'Lỗi khi xóa sản phẩm'
+    };
+  }
 };
 
 /**

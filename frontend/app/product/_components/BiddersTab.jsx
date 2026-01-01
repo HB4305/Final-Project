@@ -5,10 +5,15 @@
 
 import TopBiddersSection from './TopBiddersSection';
 
-export default function BiddersTab({ bidders }) {
+export default function BiddersTab({ bidders, productId, isSeller, onReject }) {
   return (
     <div>
-      <TopBiddersSection bidders={bidders} />
+      <TopBiddersSection 
+        bidders={bidders}
+        productId={productId}
+        isSeller={isSeller}
+        onReject={onReject}
+      />
     </div>
   );
 }

@@ -69,17 +69,6 @@ const getUserRatings = (userId, params = {}) => {
   return api.get(endpoint, { params });
 };
 
-const getUpgradeRequests = () => {
-  return api.get("/users/upgrade-requests");
-};
-
-const approveUpgradeRequest = (requestId) => {
-  return api.put(`/users/upgrade-requests/${requestId}/approve`);
-};
-
-const rejectUpgradeRequest = (requestId, reason) => {
-  return api.put(`/users/upgrade-requests/${requestId}/reject`, { reason });
-};
 
 const submitUpgradeRequest = (request) => {
   return api.post("/users/upgrade-requests", request);
@@ -97,6 +86,8 @@ const uploadAvatar = (formData) => {
   });
 };
 
+
+
 export default {
   getMe,
   updateMe,
@@ -106,9 +97,6 @@ export default {
   getUserProfile,
   getUserRatingSummary,
   getUserRatings,
-  getUpgradeRequests,
-  approveUpgradeRequest,
-  rejectUpgradeRequest,
   submitUpgradeRequest,
   uploadAvatar,
 };

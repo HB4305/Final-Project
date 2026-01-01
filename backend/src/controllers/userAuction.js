@@ -183,7 +183,7 @@ export const getSellingAuctions = async (req, res, next) => {
         .limit(parseInt(limit))
         .populate({
           path: "productId",
-          select: "title slug primaryImageUrl categoryId",
+          select: "title slug primaryImageUrl categoryId descriptionHistory metadata",
         })
         .populate("currentHighestBidderId", "username fullName ratingSummary")
         .lean(),

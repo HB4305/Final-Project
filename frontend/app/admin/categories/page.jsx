@@ -35,7 +35,12 @@ export default function AdminCategoriesPage() {
     setError("");
 
     try {
-      const response = await categoryService.createCategory(formData);
+      let response;
+      if (editingCategory) {
+        response = await categoryService.updateCategory(editingCategory._id, formData);
+      } else {
+        response = await categoryService.createCategory(formData);
+      }
 
       if (response.success) {
         console.log("[CATEGORY ADMIN]:", response.data);
@@ -90,10 +95,10 @@ export default function AdminCategoriesPage() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Manage Categories
+                Quản lí danh mục sản phẩm
               </h1>
               <p className="text-gray-600 mt-1">
-                Create, edit, or delete product categories
+                Tạo, chỉnh sửa hoặc xóa danh mục sản phẩm
               </p>
             </div>
             <button
@@ -101,14 +106,14 @@ export default function AdminCategoriesPage() {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
-              Add Category
+              Thêm danh mục
             </button>
           </div>
 
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-              <p className="text-gray-600 mt-4">Loading categories...</p>
+              <p className="text-gray-600 mt-4">Đang tải danh mục...</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -119,10 +124,10 @@ export default function AdminCategoriesPage() {
                       ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
+                      TÊN DANH MỤC
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                      HÀNH ĐỘNG
                     </th>
                   </tr>
                 </thead>
@@ -156,7 +161,7 @@ export default function AdminCategoriesPage() {
 
               {categories.length === 0 && (
                 <div className="text-center py-12 text-gray-500">
-                  No categories found. Create your first category!
+                  Không tìm thấy danh mục nào. Hãy thêm danh mục mới.
                 </div>
               )}
             </div>
@@ -169,7 +174,7 @@ export default function AdminCategoriesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <h2 className="text-2xl font-bold mb-4">
-              {editingCategory ? "Edit Category" : "Create Category"}
+              {editingCategory ? "Chỉnh sửa danh mục" : "Tạo danh mục"}
             </h2>
 
             {error && (
@@ -182,7 +187,7 @@ export default function AdminCategoriesPage() {
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Category Name *
+                  Tên danh mục *
                 </label>
                 <input
                   type="text"
@@ -197,7 +202,7 @@ export default function AdminCategoriesPage() {
 
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description
+                  Mô tả
                 </label>
                 <textarea
                   value={formData.description}
@@ -214,7 +219,7 @@ export default function AdminCategoriesPage() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                 >
-                  {editingCategory ? "Update" : "Create"}
+                  {editingCategory ? "Cập nhật" : "Tạo"}
                 </button>
                 <button
                   type="button"
@@ -226,7 +231,7 @@ export default function AdminCategoriesPage() {
                   }}
                   className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
                 >
-                  Cancel
+                  Hủy
                 </button>
               </div>
             </form>

@@ -17,7 +17,8 @@ import {
   toggleAutoExtend,
   updateProductDescription,
   rejectBidder,
-  withdrawBid
+  withdrawBid,
+  deleteProduct
 } from '../controllers/product.js';
 
 import {
@@ -123,6 +124,15 @@ router.put('/:productId/auto-extend',
   toggleAutoExtend
 );
 
+/**
+ * API: Xóa sản phẩm (Admin only)
+ * DELETE /api/products/:productId
+ * Requires: Authentication, must be admin
+ */
+router.delete('/:productId',
+  authenticate,
+  deleteProduct
+);
 
 router.use('/:productId/bids', bidRouter);
 

@@ -30,7 +30,7 @@ export default function AdminProductsPage() {
   }, []);
 
   const handleDelete = async (product) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa "${product.name}"?`)) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa "${product.title}"?`)) return;
 
     try {
       const response = await productService.deleteProduct(product._id);

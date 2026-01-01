@@ -11,6 +11,10 @@ import { isValidObjectId } from '../utils/validators.js';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import Auction from '../models/Auction.js';
+import Bid from '../models/Bid.js';
+import AutoBid from '../models/AutoBid.js';
+import Watchlist from '../models/Watchlist.js';
+import Question from '../models/Question.js';
 import {
   PRODUCT_VALIDATION,
   AUCTION_VALIDATION,
@@ -76,6 +80,106 @@ export const getAllProducts = async (req, res, next) => {
     });
   } catch (error) {
     console.error('[PRODUCT CONTROLLER] Lỗi trong getAllProducts:', error);
+    next(error);
+  }
+};
+
+
+/**
+ * API: Xóa sản phẩm (Admin only)
+ * DELETE /api/products/:productId
+ * Xóa sản phẩm và tất cả dữ liệu liên quan:
+ * - Auction
+ * - Bids
+ * - AutoBids
+ * - Watchlist entries
+ * - Questions
+ */
+export const deleteProduct = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.user._id;
+
+    // Validate productId
+    if (!isValidObjectId(productId)) {
+      throw new AppError('ID sản phẩm không hợp lệ', 400, 'INVALID_PRODUCT_ID');
+    }
+
+    console.log(`[PRODUCT CONTROLLER] DELETE /api/products/${productId} - Admin: ${userId}`);
+
+    // Find product
+    const product = await Product.findById(productId);
+    if (!product) {
+      throw new AppError('Không tìm thấy sản phẩm', 404, 'PRODUCT_NOT_FOUND');
+    }
+
+    // Only admin or superadmin can delete products
+    if (!['admin', 'superadmin'].some(role => req.user.roles.includes(role))) {
+      throw new AppError('Bạn không có quyền xóa sản phẩm', 403, 'FORBIDDEN');
+    }
+
+    // Find associated auction
+    const auction = await Auction.findOne({ productId: productId });
+    
+    // Check if auction exists and has active bids
+    if (auction) {
+      // Cannot delete if auction is active
+      if (auction.status === 'active') {
+        throw new AppError(
+          'Không thể xóa sản phẩm có phiên đấu giá đang hoạt động. Vui lòng chờ đấu giá kết thúc.',
+          400,
+          'AUCTION_ACTIVE'
+        );
+      }
+
+      // Cannot delete if auction has bids
+      if (auction.bidCount > 0) {
+        throw new AppError(
+          `Không thể xóa sản phẩm có ${auction.bidCount} lượt đặt cược. Vui lòng chờ đấu giá kết thúc.`,
+          400,
+          'AUCTION_HAS_BIDS'
+        );
+      }
+    }
+    
+    // Delete all related data
+    const deletePromises = [];
+
+    // Delete auction if exists
+    if (auction) {
+      deletePromises.push(Auction.findByIdAndDelete(auction._id));
+      // Delete all auto bids for this auction
+      deletePromises.push(AutoBid.deleteMany({ auctionId: auction._id }));
+      console.log(`[PRODUCT CONTROLLER] Xóa auction và auto bids: ${auction._id}`);
+    }
+
+    // Delete all bids for this product
+    deletePromises.push(Bid.deleteMany({ productId: productId }));
+    
+    // Delete all watchlist entries for this product
+    deletePromises.push(Watchlist.deleteMany({ productId: productId }));
+    
+    // Delete all questions for this product
+    deletePromises.push(Question.deleteMany({ productId: productId }));
+    
+    // Delete the product itself
+    deletePromises.push(Product.findByIdAndDelete(productId));
+
+    // Execute all deletions
+    await Promise.all(deletePromises);
+    
+    console.log(`[PRODUCT CONTROLLER] Đã xóa sản phẩm và tất cả dữ liệu liên quan: ${productId}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Xóa sản phẩm thành công',
+      data: {
+        productId: product._id,
+        title: product.title
+      }
+    });
+  } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in deleteProduct:', error);
     next(error);
   }
 };

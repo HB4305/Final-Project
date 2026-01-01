@@ -68,9 +68,9 @@ export default function AdminNavigation() {
 
   // Admin menu items
   const adminMenuItems = [
-    { path: "/admin/dashboard", label: "Dashboard", icon: BarChart3 },
-    { path: "/admin/products", label: "Products", icon: Package },
-    { path: "/admin/categories", label: "Categories", icon: Tag },
+    { path: "/admin/dashboard", label: "Trang chủ", icon: BarChart3 },
+    { path: "/admin/products", label: "Sản phẩm", icon: Package },
+    { path: "/admin/categories", label: "Danh mục", icon: Tag },
   ];
 
   return (
@@ -95,7 +95,7 @@ export default function AdminNavigation() {
             </Link>
           </div>
 
-          {/* Search Bar */}
+          {/* Search Bar
           <form
             onSubmit={handleSearch}
             className="hidden xl:flex items-center flex-1 max-w-xl bg-white/10 backdrop-blur-sm rounded-lg border border-white/20"
@@ -113,7 +113,7 @@ export default function AdminNavigation() {
             >
               <Search className="w-5 h-5" />
             </button>
-          </form>
+          </form> */}
 
           {/* Right Actions */}
           <div className="flex items-center gap-3">
@@ -123,7 +123,7 @@ export default function AdminNavigation() {
               className="hidden sm:flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition text-sm font-medium"
             >
               <Home className="w-4 h-4" />
-              <span className="hidden lg:inline">Back to Site</span>
+              <span className="hidden lg:inline">Quay lại trang chính</span>
             </Link>
 
             {/* Notifications */}
@@ -146,7 +146,7 @@ export default function AdminNavigation() {
                     {currentUser?.username || "Admin"}
                   </div>
                   <div className="text-xs text-orange-100">
-                    {currentUser?.roles?.includes('superadmin') ? 'Super Admin' : 'Admin'}
+                    {currentUser?.roles?.includes('superadmin') ? 'Siêu Quản trị viên' : 'Quản trị viên'}
                   </div>
                 </div>
               </button>
@@ -169,7 +169,7 @@ export default function AdminNavigation() {
                     className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
                   >
                     <User className="w-4 h-4 inline mr-2" />
-                    My Profile
+                    Hồ sơ cá nhân
                   </Link>
                   <Link
                     to="/profile/settings"
@@ -177,7 +177,7 @@ export default function AdminNavigation() {
                     className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
                   >
                     <Settings className="w-4 h-4 inline mr-2" />
-                    Settings
+                    Cài đặt
                   </Link>
                   
                   <hr className="border-gray-200" />
@@ -188,7 +188,7 @@ export default function AdminNavigation() {
                     className="block px-4 py-3 text-sm text-blue-600 hover:bg-blue-50 transition"
                   >
                     <Home className="w-4 h-4 inline mr-2" />
-                    Back to Main Site
+                    Quay lại trang chính
                   </Link>
                   
                   <hr className="border-gray-200" />
@@ -200,7 +200,7 @@ export default function AdminNavigation() {
                     }}
                     className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition"
                   >
-                    Logout
+                    Đăng xuất
                   </button>
                 </div>
               )}
@@ -300,14 +300,14 @@ export default function AdminNavigation() {
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-blue-600 hover:bg-blue-50 transition font-medium"
             >
               <Home className="w-5 h-5" />
-              Back to Main Site
+              Quay lại trang chính
             </Link>
 
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition font-medium"
             >
-              Logout
+              Đăng xuất
             </button>
           </div>
         </div>

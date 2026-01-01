@@ -9,7 +9,7 @@ import {
   XCircle,
   RefreshCw,
 } from "lucide-react";
-import userService from "../app/services/userService";
+import adminService from "../app/services/adminService";
 import Toast from "./Toast";
 
 /**
@@ -28,7 +28,7 @@ export default function AdminPanel() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
           <p className="text-muted-foreground">
-            Manage platform users and upgrade requests
+            Quản lý người dùng và yêu cầu nâng cấp tài khoản
           </p>
         </div>
 
@@ -43,7 +43,7 @@ export default function AdminPanel() {
             }`}
           >
             <Users className="w-5 h-5" />
-            Users
+            Người dùng
           </button>
           <button
             onClick={() => setActiveTab("upgrades")}
@@ -54,7 +54,7 @@ export default function AdminPanel() {
             }`}
           >
             <Shield className="w-5 h-5" />
-            Upgrade Requests
+            Yêu cầu nâng cấp
           </button>
         </div>
 
@@ -82,15 +82,18 @@ function UserManagement({ searchQuery, setSearchQuery }) {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-      const response = await userService.getUsers();
-
-      if (response.success) {
-        setUsers(response.data || []);
+      setError('');
+      
+      const token = localStorage.getItem('token');
+      const response = await adminService.getAllUsers();
+      console.log('[USER MANAGEMENT] response:', response);
+      console.log('[USER MANAGEMENT] response.data:', response.data);
+      
+      if (response.status === 200) {
+        setUsers(response.data?.data?.users || []);
+        console.log('[USER MANAGEMENT] users:', response.data?.data?.users);
       } else {
-        setError(response.message || "Failed to load users");
+        setError(response.data?.message || 'Failed to load users');
       }
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -116,7 +119,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
     return (
       <div className="text-center py-12">
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        <p className="text-muted-foreground mt-4">Loading users...</p>
+        <p className="text-muted-foreground mt-4">Đang tải danh sách người dùng...</p>
       </div>
     );
   }
@@ -129,7 +132,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
           onClick={fetchUsers}
           className="ml-4 text-red-600 hover:text-red-800 underline"
         >
-          Retry
+          Thử lại
         </button>
       </div>
     );
@@ -154,7 +157,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
           className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
         >
           <RefreshCw className="w-4 h-4" />
-          Refresh
+          Làm mới
         </button>
       </div>
 
@@ -164,22 +167,22 @@ function UserManagement({ searchQuery, setSearchQuery }) {
           <thead className="bg-muted">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold">
-                User
+                Người dùng
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold">
                 Email
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold">
-                Roles
+                Vai trò
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold">
                 Rating
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold">
-                Status
+                Trạng thái
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold">
-                Joined
+                Ngày tham gia
               </th>
             </tr>
           </thead>
@@ -255,7 +258,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
       </div>
 
       <div className="text-sm text-muted-foreground">
-        Showing {filteredUsers.length} of {users.length} users
+        Hiển thị {filteredUsers.length} trong tổng số {users.length} người dùng
       </div>
     </div>
   );
@@ -275,11 +278,9 @@ function UpgradeRequests() {
       setError("");
 
       const token = localStorage.getItem("token");
-      const response = await userService.getUpgradeRequests();
-      console.log("[UPGRADE REQUESTS] response: ", response);
-      if (response.success) {
-        setRequests(response.data);
-        console.log("[UPGRADE REQUESTS] requests: ", response.data);
+      const response = await adminService.getUpgradeRequests();
+      if(response.status === 200) {
+        setRequests(response.data?.data?.requests || []);
       }
     } catch (err) {
       console.error("Error fetching upgrade requests:", err);
@@ -299,9 +300,9 @@ function UpgradeRequests() {
 
     try {
       setProcessing(requestId);
-      const response = await userService.approveUpgradeRequest(requestId);
-
-      if (response.success) {
+      const response = await adminService.approveUpgradeRequest(requestId);
+      console.log("Approve response:", response);
+      if (response.status === 200) {
         setToast({
           message:
             "Yêu cầu nâng cấp đã được chấp nhận! Người dùng đã trở thành người bán.",
@@ -335,11 +336,11 @@ function UpgradeRequests() {
 
     try {
       setProcessing(requestId);
-      const response = await userService.rejectUpgradeRequest(requestId, {
+      const response = await adminService.rejectUpgradeRequest(requestId, {
         reason,
       });
 
-      if (response.success) {
+      if (response.status === 200) {
         setToast({
           message: "Yêu cầu nâng cấp đã bị từ chối.",
           type: "success",
@@ -467,13 +468,12 @@ function UpgradeRequests() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-semibold">
-                      {request.user?.rating?.average?.toFixed(1) ||
-                        request.userId?.rating?.average?.toFixed(1) ||
-                        "N/A"}{" "}
+                      {request.user?.ratingSummary?.score.toFixed(1) ||
+                        "0"}{" "}
                       ★
                     </span>
                   </td>
-                  <td className="px-4 py-3">{request.totalBids || 0}</td>
+                  <td className="px-4 py-3">{request.user?.ratingSummary?.countPositive || 0}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -484,7 +484,11 @@ function UpgradeRequests() {
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {request.status}
+                      {request.status === "pending"
+                        ? "Đang chờ"
+                        : request.status === "approved"
+                        ? "Đã chấp nhận"
+                        : "Đã từ chối"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
