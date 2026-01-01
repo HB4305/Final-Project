@@ -41,7 +41,7 @@ export const createQuestion = async (req, res, next) => {
 
     await question.populate("authorId", "fullName email");
 
-    const productUrl = `${process.env.FRONTEND_BASE_URL}/products/${productId}`;
+    const productUrl = `${process.env.FRONTEND_URL}/product/${productId}`;
 
     // Send email notification using template
     await sendQuestionNotification({
@@ -129,14 +129,24 @@ export const answerQuestion = async (req, res, next) => {
     }
 
     const question = await Question.findById(questionId)
-      .populate("productId", "sellerId title")
+      .populate({
+        path: "productId",
+        select: "sellerId title",
+        populate: {
+          path: "sellerId",
+          select: "email fullName",
+        },
+      })
       .populate("authorId", "email fullName");
 
     if (!question) {
       throw new AppError("Question not found", 404);
     }
 
-    if (question.productId.sellerId.toString() !== userId.toString()) {
+    const sellerId = question.productId.sellerId._id.toString();
+    const questionAuthorId = question.authorId._id.toString();
+
+    if (sellerId !== userId.toString() && questionAuthorId !== userId.toString()) {
       throw new AppError("You are not authorized to answer this question", 403);
     }
 
@@ -148,66 +158,74 @@ export const answerQuestion = async (req, res, next) => {
       createdAt: new Date(),
     });
 
-    question.status = "answered";
+    if (sellerId === userId.toString()) {
+        question.status = "answered";
+    } else {
+        question.status = "open"; 
+    }
+    
     await question.save();
 
-    // Populate answer author for response
     await question.populate("answers.authorId", "fullName");
 
-    const productUrl = `${process.env.FRONTEND_BASE_URL}/products/${question.productId._id}`;
+    const baseUrl = process.env.FRONTEND_URL;
+    const productUrl = `${baseUrl}/product/${question.productId._id}`;
 
-    // Send answer notification email
-    await sendAnswerNotification({
-      buyerEmail: question.authorId.email,
-      buyerName: question.authorId.fullName,
-      productTitle: question.productId.title,
-      questionText: question.text,
-      answerText: text.trim(),
-      productUrl,
-    });
+    if (sellerId === userId.toString()) {
+        await sendAnswerNotification({
+          buyerEmail: question.authorId.email,
+          buyerName: question.authorId.fullName,
+          productTitle: question.productId.title,
+          questionText: question.text,
+          answerText: text.trim(),
+          productUrl,
+        });
 
-    // Send notification to other interested users (Bidders + Other Askers)
-    (async () => {
-      try {
-        // Find all bidders for this product
-        const bids = await Bid.find({ productId: question.productId._id }).distinct('bidderId');
+        (async () => {
+          try {
+            const bids = await Bid.find({ productId: question.productId._id }).distinct('bidderId');
+            const questions = await Question.find({ productId: question.productId._id }).distinct('authorId');
+            const interestedUserIds = [...new Set([...bids.map(id => id.toString()), ...questions.map(id => id.toString())])];
+            
+            const recipients = interestedUserIds.filter(id =>
+              id !== questionAuthorId &&
+              id !== userId.toString()
+            );
 
-        // Find all users who asked questions about this product
-        const questions = await Question.find({ productId: question.productId._id }).distinct('authorId');
+            if (recipients.length > 0) {
+              const users = await User.find({ _id: { $in: recipients } });
+              const auction = await Auction.findOne({ productId: question.productId._id, status: 'active' });
 
-        // Combine and unique
-        const interestedUserIds = [...new Set([...bids.map(id => id.toString()), ...questions.map(id => id.toString())])];
-
-        // Filter out current question author (already notified) and seller (who is answering)
-        const recipients = interestedUserIds.filter(id =>
-          id !== question.authorId._id.toString() &&
-          id !== userId.toString()
-        );
-
-        if (recipients.length > 0) {
-          const users = await User.find({ _id: { $in: recipients } });
-          const auction = await Auction.findOne({ productId: question.productId._id, status: 'active' });
-
-          for (const recipient of users) {
-            await sendSellerAnswerNotification({
-              participantEmail: recipient.email,
-              participantName: recipient.fullName,
-              productTitle: question.productId.title,
-              questionText: question.text,
-              answerText: text.trim(),
-              questionAuthor: question.authorId.fullName,
-              sellerName: user.fullName,
-              currentPrice: auction ? auction.currentPrice : 'N/A',
-              auctionEndTime: auction ? auction.endAt : null,
-              productUrl
-            });
+              for (const recipient of users) {
+                await sendSellerAnswerNotification({
+                  participantEmail: recipient.email,
+                  participantName: recipient.fullName,
+                  productTitle: question.productId.title,
+                  questionText: question.text,
+                  answerText: text.trim(),
+                  questionAuthor: question.authorId.fullName,
+                  sellerName: user.fullName,
+                  currentPrice: auction ? auction.currentPrice : 'N/A',
+                  auctionEndTime: auction ? auction.endAt : null,
+                  productUrl
+                });
+              }
+            }
+          } catch (err) {
+            console.error("Error sending seller answer notifications:", err);
           }
-        }
+        })();
 
-      } catch (err) {
-        console.error("Error sending seller answer notifications:", err);
-      }
-    })();
+    } else {
+        await sendQuestionNotification({
+          sellerEmail: question.productId.sellerId.email,
+          sellerName: question.productId.sellerId.fullName,
+          productTitle: question.productId.title,
+          buyerName: user.fullName,
+          questionText: text.trim(), // The new reply
+          productUrl,
+        });
+    }
 
     // TODO: Create notification
     // await NotificationService.createNotification({

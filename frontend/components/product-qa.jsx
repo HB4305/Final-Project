@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MessageSquare, Send, User, Clock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../app/context/AuthContext.jsx';
 import questionService from '../app/services/questionService';
+import Toast from './Toast';
 
 /**
  * ProductQA Component
@@ -18,6 +19,7 @@ export default function ProductQA({
   const [newQuestion, setNewQuestion] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
+  const [toast, setToast] = useState(null);
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,14 +54,14 @@ export default function ProductQA({
     e.preventDefault();
     
     if (!isLoggedIn) {
-      alert('Please log in to ask a question.');
+      setToast({ message: 'Please log in to ask a question.', type: 'error' });
       return;
     }
 
     if (!newQuestion.trim()) return;
 
     if (isSeller) {
-      alert('Sellers cannot ask questions about their own products.');
+      setToast({ message: 'Sellers cannot ask questions about their own products.', type: 'error' });
       return;
     }
 
@@ -70,13 +72,13 @@ export default function ProductQA({
       if (result.success) {
         setNewQuestion('');
         await loadQuestions();
-        alert('Your question has been submitted.');
+        setToast({ message: 'Your question has been submitted.', type: 'success' });
       }
       else {
-        alert(result.error);
+        setToast({ message: result.error, type: 'error' });
       }
     } catch (err) {
-      alert('Failed to submit question.');
+      setToast({ message: 'Failed to submit question.', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -93,12 +95,12 @@ export default function ProductQA({
         setReplyText('');
         setReplyingTo(null);
         await loadQuestions();
-        alert('Your answer has been submitted.');
+        setToast({ message: 'Your answer has been submitted.', type: 'success' });
       } else {
-        alert(result.error || 'Failed to submit answer.');
+        setToast({ message: result.error || 'Failed to submit answer.', type: 'error' });
       }
     } catch (err) {
-      alert('Failed to submit answer.');
+      setToast({ message: 'Failed to submit answer.', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -211,13 +213,13 @@ export default function ProductQA({
               </div>
 
               {/* Answer */}
-              {q.answer && q.answers.length > 0 ? (
+              {q.answers && q.answers.length > 0 && (
                 <div className="ml-11 space-y-2">
                   {q.answers.map((answer, index) => (
                     <div key={index} className="pl-4 border-l-2 border-primary/30">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-sm text-primary">
-                          {answer.authorId?.fullName || 'Người bán'}
+                          {answer.authorId?.fullName || "Người dùng"}
                         </span>
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -228,14 +230,17 @@ export default function ProductQA({
                     </div>
                   ))}
                 </div>
-              ) : isSeller && q.status === 'open' ? (
-                <div className="ml-11">
+              )}
+
+              {/* Reply Section */}
+              {isSeller || (currentUser?._id === q.authorId._id) ? (
+                <div className="ml-11 mt-2">
                   {replyingTo === q._id ? (
                     <div className="space-y-2">
                       <textarea
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Type your answer..."
+                        placeholder="Type your answer or reply..."
                         rows="2"
                         className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
                         autoFocus
@@ -246,12 +251,12 @@ export default function ProductQA({
                           disabled={submitting}
                           className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90 transition"
                         >
-                          Send Answer
+                          {isSeller ? "Send Answer" : "Send Reply"}
                         </button>
                         <button
                           onClick={() => {
                             setReplyingTo(null);
-                            setReplyText('');
+                            setReplyText("");
                           }}
                           className="px-3 py-1 border border-border rounded text-sm hover:bg-muted transition"
                         >
@@ -264,19 +269,30 @@ export default function ProductQA({
                       onClick={() => setReplyingTo(q._id)}
                       className="text-sm text-primary hover:underline font-medium"
                     >
-                      Reply to this question
+                      {q.answers && q.answers.length > 0
+                        ? "Reply to thread"
+                        : "Answer this question"}
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="ml-11 text-sm text-muted-foreground italic">
-                  Waiting for seller's response...
-                </div>
+                (!q.answers || q.answers.length === 0) && (
+                  <div className="ml-11 text-sm text-muted-foreground italic">
+                    Waiting for seller's response...
+                  </div>
+                )
               )}
             </div>
           ))
         )}
       </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
