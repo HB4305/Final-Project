@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react';
+import { ShieldCheck, AlertCircle, CheckCircle, ChevronDown, RefreshCw } from 'lucide-react';
 import userService from "../app/services/userService.js"
+import { useAuth } from "../app/context/AuthContext";
 
 /**
  * UpgradeRequest Component
@@ -11,12 +12,14 @@ export default function UpgradeRequest({
   currentUser: initialUser,
   existingRequest = null
 }) {
+  const { checkAuthStatus } = useAuth();
   const [reason, setReason] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(!!existingRequest);
   const [requestStatus, setRequestStatus] = useState(existingRequest?.status || null);
   const [currentUser, setCurrentUser] = useState(initialUser);
   const [isLoading, setIsLoading] = useState(!initialUser);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Fetch user data if not provided
   useEffect(() => {
@@ -39,6 +42,33 @@ export default function UpgradeRequest({
       fetchUserData();
     }
   }, [initialUser]);
+
+  // Poll for upgrade request status changes and auto-refresh auth
+  useEffect(() => {
+    if (!isSubmitted || requestStatus !== 'pending') return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await userService.getMe();
+        const userData = response.data.user;
+        
+        // Check if user has been upgraded to seller
+        if (userData.roles?.includes('seller')) {
+          console.log('[UPGRADE] User upgraded to seller, refreshing auth...');
+          setRequestStatus('approved');
+          // Refresh auth context to update roles immediately
+          await checkAuthStatus();
+          setIsExpanded(true); // Auto expand to show success
+          clearInterval(pollInterval);
+        }
+      } catch (error) {
+        console.error('Error polling upgrade status:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    // Cleanup interval on unmount
+    return () => clearInterval(pollInterval);
+  }, [isSubmitted, requestStatus, checkAuthStatus]);
 
   // Show loading state
   if (isLoading || !currentUser) {
@@ -220,9 +250,29 @@ export default function UpgradeRequest({
                 <p className="text-muted-foreground mb-6">
                   Congratulations! You are now a verified seller on our platform.
                 </p>
-                <button className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-semibold">
-                  Start Selling
-                </button>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-blue-900 mb-3">
+                    <strong>Important:</strong> To access seller features, please refresh your session.
+                  </p>
+                  <button 
+                    onClick={async () => {
+                      setIsRefreshing(true);
+                      try {
+                        await checkAuthStatus();
+                        // Reload page to reflect new role
+                        window.location.reload();
+                      } catch (error) {
+                        console.error('Error refreshing:', error);
+                        setIsRefreshing(false);
+                      }
+                    }}
+                    disabled={isRefreshing}
+                    className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    {isRefreshing ? 'Refreshing...' : 'Refresh & Start Selling'}
+                  </button>
+                </div>
               </div>
             )}
 

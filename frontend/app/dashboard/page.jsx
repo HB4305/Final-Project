@@ -521,9 +521,12 @@ export default function DashboardPage() {
                         sellingAuctions.map((auction) => (
                           <div
                             key={auction._id}
-                            className="flex items-center justify-between p-4 border border-border rounded-lg"
+                            className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition"
                           >
-                            <div className="flex items-center gap-4">
+                            <Link 
+                              to={`/product/${auction.productId?._id}`}
+                              className="flex items-center gap-4 flex-1"
+                            >
                               <img
                                 src={
                                   auction.productId?.primaryImageUrl ||
@@ -533,7 +536,7 @@ export default function DashboardPage() {
                                 className="w-20 h-20 rounded-lg object-cover"
                               />
                               <div>
-                                <h3 className="font-semibold mb-1">
+                                <h3 className="font-semibold mb-1 hover:text-primary transition">
                                   {auction.productId?.title}
                                 </h3>
                                 <div className="flex gap-4 text-sm text-muted-foreground">
@@ -544,7 +547,7 @@ export default function DashboardPage() {
                                   <span>Lượt đặt: {auction.bidCount}</span>
                                 </div>
                               </div>
-                            </div>
+                            </Link>
                             <div className="flex items-center gap-2">
                               <div className="text-right mr-4">
                                 <p className="text-sm text-blue-500 font-semibold">

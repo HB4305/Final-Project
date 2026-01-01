@@ -13,7 +13,8 @@ export default function AdminProductsPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await productService.getAllProducts();
+      // Lấy tất cả sản phẩm với mọi trạng thái (không filter theo status)
+      const response = await productService.getAllProducts({});
       console.log(response.data);
       if (response.success) {
         setProducts(response.data);
@@ -153,8 +154,16 @@ export default function AdminProductsPage() {
                         ).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                          {product.status || "active"}
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          product.auction.status === 'active' 
+                            ? 'bg-green-100 text-green-800'
+                            : product.auction.status === 'ended'
+                            ? 'bg-blue-100 text-blue-800'
+                            : product.auction.status === 'scheduled'
+                            ? 'bg-gray-100 text-gray-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {product.auction.status || "active"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">

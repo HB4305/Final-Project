@@ -67,16 +67,22 @@ export const getAllProducts = async (params = {}) => {
   try {
     const {
       sortBy = "newest",
-      status = "active",
+      status = null, // Không filter theo status để lấy tất cả
     } = params;
 
+    const queryParams = { 
+      page: 1, 
+      limit: 999999, // Lấy tất cả sản phẩm (set limit rất lớn)
+      sortBy
+    };
+
+    // Chỉ thêm status vào params nếu được chỉ định
+    if (status) {
+      queryParams.status = status;
+    }
+
     const response = await api.get("/products", {
-      params: { 
-        page: 1, 
-        limit: 999999, // Lấy tất cả sản phẩm (set limit rất lớn)
-        sortBy, 
-        status 
-      },
+      params: queryParams,
     });
 
     return {

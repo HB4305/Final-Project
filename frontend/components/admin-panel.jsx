@@ -271,6 +271,14 @@ function UpgradeRequests() {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(null);
   const [toast, setToast] = useState(null);
+  
+  // Modal states
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   const fetchUpgradeRequests = async () => {
     try {
@@ -294,13 +302,18 @@ function UpgradeRequests() {
     fetchUpgradeRequests();
   }, []);
 
-  const handleApprove = async (requestId) => {
-    if (!confirm("Bạn có chắc chắn muốn chấp nhận yêu cầu nâng cấp này không?"))
-      return;
+  const handleApprove = (requestId) => {
+    setSelectedRequestId(requestId);
+    setShowConfirmModal(true);
+  };
+
+  const confirmApprove = async () => {
+    if (!selectedRequestId) return;
 
     try {
-      setProcessing(requestId);
-      const response = await adminService.approveUpgradeRequest(requestId);
+      setProcessing(selectedRequestId);
+      setShowConfirmModal(false);
+      const response = await adminService.approveUpgradeRequest(selectedRequestId);
       console.log("Approve response:", response);
       if (response.status === 200) {
         setToast({
@@ -327,17 +340,30 @@ function UpgradeRequests() {
       });
     } finally {
       setProcessing(null);
+      setSelectedRequestId(null);
     }
   };
 
-  const handleReject = async (requestId) => {
-    const reason = prompt("Vui lòng cung cấp lý do từ chối:");
-    if (!reason) return;
+  const handleReject = (requestId) => {
+    setSelectedRequestId(requestId);
+    setRejectReason("");
+    setShowRejectModal(true);
+  };
+
+  const confirmReject = async () => {
+    if (!selectedRequestId || !rejectReason.trim()) {
+      setToast({
+        message: "❌ Vui lòng nhập lý do từ chối",
+        type: "error",
+      });
+      return;
+    }
 
     try {
-      setProcessing(requestId);
-      const response = await adminService.rejectUpgradeRequest(requestId, {
-        reason,
+      setProcessing(selectedRequestId);
+      setShowRejectModal(false);
+      const response = await adminService.rejectUpgradeRequest(selectedRequestId, {
+        reason: rejectReason,
       });
 
       if (response.status === 200) {
@@ -452,7 +478,17 @@ function UpgradeRequests() {
               </tr>
             ) : (
               requests.map((request) => (
-                <tr key={request._id} className="hover:bg-muted/50">
+                <tr 
+                  key={request._id} 
+                  className="hover:bg-muted/50 cursor-pointer transition"
+                  onClick={(e) => {
+                    // Không mở detail nếu click vào button
+                    if (!e.target.closest('button')) {
+                      setSelectedRequest(request);
+                      setShowDetailModal(true);
+                    }
+                  }}
+                >
                   <td className="px-4 py-3">
                     <div>
                       <div className="font-semibold">
@@ -526,6 +562,306 @@ function UpgradeRequests() {
         {requests.filter((r) => r.status === "pending").length} yêu cầu đang chờ
         xử lý
       </div>
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Chi tiết yêu cầu nâng cấp</h3>
+                <p className="text-sm text-gray-600 mt-1">Thông tin đầy đủ về yêu cầu</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setSelectedRequest(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* User Info Section */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  Thông tin người dùng
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Tên đăng nhập</p>
+                    <p className="font-semibold text-gray-900">
+                      {selectedRequest.user?.username || selectedRequest.userId?.username || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Họ và tên</p>
+                    <p className="font-semibold text-gray-900">
+                      {selectedRequest.user?.fullName || selectedRequest.userId?.fullName || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-semibold text-gray-900">
+                      {selectedRequest.user?.email || selectedRequest.userId?.email || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Số điện thoại</p>
+                    <p className="font-semibold text-gray-900">
+                      {selectedRequest.user?.phone || selectedRequest.userId?.phone || 'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Địa chỉ</p>
+                    <p className="font-semibold text-gray-900">
+                      {selectedRequest.user?.address || selectedRequest.userId?.address || 'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Vai trò hiện tại</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(selectedRequest.user?.roles || selectedRequest.userId?.roles || []).map((role) => (
+                        <span
+                          key={role}
+                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                            role === "admin" || role === "superadmin"
+                              ? "bg-red-100 text-red-700"
+                              : role === "seller"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {role}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rating Section */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-blue-600" />
+                  Đánh giá và hoạt động
+                </h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Điểm đánh giá</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {selectedRequest.user?.ratingSummary?.score?.toFixed(1) || '0.0'} ★
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Đánh giá tích cực</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {selectedRequest.user?.ratingSummary?.countPositive || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Đánh giá tiêu cực</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {selectedRequest.user?.ratingSummary?.countNegative || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Request Info Section */}
+              <div className="bg-yellow-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-yellow-600" />
+                  Thông tin yêu cầu
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Ngày yêu cầu</p>
+                    <p className="font-semibold text-gray-900">
+                      {new Date(selectedRequest.createdAt).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Trạng thái</p>
+                    <span
+                      className={`inline-block px-3 py-1 rounded text-sm font-semibold ${
+                        selectedRequest.status === "pending"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : selectedRequest.status === "approved"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {selectedRequest.status === "pending"
+                        ? "Đang chờ xử lý"
+                        : selectedRequest.status === "approved"
+                        ? "Đã chấp nhận"
+                        : "Đã từ chối"}
+                    </span>
+                  </div>
+                  {selectedRequest.reviewedAt && (
+                    <div>
+                      <p className="text-sm text-gray-600">Ngày xử lý</p>
+                      <p className="font-semibold text-gray-900">
+                        {new Date(selectedRequest.reviewedAt).toLocaleString('vi-VN')}
+                      </p>
+                    </div>
+                  )}
+                  {selectedRequest.reviewedBy && (
+                    <div>
+                      <p className="text-sm text-gray-600">Người xử lý</p>
+                      <p className="font-semibold text-gray-900">
+                        {selectedRequest.reviewedBy.fullName || selectedRequest.reviewedBy.username || 'Admin'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {selectedRequest.reviewNote && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 mb-1">Ghi chú xử lý</p>
+                    <div className="bg-white border border-gray-200 rounded p-3">
+                      <p className="text-gray-900">{selectedRequest.reviewNote}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              {selectedRequest.status === "pending" && (
+                <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDetailModal(false);
+                      handleReject(selectedRequest._id);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    Từ chối yêu cầu
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDetailModal(false);
+                      handleApprove(selectedRequest._id);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-medium"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                    Chấp nhận yêu cầu
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Approve Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Chấp nhận yêu cầu</h3>
+                <p className="text-sm text-gray-600">Xác nhận nâng cấp tài khoản</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-700 mb-6">
+              Bạn có chắc chắn muốn chấp nhận yêu cầu nâng cấp này không? Người dùng sẽ trở thành người bán trong 7 ngày.
+            </p>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setSelectedRequestId(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={confirmApprove}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-medium"
+              >
+                Xác nhận chấp nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <XCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Từ chối yêu cầu</h3>
+                <p className="text-sm text-gray-600">Cung cấp lý do từ chối</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Lý do từ chối <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Nhập lý do từ chối (tối thiểu 10 ký tự)..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                rows="4"
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {rejectReason.length}/100 ký tự
+              </p>
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setSelectedRequestId(null);
+                  setRejectReason("");
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={confirmReject}
+                disabled={rejectReason.trim().length < 10}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Xác nhận từ chối
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

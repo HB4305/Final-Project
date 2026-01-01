@@ -7,10 +7,9 @@ import path from 'path';
  * ============================================
  */
 
-// 1. Cấu hình Storage (lưu tạm trong memory)
+// 1. Cấu hình Storage - Lưu trong memory (RAM) để convert sang base64
 const storage = multer.memoryStorage();
-// Lưu ý: Dùng memoryStorage để sau này upload lên Cloudinary/S3
-// Nếu muốn lưu vào disk tạm: multer.diskStorage({ destination, filename })
+// Lưu ý: Dùng memoryStorage để lưu base64 vào MongoDB
 
 // 2. File Filter - Chỉ chấp nhận ảnh
 const fileFilter = (req, file, cb) => {

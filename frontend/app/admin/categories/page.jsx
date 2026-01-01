@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import AdminNavigation from "../../../components/admin-navigation";
 import categoryService from "../../services/categoryService";
 
@@ -10,6 +10,11 @@ export default function AdminCategoriesPage() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
   const [error, setError] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [modalMessage, setModalMessage] = useState("");
 
   const fetchCategories = async () => {
     try {
@@ -44,7 +49,8 @@ export default function AdminCategoriesPage() {
 
       if (response.success) {
         console.log("[CATEGORY ADMIN]:", response.data);
-        alert(response.message);
+        setModalMessage(response.message);
+        setShowSuccessModal(true);
         setShowModal(false);
         setFormData({ name: "", description: "" });
         setEditingCategory(null);
@@ -53,24 +59,36 @@ export default function AdminCategoriesPage() {
         setError(response.message);
       }
     } catch (error) {
-      setError("An error occurred. Please try again.");
+      setError("Đã xảy ra lỗi. Vui lòng thử lại.");
     }
   };
 
-  const handleDelete = async (category) => {
-    if (!confirm(`Are you sure you want to delete "${category.name}"?`)) return;
+  const confirmDelete = (category) => {
+    setCategoryToDelete(category);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!categoryToDelete) return;
 
     try {
-      const response = await categoryService.deleteCategory(category._id);
+      const response = await categoryService.deleteCategory(categoryToDelete._id);
 
       if (response.success) {
-        alert(response.message);
+        setModalMessage(response.message);
+        setShowSuccessModal(true);
+        setShowDeleteModal(false);
+        setCategoryToDelete(null);
         fetchCategories();
       } else {
-        alert("Error: " + response.message);
+        setModalMessage("Lỗi: " + response.message);
+        setShowErrorModal(true);
+        setShowDeleteModal(false);
       }
     } catch (error) {
-      alert("An error occurred. Please try again.");
+      setModalMessage("Đã xảy ra lỗi. Vui lòng thử lại.");
+      setShowErrorModal(true);
+      setShowDeleteModal(false);
     }
   };
 
@@ -148,7 +166,7 @@ export default function AdminCategoriesPage() {
                           <Edit2 className="w-4 h-4 inline" />
                         </button>
                         <button
-                          onClick={() => handleDelete(category)}
+                          onClick={() => confirmDelete(category)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <Trash2 className="w-4 h-4 inline" />
@@ -169,7 +187,83 @@ export default function AdminCategoriesPage() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Thành công!</h3>
+              <p className="text-gray-600 mb-6">{modalMessage}</p>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <XCircle className="w-10 h-10 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Lỗi</h3>
+              <p className="text-gray-600 mb-6">{modalMessage}</p>
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && categoryToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="w-10 h-10 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Xác nhận xóa</h3>
+              <p className="text-gray-600 mb-6">
+                Bạn có chắc muốn xóa danh mục <strong>"{categoryToDelete.name}"</strong>?
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition"
+                >
+                  Xóa
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setCategoryToDelete(null);
+                  }}
+                  className="flex-1 bg-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-400 transition"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">

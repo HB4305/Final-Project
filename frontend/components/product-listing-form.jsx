@@ -4,11 +4,12 @@ import {
   Upload,
   X,
   Plus,
-  DollarSign,
   Clock,
   Tag,
   Image as ImageIcon,
   Type,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -38,6 +39,10 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   const { currentUser } = useAuth();
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [selectedParentCategory, setSelectedParentCategory] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
 
   // Fetch categories from API
   useEffect(() => {
@@ -81,18 +86,30 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   }, []);
 
   const schema = z.object({
-    title: z.string().min(3, "Product title is required"),
-    categoryId: z.string().min(1, "Category is required"),
-    startPrice: z.number().positive("Starting price must be > 0"),
-    priceStep: z.number().positive("Step price must be > 0"),
-    buyNowPrice: z.number().optional(),
-    startTime: z.string().min(1, "Start time is required"),
-    endTime: z.string().min(1, "End time is required"),
+    title: z.string().min(3, "Tieu de san pham la bat buoc"),
+    categoryId: z.string().min(1, "Danh muc la bat buoc"),
+    startPrice: z.union([z.string(), z.number()]).refine(
+      (val) => {
+        const num = typeof val === 'string' ? Number(val) : val;
+        return !isNaN(num) && num > 0;
+      },
+      { message: "Gia khoi diem phai lon hon 0" }
+    ),
+    priceStep: z.union([z.string(), z.number()]).refine(
+      (val) => {
+        const num = typeof val === 'string' ? Number(val) : val;
+        return !isNaN(num) && num > 0;
+      },
+      { message: "Buoc gia phai lon hon 0" }
+    ),
+    buyNowPrice: z.union([z.string(), z.number()]).optional(),
+    startTime: z.string().min(1, "Thoi gian bat dau la bat buoc"),
+    endTime: z.string().min(1, "Thoi gian ket thuc la bat buoc"),
     autoExtendEnabled: z.boolean().optional(),
     description: z
       .string()
-      .min(10, "Description must be at least 10 characters"),
-    images: z.array(z.any()).min(3, "Minimum 3 images required"),
+      .min(10, "Mo ta phai co it nhat 10 ky tu"),
+    images: z.array(z.any()).min(3, "Yeu cau toi thieu 3 anh"),
   });
 
   const {
@@ -106,9 +123,9 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
     defaultValues: {
       title: "",
       categoryId: "",
-      startPrice: 0,
-      priceStep: 0,
-      buyNowPrice: 0,
+      startPrice: "",
+      priceStep: "",
+      buyNowPrice: "",
       startTime: "",
       endTime: "",
       autoExtendEnabled: false,
@@ -118,7 +135,39 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   });
 
   const [images, setImages] = useState([]);
+  const [startPriceDisplay, setStartPriceDisplay] = useState("");
+  const [priceStepDisplay, setPriceStepDisplay] = useState("");
+  const [buyNowPriceDisplay, setBuyNowPriceDisplay] = useState("");
   const navigate = useNavigate();
+
+  // Format number to Vietnamese currency format
+  const formatCurrency = (value) => {
+    if (!value) return "";
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  // Parse formatted currency back to number
+  const parseCurrency = (value) => {
+    return value.replace(/\./g, "");
+  };
+
+  const handlePriceChange = (e, field, setDisplay) => {
+    const value = e.target.value.replace(/\./g, ""); // Remove existing dots
+    if (value === "" || /^\d+$/.test(value)) {
+      setDisplay(formatCurrency(value));
+      setValue(field, value === "" ? "" : Number(value));
+    }
+  };
+
+  // Get parent categories (top-level only)
+  const parentCategories = categories.filter(cat => !cat.parent && (!cat.children || cat.children.length > 0));
+
+  // Get selected category's children
+  const getSubCategories = () => {
+    if (!selectedParentCategory) return [];
+    const parent = categories.find(cat => (cat._id || cat.id) === selectedParentCategory);
+    return parent?.children || [];
+  };
   
   
   const submitForm = async (data) => {
@@ -129,7 +178,8 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
     
     // Validate minimum images
     if (images.length < 3) {
-      alert("Please upload at least 3 images");
+      setModalMessage("Vui lòng tải lên ít nhất 3 ảnh");
+      setShowErrorModal(true);
       return;
     }
     
@@ -141,14 +191,20 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       formData.append("title", data.title);
       formData.append("description", data.description);
       formData.append("categoryId", data.categoryId);
-      formData.append("startPrice", data.startPrice.toString());
-      formData.append("priceStep", data.priceStep.toString());
+      
+      // Convert string prices to number
+      const startPrice = typeof data.startPrice === 'string' ? Number(data.startPrice) : data.startPrice;
+      const priceStep = typeof data.priceStep === 'string' ? Number(data.priceStep) : data.priceStep;
+      const buyNowPrice = data.buyNowPrice ? (typeof data.buyNowPrice === 'string' ? Number(data.buyNowPrice) : data.buyNowPrice) : 0;
+      
+      formData.append("startPrice", startPrice.toString());
+      formData.append("priceStep", priceStep.toString());
       formData.append("startTime", data.startTime);
       formData.append("endTime", data.endTime);
       
       // Optional fields
-      if (data.buyNowPrice && data.buyNowPrice > 0) {
-        formData.append("buyNowPrice", data.buyNowPrice.toString());
+      if (buyNowPrice && buyNowPrice > 0) {
+        formData.append("buyNowPrice", buyNowPrice.toString());
       }
       
       // Append metadata as JSON string
@@ -194,20 +250,25 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
         console.log("=".repeat(50));
         
         const statusMsg = result.data.auction.status === 'scheduled' 
-          ? '\n\nCuộc đấu giá đã được lên lịch và sẽ bắt đầu vào thời gian đã chỉ định.'
-          : '\n\nCuộc đấu giá hiện đang hoạt động!';
+          ? ' Cuộc đấu giá đã được lên lịch và sẽ bắt đầu vào thời gian đã chỉ định.'
+          : ' Cuộc đấu giá hiện đang hoạt động!';
         
-        alert(result.message + statusMsg);
+        setModalMessage(result.message + statusMsg);
+        setShowSuccessModal(true);
         
-        // Force reload to fetch fresh data
-        window.location.href = "/products";
+        // Redirect after modal closes
+        setTimeout(() => {
+          window.location.href = "/products";
+        }, 2000);
       } else {
         console.error("Failed to create product:", result);
-        alert((result.message || "Failed to create product"));
+        setModalMessage(result.message || "Không thể tạo sản phẩm");
+        setShowErrorModal(true);
       }
     } catch (error) {
       console.error("Error creating product:", error);
-      alert((error.response?.data?.message || "An error occurred. Please try again."));
+      setModalMessage(error.response?.data?.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
+      setShowErrorModal(true);
     }
   };
 
@@ -242,17 +303,6 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             console.log("📝 Sự kiện gửi form đã được kích hoạt");
             handleSubmit(submitForm)(e);
           }} className="space-y-6">
-            {/* Display all validation errors at top */}
-            {Object.keys(errors).length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h3 className="text-red-800 font-semibold mb-2">⚠️ Vui lòng sửa các lỗi sau:</h3>
-                <ul className="list-disc list-inside text-red-700 text-sm space-y-1">
-                  {Object.entries(errors).map(([field, error]) => (
-                    <li key={field}>{field}: {error.message}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
             
             {/* Product Name */}
             <div>
@@ -263,139 +313,147 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               <input
                 {...register("title")}
                 placeholder="Nhập tiêu đề sản phẩm"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                  errors.title ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
               {errors.title && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <X className="w-4 h-4 mr-1" />
-                  {errors.title.message}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
               )}
             </div>
 
-            {/* Category */}
+            {/* Parent Category */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Tag className="inline w-4 h-4 mr-1" />
-                Danh mục *
+                Danh mục cha *
               </label>
               <select 
-                {...register("categoryId")} 
+                value={selectedParentCategory || ''}
+                onChange={(e) => {
+                  setSelectedParentCategory(e.target.value);
+                  setValue('categoryId', ''); // Reset subcategory when parent changes
+                }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 disabled={loadingCategories}
               >
                 <option value="">
-                  {loadingCategories ? 'Đang tải danh mục...' : 'Chọn một danh mục'}
+                  {loadingCategories ? 'Đang tải danh mục...' : 'Chọn danh mục cha'}
                 </option>
-                {categories.flatMap((cat) => {
-                  const items = [];
+                {parentCategories.map((cat) => {
                   const catId = cat._id || cat.id;
-                  
-                  // Add parent category
-                  if (catId) {
-                    items.push(
-                      <option key={catId} value={catId}>
-                        {cat.name}
-                      </option>
-                    );
-                  }
-                  
-                  // Add child categories if exist
-                  if (cat.children && cat.children.length > 0) {
-                    cat.children.forEach(child => {
-                      const childId = child._id || child.id;
-                      if (childId) {
-                        items.push(
-                          <option key={childId} value={childId}>
-                            &nbsp;&nbsp; {child.name}
-                          </option>
-                        );
-                      }
-                    });
-                  }
-                  
-                  return items;
+                  return (
+                    <option key={catId} value={catId}>
+                      {cat.name}
+                    </option>
+                  );
                 })}
               </select>
               {loadingCategories && (
                 <p className="text-blue-500 text-sm mt-1">Đang tải danh mục từ cơ sở dữ liệu...</p>
               )}
-              {!loadingCategories && categories.length === 0 && (
-                <p className="text-yellow-600 text-sm mt-1">⚠️ Không có danh mục nào. Vui lòng liên hệ quản trị viên.</p>
-              )}
-              {errors.categoryId && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <X className="w-4 h-4 mr-1" />
-                  {errors.categoryId.message}
-                </p>
-              )}
             </div>
 
-            {/* Starting Price */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <DollarSign className="inline w-4 h-4 mr-1" />
-                Giá khởi điểm *
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3 text-gray-500">$</span>
-                <input 
-                  type="number"
-                  step="0.01"
-                  {...register("startPrice", { valueAsNumber: true })}
-                  placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                />
+            {/* Subcategory - Only show when parent is selected */}
+            {selectedParentCategory && getSubCategories().length > 0 && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Tag className="inline w-4 h-4 mr-1" />
+                  Danh mục con *
+                </label>
+                <select 
+                  {...register("categoryId")} 
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                    errors.categoryId ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Chọn danh mục con</option>
+                  {getSubCategories().map((child) => {
+                    const childId = child._id || child.id;
+                    return (
+                      <option key={childId} value={childId}>
+                        {child.name}
+                      </option>
+                    );
+                  })}
+                </select>
+                {errors.categoryId && (
+                  <p className="text-red-500 text-sm mt-1">{errors.categoryId.message}</p>
+                )}
               </div>
-              {errors.startPrice && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <X className="w-4 h-4 mr-1" />
-                  {errors.startPrice.message}
-                </p>
-              )}
-            </div>
+            )}
 
-            {/* Step Price */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <DollarSign className="inline w-4 h-4 mr-1" />
-                Bước giá * (Bước tăng giá tối thiểu)
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3 text-gray-500">$</span>
-                <input 
-                  type="number"
-                  step="0.01"
-                  {...register("priceStep", { valueAsNumber: true })}
-                  placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                />
-              </div>
-              {errors.priceStep && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <X className="w-4 h-4 mr-1" />
-                  {errors.priceStep.message}
-                </p>
-              )}
-            </div>
+            {/* If parent has no children, use parent as categoryId */}
+            {selectedParentCategory && getSubCategories().length === 0 && (
+              <input type="hidden" {...register("categoryId")} value={selectedParentCategory} />
+            )}
 
-            {/* Buy Now Price (Optional) */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <DollarSign className="inline w-4 h-4 mr-1" />
-                Giá mua ngay (Tùy chọn)
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3 text-gray-500">$</span>
-                <input 
-                  type="number"
-                  step="0.01"
-                  {...register("buyNowPrice", { valueAsNumber: true })}
-                  placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                />
+            {/* Price Fields - Inline Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Starting Price */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Giá khởi điểm *
+                </label>
+                <div className="relative">
+                  <span className="absolute right-3 top-3 text-gray-500">VND</span>
+                  <input 
+                    type="text"
+                    value={startPriceDisplay}
+                    onChange={(e) => handlePriceChange(e, "startPrice", setStartPriceDisplay)}
+                    placeholder="0"
+                    onWheel={(e) => e.target.blur()}
+                    className={`w-full pl-3 pr-14 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                      errors.startPrice ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                </div>
+                {errors.startPrice && (
+                  <p className="text-red-500 text-sm mt-1">{errors.startPrice.message}</p>
+                )}
               </div>
-              <p className="text-sm text-gray-500 mt-1">Để trống nếu không áp dụng</p>
+
+              {/* Step Price */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Bước giá *
+                </label>
+                <div className="relative">
+                  <span className="absolute right-3 top-3 text-gray-500">VND</span>
+                  <input 
+                    type="text"
+                    value={priceStepDisplay}
+                    onChange={(e) => handlePriceChange(e, "priceStep", setPriceStepDisplay)}
+                    placeholder="0"
+                    onWheel={(e) => e.target.blur()}
+                    className={`w-full pl-3 pr-14 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                      errors.priceStep ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                </div>
+                {errors.priceStep && (
+                  <p className="text-red-500 text-sm mt-1">{errors.priceStep.message}</p>
+                )}
+              </div>
+
+              {/* Buy Now Price (Optional) */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Giá mua ngay
+                </label>
+                <div className="relative">
+                  <span className="absolute right-3 top-3 text-gray-500">VND</span>
+                  <input 
+                    type="text"
+                    value={buyNowPriceDisplay}
+                    onChange={(e) => handlePriceChange(e, "buyNowPrice", setBuyNowPriceDisplay)}
+                    placeholder="0"
+                    onWheel={(e) => e.target.blur()}
+                    className="w-full pl-3 pr-14 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Tùy chọn</p>
+              </div>
             </div>
 
             {/* Start Time */}
@@ -407,13 +465,12 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               <input 
                 type="datetime-local"
                 {...register("startTime")}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                  errors.startTime ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
               {errors.startTime && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <X className="w-4 h-4 mr-1" />
-                  {errors.startTime.message}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.startTime.message}</p>
               )}
             </div>
 
@@ -426,13 +483,12 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               <input 
                 type="datetime-local"
                 {...register("endTime")}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                  errors.endTime ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
               {errors.endTime && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <X className="w-4 h-4 mr-1" />
-                  {errors.endTime.message}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.endTime.message}</p>
               )}
               <p className="text-sm text-gray-500 mt-1">Phải sau thời gian bắt đầu</p>
             </div>
@@ -455,7 +511,9 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Mô tả * (tối thiểu 10 ký tự)
               </label>
-              <div className="border border-gray-300 rounded-lg overflow-hidden">
+              <div className={`border rounded-lg overflow-hidden ${
+                errors.description ? 'border-red-500' : 'border-gray-300'
+              }`}>
                 <ReactQuill
                   value={description}
                   onChange={handleQuillChange}
@@ -471,10 +529,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 />
               </div>
               {errors.description && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <X className="w-4 h-4 mr-1" />
-                  {errors.description.message}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
               )}
             </div>
 
@@ -484,7 +539,9 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 <ImageIcon className="inline w-4 h-4 mr-1" />
                 Ảnh sản phẩm * (Tối thiểu 3 ảnh)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer">
+              <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer ${
+                errors.images ? 'border-red-500' : 'border-gray-300'
+              }`}>
                 <input 
                   type="file" 
                   multiple 
@@ -500,10 +557,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 </label>
               </div>
               {errors.images && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <X className="w-4 h-4 mr-1" />
-                  {errors.images.message}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.images.message}</p>
               )}
 
               {/* Preview UI */}
@@ -546,6 +600,51 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
           </form>
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Thành công!</h3>
+              <p className="text-gray-600 mb-6">{modalMessage}</p>
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  window.location.href = "/products";
+                }}
+                className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="w-10 h-10 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Lỗi</h3>
+              <p className="text-gray-600 mb-6">{modalMessage}</p>
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

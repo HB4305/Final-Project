@@ -763,7 +763,7 @@ export const getUpgradeRequestById = async (req, res, next) => {
 export const approveUpgradeRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const reviewNote = req.body?.reviewNote || '';
+    const reviewNote = String(req.body?.reviewNote || '');
     const adminId = req.user?._id;
 
     const request = await UpgradeRequest.findById(id).populate('user');
@@ -845,7 +845,7 @@ export const approveUpgradeRequest = async (req, res, next) => {
 export const rejectUpgradeRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const reviewNote = req.body?.reviewNote || req.body?.reason || '';
+    const reviewNote = String(req.body?.reviewNote || req.body?.reason || '');
     const adminId = req.user?._id;
 
     if (!reviewNote || reviewNote.trim().length === 0) {

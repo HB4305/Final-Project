@@ -390,6 +390,7 @@ export const postProduct = async (req, res) => {
       categoryId,
       startPrice,
       priceStep,
+      buyNowPrice,
       startTime,
       endTime,
       metadata
@@ -540,6 +541,44 @@ export const postProduct = async (req, res) => {
     }
 
     // ========================================
+    // Validate buyNowPrice (optional)
+    // ========================================
+    let numBuyNowPrice = null;
+    
+    if (buyNowPrice !== undefined && buyNowPrice !== null && buyNowPrice !== '' && buyNowPrice !== '0') {
+      numBuyNowPrice = Number(buyNowPrice);
+
+      if (isNaN(numBuyNowPrice)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Giá mua ngay phải là số hợp lệ'
+        });
+      }
+
+      if (!Number.isInteger(numBuyNowPrice)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Giá mua ngay phải là số nguyên'
+        });
+      }
+
+      if (numBuyNowPrice <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Giá mua ngay phải lớn hơn 0'
+        });
+      }
+
+      // Validate buyNowPrice > startPrice
+      if (numBuyNowPrice <= numStartPrice) {
+        return res.status(400).json({
+          success: false,
+          message: `Giá mua ngay (${numBuyNowPrice.toLocaleString()} VND) phải lớn hơn giá khởi điểm (${numStartPrice.toLocaleString()} VND)`
+        });
+      }
+    }
+
+    // ========================================
     // 5. VALIDATE THỜI GIAN
     // ========================================
     if (!startTime || !endTime) {
@@ -590,29 +629,25 @@ export const postProduct = async (req, res) => {
     }
 
     // ========================================
-    // 6. XỬ LÝ ẢNH
-    // ⚠️ KHÔNG VALIDATE Ở ĐÂY - ĐÃ VALIDATE Ở MIDDLEWARE
+    // 6. XỬ LÝ ẢNH - Convert to Base64 và lưu vào MongoDB
     // ========================================
 
     let imageUrls;
     let primaryImageUrl;
 
-    // Nếu có middleware upload (production)
+    // Nếu có middleware upload
     if (uploadedFiles && uploadedFiles.length > 0) {
-      console.log(`[PRODUCT CONTROLLER] Upload ${uploadedFiles.length} ảnh lên cloud storage...`);
+      console.log(`[PRODUCT CONTROLLER] Converting ${uploadedFiles.length} ảnh sang base64...`);
 
-      // Production: Upload thực tế lên Cloudinary/S3
-      // const uploadPromises = uploadedFiles.map(file => uploadToCloudinary(file.buffer));
-      // imageUrls = await Promise.all(uploadPromises);
-
-      // Development: Tạm thời dùng fake URLs với timestamp unique
-      imageUrls = uploadedFiles.map((file, index) => {
-        return `https://cloudinary.com/uploads/${Date.now()}-${index}-${file.originalname || 'image.jpg'}`;
+      // Convert mỗi file buffer sang base64 data URI
+      imageUrls = uploadedFiles.map(file => {
+        const b64 = Buffer.from(file.buffer).toString('base64');
+        return `data:${file.mimetype};base64,${b64}`;
       });
 
       primaryImageUrl = imageUrls[0];
 
-      console.log(`[PRODUCT CONTROLLER] ✓ Uploaded ${imageUrls.length} ảnh`);
+      console.log(`[PRODUCT CONTROLLER] ✓ Đã chuyển đổi ${imageUrls.length} ảnh sang base64`);
     }
     // Nếu không có middleware (test mode)
     else {
@@ -682,7 +717,7 @@ export const postProduct = async (req, res) => {
     // ========================================
     // 9. TẠO AUCTION SESSION
     // ========================================
-    const newAuction = new Auction({
+    const auctionData = {
       productId: savedProduct._id,
       sellerId,
       startPrice: numStartPrice,
@@ -693,7 +728,14 @@ export const postProduct = async (req, res) => {
       status: startDate > now ? AUCTION_STATUS.SCHEDULED : AUCTION_STATUS.ACTIVE,
       bidCount: 0,
       autoExtendEnabled: true
-    });
+    };
+
+    // Thêm buyNowPrice nếu có
+    if (numBuyNowPrice) {
+      auctionData.buyNowPrice = numBuyNowPrice;
+    }
+
+    const newAuction = new Auction(auctionData);
 
     const savedAuction = await newAuction.save();
     console.log(`[PRODUCT CONTROLLER] Auction created: ${savedAuction._id}`);
@@ -726,6 +768,7 @@ export const postProduct = async (req, res) => {
           _id: savedAuction._id,
           startPrice: savedAuction.startPrice,
           priceStep: savedAuction.priceStep,
+          buyNowPrice: savedAuction.buyNowPrice || null,
           currentPrice: savedAuction.currentPrice,
           startTime: savedAuction.startAt,  // ← Map từ startAt
           endTime: savedAuction.endAt,      // ← Map từ endAt
