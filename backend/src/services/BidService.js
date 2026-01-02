@@ -11,10 +11,10 @@ import {
 import { AppError } from "../utils/errors.js";
 import { AUCTION_STATUS, ERROR_CODES } from "../lib/constants.js";
 import {
-    sendBidSuccessNotification,
-    sendPriceUpdatedNotification,
-    sendOutbidNotification,
-    sendBidRejectedNotification
+  sendBidSuccessNotification,
+  sendPriceUpdatedNotification,
+  sendOutbidNotification,
+  sendBidRejectedNotification
 } from '../utils/email.js';
 
 export class BidService {
@@ -445,15 +445,15 @@ export class BidService {
     const seller = await User.findById(product.sellerId);
 
     if (rejectedUser && product) {
-        const productUrl = `${process.env.FRONTEND_BASE_URL}/products/${productId}`;
-        await sendBidRejectedNotification({
-            bidderEmail: rejectedUser.email,
-            bidderName: rejectedUser.fullName,
-            productTitle: product.title,
-            sellerName: seller ? seller.fullName : 'Seller',
-            reason: reason,
-            homeUrl: process.env.FRONTEND_BASE_URL
-        });
+      const productUrl = `${process.env.FRONTEND_URL}/product/${productId}`;
+      await sendBidRejectedNotification({
+        bidderEmail: rejectedUser.email,
+        bidderName: rejectedUser.fullName,
+        productTitle: product.title,
+        sellerName: seller ? seller.fullName : 'Seller',
+        reason: reason,
+        homeUrl: process.env.FRONTEND_URL
+      });
     }
 
     return rejection;
