@@ -14,8 +14,8 @@ import {
   sendBidSuccessNotification,
   sendPriceUpdatedNotification,
   sendOutbidNotification,
-  sendBidRejectedNotification,
-} from "../utils/email.js";
+  sendBidRejectedNotification
+} from '../utils/email.js';
 
 export class BidService {
   /**
@@ -461,9 +461,9 @@ export class BidService {
         bidderEmail: rejectedUser.email,
         bidderName: rejectedUser.fullName,
         productTitle: product.title,
-        sellerName: seller ? seller.fullName : "Seller",
+        sellerName: seller ? seller.fullName : 'Seller',
         reason: reason,
-        homeUrl: process.env.FRONTEND_URL,
+        homeUrl: process.env.FRONTEND_URL
       });
     }
 
