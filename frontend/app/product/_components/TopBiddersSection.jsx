@@ -120,11 +120,7 @@ export default function TopBiddersSection({ bidders = [], productId, isSeller = 
       </div>
 
       {/* Total Bidders Count */}
-      {bidders.length > 5 && (
-        <p className="text-center text-sm text-muted-foreground pt-2">
-          Và {bidders.length - 5} người đặt giá khác
-        </p>
-      )}
+
     </div>
   );
 }
