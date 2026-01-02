@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Zap, TrendingUp, ShieldCheck, Clock } from "lucide-react";
+import { Zap, TrendingUp, ShieldCheck, Clock, Gavel } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navigation from "../components/navigation";
@@ -113,7 +113,7 @@ export default function Home() {
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-300">Giá hiện tại</p>
-                        <p className="font-bold text-green-400">12,500,000 ₫</p>
+                        <p className="font-bold text-green-400">12.500.000 ₫</p>
                       </div>
                     </div>
                   </div>
@@ -121,7 +121,7 @@ export default function Home() {
               </div>
               
               {/* Decorative floating cards */}
-              <div className="absolute -top-10 -right-10 glass p-4 rounded-2xl animate-float" style={{ animationDelay: "1s" }}>
+              <div className="absolute -top-6 -right-6 glass p-4 rounded-2xl animate-float" style={{ animationDelay: "1s" }}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
                     <Zap className="w-5 h-5 text-green-500" />
@@ -185,8 +185,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-6">
-               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center font-bold text-white">⚡</div>
-               <span className="font-extrabold text-xl tracking-tight">AuctionHub</span>
+               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center font-bold text-white shadow-lg border border-white/10">
+                  <Gavel className="w-4 h-4 text-white/90" />
+               </div>
+               <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">AuctionHub</span>
             </div>
             <p className="text-muted-foreground max-w-xs">
               Nền tảng đấu giá trực tuyến uy tín và hiện đại nhất.

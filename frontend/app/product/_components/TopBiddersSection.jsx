@@ -25,13 +25,13 @@ const getBadge = (rank) => {
 const getBadgeColor = (rank) => {
   switch (rank) {
     case 1:
-      return 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-300';
+      return 'bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.1)]';
     case 2:
-      return 'bg-gradient-to-r from-gray-100 to-gray-50 border-gray-300';
+      return 'bg-gray-400/10 border-gray-400/50 shadow-[0_0_15px_rgba(156,163,175,0.1)]';
     case 3:
-      return 'bg-gradient-to-r from-orange-100 to-orange-50 border-orange-300';
+      return 'bg-orange-600/10 border-orange-600/50 shadow-[0_0_15px_rgba(234,88,12,0.1)]';
     default:
-      return 'bg-white border-border';
+      return 'bg-white/5 border-white/10';
   }
 };
 
@@ -66,7 +66,7 @@ export default function TopBiddersSection({ bidders = [], productId, isSeller = 
           return (
             <div
               key={bidder._id || index}
-              className={`${getBadgeColor(rank)} border rounded-lg p-4 transition hover:shadow-md`}
+              className={`${getBadgeColor(rank)} border rounded-xl p-4 transition-all duration-300 hover:scale-[1.01] flex flex-col backdrop-blur-md`}
             >
               <div className="flex items-center justify-between gap-4">
                 {/* Left: Rank + User Info */}
@@ -90,11 +90,13 @@ export default function TopBiddersSection({ bidders = [], productId, isSeller = 
                 {/* Right: Bid Amount + Actions */}
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
-                    <p className={`font-bold ${isTop3 ? 'text-lg' : 'text-base'}`}>
+                    <p className={`font-bold ${isTop3 ? 'text-lg text-primary-foreground' : 'text-base text-foreground'}`}>
                       {formatPrice(bidder.amount)}
                     </p>
                     {isTop3 && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className={`text-xs font-medium ${
+                        rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : 'text-orange-400'
+                      }`}>
                         {rank === 1 ? 'Giá cao nhất' : rank === 2 ? 'Á quân' : 'Thứ 3'}
                       </p>
                     )}

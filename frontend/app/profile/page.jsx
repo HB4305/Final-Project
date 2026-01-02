@@ -271,31 +271,32 @@ export default function ProfilePage() {
       <div className="pt-24 pb-12 max-w-6xl mx-auto px-4">
         
         {/* Banner Section */}
-
+        <div className="relative h-48 md:h-64 rounded-t-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 overflow-hidden mb-16 animate-fade-in shadow-lg">
+             <div className="absolute inset-0 bg-black/10"></div>
+             {/* Decorative circles */}
+             <div className="absolute top-[-50%] left-[-10%] w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl"></div>
+             <div className="absolute bottom-[-50%] right-[-10%] w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl"></div>
+        </div>
 
         {/* Profile Header Card (Overlapping Banner) */}
-        {/* Profile Header Card */}
-        <div className="mb-8 animate-slide-up">
-            <div className="glass-card rounded-3xl p-8 md:p-10 shadow-2xl border border-white/10 bg-[#1e293b]/60 backdrop-blur-xl relative overflow-hidden">
-                {/* Background Decoration */}
-                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 -z-10"></div>
-                
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+        <div className="relative -mt-24 px-6 md:px-10 mb-8 animate-slide-up">
+            <div className="glass rounded-3xl p-8 shadow-xl border border-white/10 bg-gray-900/40 backdrop-blur-xl">
+                <div className="flex flex-col md:flex-row items-start md:items-end gap-6 relative">
                     {/* Avatar */}
-                    <div className="relative group shrink-0">
-                         <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-blue-500 to-cyan-500 shadow-xl">
+                    <div className="relative group -mt-16 md:-mt-20">
+                         <div className="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gray-800 shadow-2xl ring-4 ring-black/20">
                             <img
                                 src={profile?.profileImageUrl || "/placeholder.svg"}
                                 alt={profile?.fullName || profile?.username}
-                                className="w-full h-full rounded-full object-cover border-4 border-[#0f172a]"
+                                className="w-full h-full rounded-full object-cover border-4 border-gray-800"
                             />
                          </div>
                          <label
                             htmlFor="avatar-upload"
-                            className="absolute bottom-0 right-0 p-2.5 bg-[#0f172a] text-white rounded-full shadow-lg cursor-pointer hover:bg-primary transition-colors border border-white/10"
+                            className="absolute bottom-2 right-2 p-2.5 bg-primary text-white rounded-full shadow-lg cursor-pointer hover:bg-primary/90 transition-transform hover:scale-110 border border-white/10"
                             title="Đổi ảnh đại diện"
                         >
-                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
                         </label>
                         <input
                             id="avatar-upload"
@@ -308,39 +309,29 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Basic Info */}
-                    <div className="flex-1 text-center md:text-left space-y-3">
-                         <div className="flex flex-col md:flex-row items-center md:items-center gap-3">
-                            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">{profile?.fullName || profile?.username}</h1>
+                    <div className="flex-1 space-y-2 text-center md:text-left pt-2 md:pt-0">
+                         <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                            <h1 className="text-3xl font-bold text-white shadow-black drop-shadow-md">{profile?.fullName || profile?.username}</h1>
                             {profile?.role === 'admin' && (
-                                <span className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold uppercase rounded-full">Admin</span>
+                                <span className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold uppercase rounded-full self-center md:self-auto">Admin</span>
                             )}
                          </div>
-                         <p className="text-lg text-primary font-medium">@{profile?.username}</p>
-                         
-                         <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 text-sm text-gray-400 pt-2">
-                             <div className="flex items-center gap-2">
-                               <div className="p-1.5 bg-white/5 rounded-lg"><Mail className="w-4 h-4" /></div>
-                               {profile?.email}
-                             </div>
+                         <p className="text-gray-300 font-medium">@{profile?.username}</p>
+                         <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-gray-400 pt-1">
+                             <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" /> {profile?.email}</span>
                              {profile?.address?.city && (
-                                 <div className="flex items-center gap-2">
-                                   <div className="p-1.5 bg-white/5 rounded-lg"><MapPin className="w-4 h-4" /></div>
-                                   {profile.address.city}
-                                 </div>
+                                 <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {profile.address.city}</span>
                              )}
-                             <div className="flex items-center gap-2">
-                               <div className="p-1.5 bg-white/5 rounded-lg"><Calendar className="w-4 h-4" /></div>
-                               Tham gia {new Date(profile?.createdAt).getFullYear()}
-                             </div>
+                             <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Tham gia {new Date(profile?.createdAt).getFullYear()}</span>
                          </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-3 mt-4 md:mt-0">
+                    <div className="flex gap-3 w-full md:w-auto mt-4 md:mt-0">
                         {!isEditing && (
                             <button 
                                 onClick={() => setIsEditing(true)}
-                                className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 font-medium flex items-center gap-2"
+                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 font-medium"
                             >
                                 <Edit2 className="w-4 h-4" /> Chỉnh sửa
                             </button>
@@ -389,7 +380,7 @@ export default function ProfilePage() {
                                      className={`w-full px-4 py-3 rounded-xl border transition-all ${
                                          isEditing 
                                          ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary placeholder-gray-500" 
-                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none"
+                                         : "bg-transparent border-transparent text-gray-400 px-0"
                                      }`}
                                  />
                              </div>
@@ -403,7 +394,7 @@ export default function ProfilePage() {
                                      className={`w-full px-4 py-3 rounded-xl border transition-all ${
                                          isEditing 
                                          ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary [color-scheme:dark]" 
-                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none [color-scheme:dark]"
+                                         : "bg-transparent border-transparent text-gray-400 px-0"
                                      }`}
                                  />
                              </div>
@@ -433,7 +424,7 @@ export default function ProfilePage() {
                                                 type="email"
                                                 disabled
                                                 value={profile?.email || ""}
-                                                className="flex-1 px-4 py-3 bg-white/5 border border-white/5 rounded-xl text-gray-300 pointer-events-none"
+                                                className="flex-1 px-4 py-3 bg-transparent border border-transparent rounded-xl text-gray-400 px-0"
                                             />
                                             {isEditing && (
                                                 <button onClick={() => setIsEditingEmail(true)} className="px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition font-medium">
@@ -454,7 +445,7 @@ export default function ProfilePage() {
                                      className={`w-full px-4 py-3 rounded-xl border transition-all ${
                                          isEditing 
                                          ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary" 
-                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none"
+                                         : "bg-transparent border-transparent text-gray-400 px-0"
                                      }`}
                                  />
                              </div>
@@ -475,7 +466,7 @@ export default function ProfilePage() {
                                     className={`w-full px-4 py-3 rounded-xl border transition-all ${
                                          isEditing 
                                          ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary" 
-                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none"
+                                         : "bg-transparent border-transparent text-gray-400 px-0"
                                      }`}
                                 />
                                 <input
@@ -487,7 +478,7 @@ export default function ProfilePage() {
                                     className={`w-full px-4 py-3 rounded-xl border transition-all ${
                                          isEditing 
                                          ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary" 
-                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none"
+                                         : "bg-transparent border-transparent text-gray-400 px-0"
                                      }`}
                                 />
                              </div>

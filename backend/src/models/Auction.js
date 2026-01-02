@@ -122,6 +122,12 @@ auctionSchema.index({ productId: 1 });
 auctionSchema.index({ currentHighestBidderId: 1 });
 auctionSchema.index({ status: 1, endAt: 1, bidCount: -1 });
 
+// Performance Indexes
+auctionSchema.index({ status: 1, currentPrice: 1 });
+auctionSchema.index({ status: 1, currentPrice: -1 });
+auctionSchema.index({ status: 1, bidCount: -1 });
+auctionSchema.index({ status: 1, createdAt: -1 });
+
 // Update updatedAt on save
 auctionSchema.pre("save", function () {
   this.updatedAt = Date.now();

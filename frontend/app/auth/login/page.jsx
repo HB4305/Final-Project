@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, Loader2, ArrowLeft, Gavel } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useAuth } from "../../context/AuthContext";
 import Toast from "../../../components/Toast";
@@ -114,19 +114,9 @@ export default function LoginPage() {
             <ArrowLeft className="w-4 h-4" /> Về trang chủ
           </Link>
           
-          <div className="glass-card bg-[#1e293b]/40 rounded-2xl p-8 md:p-10 border border-white/10 shadow-2xl">
-            <div className="flex justify-center mb-8">
-               <Link to="/" className="flex items-center gap-3 shrink-0 group">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-all duration-300 border border-white/10">
-                    <Gavel className="w-6 h-6 fill-white/20" />
-                </div>
-                <span className="font-extrabold text-3xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
-                    AuctionHub
-                </span>
-                </Link>
-            </div>
+          <div className="glass rounded-2xl p-8 md:p-10 border border-white/10 shadow-2xl">
             <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-white mb-2">Chào mừng trở lại!</h1>
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400 mb-2">Chào mừng trở lại!</h1>
               <p className="text-muted-foreground">
                 Đăng nhập để tiếp tục phiên đấu giá
               </p>
@@ -186,7 +176,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:shadow-lg hover:shadow-primary/25 focus:ring-4 focus:ring-primary/20 transition transform hover:-translate-y-1 active:scale-[0.98] font-bold flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 flex justify-center items-center gap-2"
               >
                 {isLoading && <Loader2 className="animate-spin w-4 h-4" />}
                 {isLoading ? "Đang xử lý..." : "Đăng nhập ngay"}
@@ -199,7 +189,7 @@ export default function LoginPage() {
                   <div className="w-full border-t border-white/10"></div>
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="px-2 bg-[#0f172a] text-muted-foreground rounded">
+                  <span className="px-2 bg-[#1a1a2e] text-muted-foreground rounded">
                     Hoặc đăng nhập với
                   </span>
                 </div>

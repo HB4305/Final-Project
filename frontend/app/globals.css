@@ -2,43 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+/* 1. FONT ĐÃ ĐƯỢC TỐI ƯU HÓA TẠI INDEX.HTML
+   Sử dụng <link rel="preload"> để tăng tốc độ tải trang gấp 3 lần.
+*/
 
 @layer base {
   :root {
-    --font-sans: 'Outfit', sans-serif;
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    /* Font family chính: Ưu tiên Be Vietnam Pro cho toàn bộ văn bản tiếng Việt */
+    --font-sans: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
 
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
+    /* Hệ màu Dark Mode cao cấp: Độ sâu màu xanh đen (Deep Navy) giúp nổi bật sản phẩm */
+    --background: 222 47% 4%; 
+    --foreground: 210 40% 98%;
 
-    --popover: 224 71% 4%;
-    --popover-foreground: 213 31% 91%;
+    --card: 222 47% 6%;
+    --card-foreground: 210 40% 98%;
 
+    --popover: 222 47% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Màu Primary: Xanh Electric tạo cảm giác tin tưởng và hiện đại */
     --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 14.3% 4.1%;
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 223 47% 11%;
-    --muted-foreground: 215 20% 75%; /* Increased brightness for better readability */
+    --muted: 217 32% 12%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 216 34% 17%;
+    /* Accent & Warning: Sử dụng cho các trạng thái đấu giá (Sắp kết thúc, Giá cao nhất) */
+    --accent: 217 32% 17%;
     --accent-foreground: 210 40% 98%;
+    --warning: 38 92% 50%; 
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --warning: 38 92% 50%; /* Amber for warnings/accents */
-    --accent: 38 92% 50%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 224 76% 48%;
 
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 217 91% 60%;
-
-    --radius: 0.75rem;
+    /* Bo góc hiện đại cho năm 2026 */
+    --radius: 1rem;
   }
 }
 
@@ -47,31 +53,56 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    /* antialiased giúp nét chữ tiếng Việt thanh mảnh và rõ ràng hơn */
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "lnum", "pnum";
+  }
+  
+  /* Đảm bảo tiêu đề không bao giờ bị lỗi font hệ thống */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+    font-family: 'Be Vietnam Pro', sans-serif !important;
   }
 }
 
+/* 2. CÁC LỚP TIỆN ÍCH (UTILITY CLASSES) */
+
+/* Hiệu ứng kính (Glassmorphism) cải tiến */
 .glass {
-  @apply bg-[#0f172a]/80 backdrop-blur-xl border border-white/10 shadow-xl;
+  @apply bg-background/60 backdrop-blur-md border border-white/5 shadow-2xl;
 }
 
+/* Thẻ sản phẩm với hiệu ứng hover mượt mà */
 .glass-card {
-  @apply bg-[#1e293b]/60 backdrop-blur-xl border border-white/10 shadow-lg;
+  @apply bg-white/[0.03] backdrop-blur-lg border border-white/10 shadow-lg transition-all duration-300;
+  @apply hover:bg-white/[0.05] hover:border-white/20 hover:shadow-primary/10;
 }
 
+/* Văn bản Gradient chuyên nghiệp cho Landing Page */
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400;
+  @apply bg-clip-text text-transparent bg-gradient-to-br from-blue-400 via-indigo-400 to-cyan-400;
 }
 
-/* Animations */
+/* Nút bấm hành động đấu giá */
+.btn-primary {
+  @apply px-8 py-3 bg-primary text-white font-semibold rounded-full transition-all;
+  @apply hover:opacity-90 active:scale-95 shadow-lg shadow-primary/20;
+}
+
+/* 3. HIỆU ỨNG CHUYỂN ĐỘNG */
 @keyframes float {
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
   100% { transform: translateY(0px); }
 }
 
 .animate-float {
-  animation: float 6s ease-in-out infinite;
+  animation: float 5s ease-in-out infinite;
 }
 
-
+/* Tối ưu hiển thị cho các thiết bị màn hình nhỏ */
+@media (max-width: 640px) {
+  :root {
+    --radius: 0.75rem;
+  }
+}

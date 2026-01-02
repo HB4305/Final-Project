@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Clock, Heart, Gavel } from "lucide-react";
+import { Skeleton } from "./ui/skeleton";
 import productService from "../app/services/productService";
 import watchlistService from "../app/services/watchlistService";
 import { useAuth } from "../app/context/AuthContext";
@@ -108,13 +109,14 @@ export default function TopProductsSection() {
       <div className="space-y-12">
         {[1, 2, 3].map((i) => (
           <div key={i}>
-            <div className="h-8 w-48 bg-gray-200 rounded-lg mb-6 animate-pulse" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <Skeleton className="h-8 w-48 mb-6 bg-white/5" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               {[1, 2, 3, 4, 5].map((j) => (
-                <div
-                  key={j}
-                  className="bg-gray-200 rounded-lg h-64 animate-pulse"
-                />
+                <div key={j} className="h-[340px] w-full">
+                    <Skeleton className="h-48 w-full rounded-t-2xl mb-4 bg-white/5" />
+                    <Skeleton className="h-6 w-3/4 mb-2 bg-white/5" />
+                    <Skeleton className="h-4 w-1/2 bg-white/5" />
+                </div>
               ))}
             </div>
           </div>

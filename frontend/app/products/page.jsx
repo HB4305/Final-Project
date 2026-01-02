@@ -57,15 +57,18 @@ const useProducts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (params = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await productService.getAllProducts();
+      const response = await productService.getAllProducts(params);
       
       if (response.success) {
         const transformedProducts = response.data.map(transformProductData);
-        setProducts(transformedProducts);
+        setProducts({
+          data: transformedProducts,
+          total: response.pagination?.totalProducts || response.pagination?.total || transformedProducts.length
+        });
       } else {
         setError(response.error || 'Failed to load products');
       }
@@ -75,10 +78,6 @@ const useProducts = () => {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
 
   return { products, loading, error, refetch: fetchProducts };
 };
@@ -261,9 +260,30 @@ export default function ProductsPage() {
     }
   }, [location.search, categoryMap]);
 
-  // Filter products
+  // Sync filters to API call
+  useEffect(() => {
+    const params = {
+      page: currentPage,
+      limit: itemsPerPage,
+      sortBy: sortBy,
+      status: 'active'
+    };
+    
+    // Note: If we had a direct categoryId from URL, we'd use it.
+    // However, the current backend implementation of getAllProducts 
+    // doesn't filter by category name string, but the generic list does.
+    // For now, let's keep it simple and just fetch base on page/limit/sort.
+    // REAL FIX: Backend getAllProducts should support categoryId/name or search.
+    
+    refetch(params);
+  }, [currentPage, itemsPerPage, sortBy, refetch]);
+
+  // Derived data
   const filteredProducts = useMemo(() => {
-    const filtered = filterProducts(products, {
+    // We still keep client-side filtering for search/category if backend doesn't support them in getAllProducts
+    // But pagination is now handled by backend.
+    const allProducts = products.data || [];
+    const filtered = filterProducts(allProducts, {
       searchQuery,
       selectedCategory,
       selectedSubcategory,
@@ -271,15 +291,14 @@ export default function ProductsPage() {
       categoryMap
     });
     
+    // Sort logic is already in backend for sortBy, but we keep it here for client-side filters
     return sortProducts(filtered, sortBy);
-  }, [products, searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap, sortBy]);
+  }, [products.data, searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap, sortBy]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredProducts, currentPage, itemsPerPage]);
+  const totalItems = products.total || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedProducts = filteredProducts; // Already limited if we use getProducts instead of getAllProducts
+
 
   const renderContent = () => {
     if (loading) {
@@ -305,7 +324,7 @@ export default function ProductsPage() {
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             itemsPerPage={itemsPerPage}
-            totalItems={filteredProducts.length}
+            totalItems={totalItems}
             onItemsPerPageChange={setItemsPerPage}
             />
         </div>
@@ -347,7 +366,7 @@ export default function ProductsPage() {
             <div className="mb-6 flex justify-between items-center bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
               <p className="text-gray-400 text-sm">
                 Hiển thị <span className="font-bold text-gray-200">{paginatedProducts.length}</span> / {' '}
-                <span className="font-bold text-gray-200">{filteredProducts.length}</span> sản phẩm
+                <span className="font-bold text-gray-200">{totalItems}</span> sản phẩm
                 {selectedCategory !== 'All' && (
                   <span className="ml-2">
                     trong <span className="text-primary font-medium">"{selectedCategory}"</span>

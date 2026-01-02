@@ -71,8 +71,8 @@ export const getAllProducts = async (params = {}) => {
     } = params;
 
     const queryParams = { 
-      page: 1, 
-      limit: 999999, // Lấy tất cả sản phẩm (set limit rất lớn)
+      page: params.page || 1, 
+      limit: params.limit || 12,
       sortBy
     };
 
