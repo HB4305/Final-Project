@@ -47,7 +47,7 @@ export class ProductService {
         .populate({
           path: "productId",
           select:
-            "title slug primaryImageUrl imageUrls createdAt categoryId isActive",
+            "title slug primaryImageUrl createdAt categoryId isActive",
           populate: { path: "categoryId", select: "name" },
         })
         .populate("sellerId", "username ratingSummary")
@@ -68,7 +68,7 @@ export class ProductService {
             title: product.title,
             slug: product.slug,
             primaryImageUrl: product.primaryImageUrl,
-            imageUrls: product.imageUrls,
+            // imageUrls removed for optimization
             createdAt: product.createdAt,
             auction: {
               _id: auction._id,
@@ -322,7 +322,7 @@ export class ProductService {
             title: 1,
             slug: 1,
             primaryImageUrl: 1,
-            imageUrls: 1,
+            // imageUrls removed for optimization
             createdAt: 1,
             auction: {
               _id: "$auction._id",

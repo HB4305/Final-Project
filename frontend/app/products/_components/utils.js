@@ -32,6 +32,14 @@ export const calculateTimeLeft = (endDate) => {
   return days === 1 ? '1 day' : `${days} days`;
 };
 
+const getImageUrl = (url) => {
+  if (!url) return '/placeholder.svg';
+  if (url.startsWith('data:')) return url; // Base64
+  if (url.startsWith('http')) return url; // External URL
+  if (url.startsWith('/uploads')) return `http://localhost:5001${url}`; // Local upload
+  return url;
+};
+
 export const transformProductData = (product) => {
   // Prefer rating from seller's ratingSummary if available, otherwise use product.rating
   // or compute average from product.reviews as a fallback. Normalize to 0..5 scale.
@@ -59,7 +67,7 @@ export const transformProductData = (product) => {
     price: product.auction?.currentPrice || product.auction?.startPrice || 0,
     bids: product.auction?.bidCount || 0,
     timeLeft: calculateTimeLeft(product.auction?.endAt),
-    image: product.primaryImageUrl || product.imageUrls?.[0] || '/placeholder.svg',
+    image: getImageUrl(product.primaryImageUrl || product.imageUrls?.[0]),
     rating: ratingValue !== null ? Number(ratingValue.toFixed(1)) : null,
     images: product.imageUrls,
     description: product.descriptionHistory?.[0]?.text,

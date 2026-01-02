@@ -684,7 +684,7 @@ export const postProduct = async (req, res) => {
     }
 
     // ========================================
-    // 6. XỬ LÝ ẢNH - Convert to Base64 và lưu vào MongoDB
+    // 6. XỬ LÝ ẢNH - Lưu URL ảnh vào MongoDB
     // ========================================
 
     let imageUrls;
@@ -693,19 +693,19 @@ export const postProduct = async (req, res) => {
     // Nếu có middleware upload
     if (uploadedFiles && uploadedFiles.length > 0) {
       console.log(
-        `[PRODUCT CONTROLLER] Converting ${uploadedFiles.length} ảnh sang base64...`
+        `[PRODUCT CONTROLLER] Processing ${uploadedFiles.length} uploaded files...`
       );
 
-      // Convert mỗi file buffer sang base64 data URI
+      // Map uploaded files to URLs
       imageUrls = uploadedFiles.map((file) => {
-        const b64 = Buffer.from(file.buffer).toString("base64");
-        return `data:${file.mimetype};base64,${b64}`;
+        // Construct URL: /uploads/filename
+        return `/uploads/${file.filename}`;
       });
 
       primaryImageUrl = imageUrls[0];
 
       console.log(
-        `[PRODUCT CONTROLLER] ✓ Đã chuyển đổi ${imageUrls.length} ảnh sang base64`
+        `[PRODUCT CONTROLLER] ✓ Đã lưu ${imageUrls.length} ảnh`
       );
     }
     // Nếu không có middleware (test mode)
