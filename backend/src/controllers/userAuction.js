@@ -92,8 +92,8 @@ export const getWonAuctions = async (req, res, next) => {
 
     // Fix: Query based on Auction schema (currentHighestBidderId and status='ended')
     const query = {
-      currentHighestBidderId: req.user._id, 
-      status: "ended", 
+      currentHighestBidderId: req.user._id,
+      status: "ended",
     };
 
     // Note: transactionStatus is not in Auction schema currently.
@@ -102,7 +102,7 @@ export const getWonAuctions = async (req, res, next) => {
 
     const [auctions, total] = await Promise.all([
       Auction.find(query)
-        .sort({ endAt: -1 }) 
+        .sort({ endAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
         .populate({
@@ -225,13 +225,9 @@ export const getSoldAuctions = async (req, res, next) => {
       currentHighestBidderId: { $exists: true, $ne: null },
     };
 
-    if (status) {
-      query.transactionStatus = status; // Note: transactionStatus might not be on Auction model either, but keeping for now if intended for mixed query
-    }
-
     const [auctions, total] = await Promise.all([
       Auction.find(query)
-        .sort({ endAt: -1 }) // endedAt usually doesn't exist, schema has endAt
+        .sort({ endAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
         .populate({
@@ -239,19 +235,48 @@ export const getSoldAuctions = async (req, res, next) => {
           select: "title slug primaryImageUrl categoryId",
         })
         .populate(
-          "currentHighestBidderId", // Changed from winnerId
+          "currentHighestBidderId",
           "username fullName contactPhone email ratingSummary"
         )
         .lean(),
       Auction.countDocuments(query),
     ]);
 
-    // Rename currentHighestBidderId to winnerId for frontend consistency if needed
-    const auctionsFormatted = auctions.map(a => ({
-      ...a,
-      winnerId: a.currentHighestBidderId,
-      transactionStatus: 'pending' // Placeholder
-    }));
+    // Fetch related orders for these auctions
+    const auctionIds = auctions.map((a) => a._id);
+    const orders = await Order.find({ auctionId: { $in: auctionIds } })
+      .select("auctionId status")
+      .lean();
+
+    // Fetch existing ratings by this user (seller) for these auctions/orders
+    // Note: Ratings are linked to orderId usually.
+    // If order exists, check rating by orderId.
+    const orderIds = orders.map((o) => o._id);
+    const ratings = await Rating.find({
+      raterId: req.user._id,
+      orderId: { $in: orderIds },
+    })
+      .select("orderId")
+      .lean();
+
+    const ratedOrderIds = new Set(ratings.map((r) => r.orderId.toString()));
+
+    // Map orders to auctions
+    const orderMap = {};
+    orders.forEach((order) => {
+      orderMap[order.auctionId.toString()] = order;
+    });
+
+    const auctionsFormatted = auctions.map((a) => {
+      const order = orderMap[a._id.toString()];
+      return {
+        ...a,
+        winnerId: a.currentHighestBidderId,
+        orderId: order ? order._id : null,
+        transactionStatus: order ? order.status : "pending", // Default to pending if no order yet (e.g. just ended)
+        isRated: order ? ratedOrderIds.has(order._id.toString()) : false,
+      };
+    });
 
     res.status(200).json({
       status: "success",

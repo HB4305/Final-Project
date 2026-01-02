@@ -141,7 +141,7 @@ export default function DashboardPage() {
   const handleCancelTransaction = async (auctionId) => {
     if (
       !confirm(
-        "Bạn có chắc muốn hủy giao dịch này? Người mua sẽ bị đánh giá -1."
+        "Bạn có chắc muốn hủy giao dịch này? Người mua sẽ bị đánh giá -1 (Tiêu cực) với lý do: Người thắng không thanh toán."
       )
     ) {
       return;
@@ -152,7 +152,24 @@ export default function DashboardPage() {
         auctionId,
         "Người thắng không thanh toán"
       );
-      setToast({ message: "Đã hủy giao dịch thành công", type: "success" });
+
+      // Auto rate -1
+      // Find the auction to get bidder ID
+      const auction = soldAuctions.find(a => a._id === auctionId);
+      if (auction && auction.currentHighestBidderId) {
+        try {
+          await ratingService.createRating(auction.currentHighestBidderId._id, {
+            score: -1,
+            comment: "Người thắng không thanh toán",
+            orderId: auctionId, // Using auctionId as orderId for now
+            context: "post_transaction"
+          });
+        } catch (ratingErr) {
+          console.error("Auto rating failed:", ratingErr);
+        }
+      }
+
+      setToast({ message: "Đã hủy giao dịch & đánh giá tiêu cực người mua", type: "success" });
       fetchAllData();
     } catch (err) {
       setToast({
@@ -163,31 +180,34 @@ export default function DashboardPage() {
   };
 
   const handleRateSeller = (auction) => {
-    setSelectedTransactionForRating(auction);
+    setSelectedTransactionForRating({
+      auction,
+      type: "rating_seller",
+      targetUser: auction.sellerId
+    });
     setShowRatingModal(true);
   };
 
-  const handleSubmitRating = async (ratingData) => {
-    try {
-      await ratingService.createRating(ratingData.targetUserId, {
-        score: ratingData.rating,
-        comment: ratingData.comment,
-        orderId: ratingData.transactionId,
-        context: "post_transaction",
-      });
-
-      setToast({ message: "Đánh giá thành công!", type: "success" });
-      setShowRatingModal(false);
-      setSelectedTransactionForRating(null);
-      fetchAllData();
-    } catch (err) {
-      console.error(err);
-      setToast({
-        message: err.response?.data?.message || "Lỗi khi gửi đánh giá",
-        type: "error",
-      });
-    }
+  const handleRateWinner = (auction) => {
+    setSelectedTransactionForRating({
+      auction,
+      type: "rating_buyer",
+      targetUser: auction.currentHighestBidderId
+    });
+    setShowRatingModal(true);
   };
+
+  // Removed handleSubmitRating as logic is moved to customSubmitAction inline or generic handler
+  // But RatingComponent calls onSubmitRating as a callback. 
+  // We can keep a simplified version or just empty for refresh.
+  const handleRatingSuccess = () => {
+    setToast({ message: "Đánh giá thành công!", type: "success" });
+    setShowRatingModal(false);
+    setSelectedTransactionForRating(null);
+    fetchAllData();
+  };
+
+
 
   const formatTimeLeft = (endAt) => {
     const now = new Date();
@@ -238,25 +258,32 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 animate-slide-up">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${currentUser?.role === 'seller' || currentUser?.role === 'admin' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6 mb-12 animate-slide-up`}>
           {[
             { title: "Đang đấu giá", value: stats.activeBids, icon: Gavel, color: "text-blue-600", bg: "bg-blue-100", border: "border-blue-200", gradient: "from-blue-50 to-white" },
             { title: "Đang theo dõi", value: stats.watchlistCount, icon: Heart, color: "text-pink-600", bg: "bg-pink-100", border: "border-pink-200", gradient: "from-pink-50 to-white" },
             { title: "Đã thắng", value: stats.wonCount, icon: CheckCircle, color: "text-green-600", bg: "bg-green-100", border: "border-green-200", gradient: "from-green-50 to-white" },
-            { title: "Đang bán", value: stats.sellingCount, icon: ShoppingBag, color: "text-orange-600", bg: "bg-orange-100", border: "border-orange-200", gradient: "from-orange-50 to-white" },
-          ].map((item, index) => (
-            <div key={index} className={`glass-card p-6 rounded-2xl border border-white/10 ${item.bg.replace('100', '500/10')} hover:scale-[1.02] transition-transform duration-300`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium mb-1 text-gray-400">{item.title}</p>
-                  <p className={`text-4xl font-bold ${item.color}`}>{item.value}</p>
-                </div>
-                <div className={`p-4 rounded-xl ${item.bg.replace('100', '500/20')} ${item.color}`}>
-                  <item.icon className="w-6 h-6" />
+            { title: "Đang bán", value: stats.sellingCount, icon: ShoppingBag, color: "text-orange-600", bg: "bg-orange-100", border: "border-orange-200", gradient: "from-orange-50 to-white", key: "selling" },
+          ]
+            .filter(item => {
+              if (item.key === "selling") {
+                return currentUser?.role === 'seller' || currentUser?.role === 'admin';
+              }
+              return true;
+            })
+            .map((item, index) => (
+              <div key={index} className={`glass-card p-6 rounded-2xl border border-white/10 ${item.bg.replace('100', '500/10')} hover:scale-[1.02] transition-transform duration-300`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium mb-1 text-gray-400">{item.title}</p>
+                    <p className={`text-4xl font-bold ${item.color}`}>{item.value}</p>
+                  </div>
+                  <div className={`p-4 rounded-xl ${item.bg.replace('100', '500/20')} ${item.color}`}>
+                    <item.icon className="w-6 h-6" />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         {/* Dashboard Content */}
@@ -264,24 +291,39 @@ export default function DashboardPage() {
 
           <div className="lg:w-64 flex-shrink-0">
             <div className="glass-card border border-white/10 bg-[#1e293b]/60 rounded-2xl p-4 sticky top-28 space-y-2">
-              {dashboardTabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-300 ${isActive
+              {dashboardTabs
+                .filter((tab) => {
+                  if (tab.key === "selling" || tab.key === "sold") {
+                    return (
+                      currentUser?.role === "seller" ||
+                      currentUser?.role === "admin"
+                    );
+                  }
+                  return true;
+                })
+                .map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-300 ${isActive
                         ? `bg-primary/20 text-primary shadow-sm border border-primary/20`
                         : "text-gray-400 hover:bg-white/5 hover:text-white"
-                      }`}
-                  >
-                    <Icon className={`w-5 h-5 ${isActive ? "text-primary" : "text-gray-400"}`} />
-                    {tab.label}
-                    {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
-                  </button>
-                );
-              })}
+                        }`}
+                    >
+                      <Icon
+                        className={`w-5 h-5 ${isActive ? "text-primary" : "text-gray-400"
+                          }`}
+                      />
+                      {tab.label}
+                      {isActive && (
+                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                      )}
+                    </button>
+                  );
+                })}
             </div>
           </div>
 
@@ -568,16 +610,35 @@ export default function DashboardPage() {
                               </div>
                               <div>
                                 {auction.transactionStatus === "pending" && (
+                                  <>
+                                    <button
+                                      onClick={() => handleCancelTransaction(auction._id)}
+                                      className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition mr-2"
+                                      title="Hủy và đánh giá -1"
+                                    >
+                                      Hủy đơn
+                                    </button>
+                                    {!auction.isRated && (
+                                      <button
+                                        onClick={() => handleRateWinner(auction)}
+                                        className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition shadow-sm"
+                                      >
+                                        Đánh giá
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+                                {auction.transactionStatus !== "pending" && !auction.isRated && (
                                   <button
-                                    onClick={() => handleCancelTransaction(auction._id)}
-                                    className="px-4 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition"
+                                    onClick={() => handleRateWinner(auction)}
+                                    className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition shadow-sm mr-2"
                                   >
-                                    Hủy giao dịch
+                                    Đánh giá
                                   </button>
                                 )}
                                 <Link
                                   to={`/product/${auction.productId?._id || auction.productId}`}
-                                  className="ml-2 px-4 py-2 bg-white/5 text-gray-300 hover:bg-white/10 rounded-lg text-sm font-medium transition"
+                                  className="ml-2 px-3 py-2 bg-white/5 text-gray-300 hover:bg-white/10 rounded-lg text-sm font-medium transition"
                                 >
                                   Chi tiết
                                 </Link>
@@ -599,32 +660,39 @@ export default function DashboardPage() {
       {/* Rating Modal */}
       {showRatingModal && selectedTransactionForRating && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden relative shadow-2xl animate-slide-up">
+          <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden relative shadow-2xl animate-slide-up">
             <button
               onClick={() => setShowRatingModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 z-10 p-2 hover:bg-gray-100 rounded-full transition"
+              className="absolute top-4 right-4 text-gray-400 hover:text-white z-10 p-2 hover:bg-white/10 rounded-full transition"
             >
               <XCircle className="w-6 h-6" />
             </button>
-            <div className="p-8">
-              <h3 className="text-2xl font-bold mb-2 text-center text-primary">Đánh giá người bán</h3>
-              <p className="text-center text-muted-foreground mb-6">Chia sẻ trải nghiệm của bạn để giúp cộng đồng tốt hơn</p>
+            <div className="p-6">
+              {/* Title replaced by component's internal header */}
               <RatingComponent
                 targetUser={{
-                  id: selectedTransactionForRating.sellerId._id,
+                  id: selectedTransactionForRating.targetUser?._id,
                   name:
-                    selectedTransactionForRating.sellerId.username ||
-                    selectedTransactionForRating.sellerId.fullName,
+                    selectedTransactionForRating.targetUser?.username ||
+                    selectedTransactionForRating.targetUser?.fullName || "User",
                   rating:
-                    selectedTransactionForRating.sellerId.ratingSummary
+                    selectedTransactionForRating.targetUser?.ratingSummary
                       ?.score || 0,
                   totalRatings:
-                    selectedTransactionForRating.sellerId.ratingSummary
+                    selectedTransactionForRating.targetUser?.ratingSummary
                       ?.totalCount || 0,
                 }}
-                transactionId={selectedTransactionForRating.orderId}
-                userType="buyer"
-                onSubmitRating={handleSubmitRating}
+                transactionId={selectedTransactionForRating.auction?.orderId || selectedTransactionForRating.auction?._id}
+                userType={selectedTransactionForRating.type === "rating_seller" ? "buyer" : "seller"}
+                onSubmitRating={handleRatingSuccess}
+                customSubmitAction={async ({ score, comment }) => {
+                  await ratingService.createRating(selectedTransactionForRating.targetUser._id, {
+                    score,
+                    comment,
+                    orderId: selectedTransactionForRating.auction?._id,
+                    context: "post_transaction"
+                  });
+                }}
               />
             </div>
           </div>

@@ -14,6 +14,7 @@ export default function RatingComponent({
   userType, // 'buyer' or 'seller'
   onSubmitRating,
   existingRating = null,
+  customSubmitAction = null,
 }) {
   const [rating, setRating] = useState(existingRating?.rating || null); // 1 or -1
   const [comment, setComment] = useState(existingRating?.comment || "");
@@ -34,10 +35,18 @@ export default function RatingComponent({
     }
 
     try {
-      await orderService.rateTransaction(transactionId, {
-        score: rating,
-        comment: comment.trim(),
-      });
+      if (customSubmitAction) {
+        await customSubmitAction({
+          transactionId,
+          score: rating,
+          comment: comment.trim(),
+        });
+      } else {
+        await orderService.rateTransaction(transactionId, {
+          score: rating,
+          comment: comment.trim(),
+        });
+      }
 
       setIsSubmitted(true);
 
@@ -110,11 +119,10 @@ export default function RatingComponent({
               <div className="flex items-center gap-2">
                 <span className="text-sm text-green-800">Đánh giá:</span>
                 <span
-                  className={`px-2 py-1 rounded text-sm font-bold ${
-                    rating === 1
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
+                  className={`px-2 py-1 rounded text-sm font-bold ${rating === 1
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                    }`}
                 >
                   {rating === 1 ? "+1 Tích cực" : "-1 Tiêu cực"}
                 </span>
@@ -149,11 +157,10 @@ export default function RatingComponent({
               <button
                 type="button"
                 onClick={() => setRating(1)}
-                className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition ${
-                  rating === 1
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-border hover:bg-muted"
-                }`}
+                className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition ${rating === 1
+                  ? "border-green-500 bg-green-50 text-green-700"
+                  : "border-border hover:bg-muted"
+                  }`}
               >
                 <ThumbsUp className="w-6 h-6" />
                 <div className="text-left">
@@ -165,11 +172,10 @@ export default function RatingComponent({
               <button
                 type="button"
                 onClick={() => setRating(-1)}
-                className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition ${
-                  rating === -1
-                    ? "border-red-500 bg-red-50 text-red-700"
-                    : "border-border hover:bg-muted"
-                }`}
+                className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition ${rating === -1
+                  ? "border-red-500 bg-red-50 text-red-700"
+                  : "border-border hover:bg-muted"
+                  }`}
               >
                 <ThumbsDown className="w-6 h-6" />
                 <div className="text-left">
@@ -267,13 +273,12 @@ export default function RatingComponent({
           <button
             type="submit"
             disabled={!rating || !comment.trim()}
-            className={`w-full px-4 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${
-              rating === 1
-                ? "bg-green-500 hover:bg-green-600 text-white"
-                : rating === -1
+            className={`w-full px-4 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${rating === 1
+              ? "bg-green-500 hover:bg-green-600 text-white"
+              : rating === -1
                 ? "bg-red-500 hover:bg-red-600 text-white"
                 : "bg-muted text-muted-foreground"
-            }`}
+              }`}
           >
             Gửi đánh giá
           </button>
