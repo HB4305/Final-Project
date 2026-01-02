@@ -22,16 +22,16 @@ export default function AuctionSection({ auction, onPlaceBid }) {
 
   return (
     <div className="glass-card border border-white/20 rounded-2xl p-6 space-y-6 shadow-2xl relative overflow-hidden bg-[#1e293b]/80 backdrop-blur-xl">
-       <div className="absolute top-0 right-0 p-4 opacity-10">
-           <Gavel size={120} />
-       </div>
+      <div className="absolute top-0 right-0 p-4 opacity-10">
+        <Gavel size={120} />
+      </div>
 
       {/* Current Price */}
       <div className="relative">
         <div className="flex items-center gap-2 mb-1">
-             <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" /> Giá cao nhất hiện tại
-             </span>
+          <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" /> Giá cao nhất hiện tại
+          </span>
         </div>
         <p className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">
           {formatPrice(auction?.currentPrice)}
@@ -53,52 +53,52 @@ export default function AuctionSection({ auction, onPlaceBid }) {
       {/* Buy Now Price */}
       {auction?.buyNowPrice && (
         <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4 flex items-center justify-between">
-            <div>
-                 <p className="text-sm font-bold text-green-700 flex items-center gap-1">
-                     <Zap className="w-4 h-4 fill-current" /> Mua ngay
-                </p>
-                 <p className="text-2xl font-bold text-green-400">
-                    {formatPrice(auction.buyNowPrice)}
-                </p>
-            </div>
-             <button className="px-5 py-2.5 bg-green-600 text-white rounded-xl shadow-lg shadow-green-600/20 hover:bg-green-700 hover:scale-105 transition-all font-bold text-sm">
-                Mua Ngay
-             </button>
+          <div>
+            <p className="text-sm font-bold text-green-700 flex items-center gap-1">
+              <Zap className="w-4 h-4 fill-current" /> Mua ngay
+            </p>
+            <p className="text-2xl font-bold text-green-400">
+              {formatPrice(auction.buyNowPrice)}
+            </p>
+          </div>
+          <button className="px-5 py-2.5 bg-green-600 text-white rounded-xl shadow-lg shadow-green-600/20 hover:bg-green-700 hover:scale-105 transition-all font-bold text-sm">
+            Mua Ngay
+          </button>
         </div>
       )}
 
       {/* Bid Stats & Timer */}
       <div className="space-y-4">
-          <div className="flex items-center justify-between py-2 border-b border-white/10">
-             <div className="flex items-center gap-2">
-                <div className="p-2 bg-white/5 rounded-lg">
-                    <Gavel className="w-5 h-5 text-gray-400" />
-                </div>
-                <div>
-                     <p className="font-bold text-white text-lg">{auction?.bidCount || 0}</p>
-                     <p className="text-xs text-muted-foreground">Lượt đấu giá</p>
-                </div>
-             </div>
-             <div className="flex items-center gap-2 text-right">
-                <div>
-                     <p className={`font-bold text-lg ${time.isEnded ? 'text-red-500' : 'text-primary'}`}>
-                         {time.isEnded ? "Đã Đóng" : "Đang Diễn Ra"}
-                     </p>
-                     <p className="text-xs text-muted-foreground">Trạng thái</p>
-                </div>
-                <div className={`p-2 rounded-lg ${time.isEnded ? 'bg-red-500/10' : 'bg-primary/10'}`}>
-                    <Clock className={`w-5 h-5 ${time.isEnded ? 'text-red-600' : 'text-primary'}`} />
-                </div>
-             </div>
+        <div className="flex items-center justify-between py-2 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-white/5 rounded-lg">
+              <Gavel className="w-5 h-5 text-gray-400" />
+            </div>
+            <div>
+              <p className="font-bold text-white text-lg">{auction?.bidCount || 0}</p>
+              <p className="text-xs text-muted-foreground">Lượt đấu giá</p>
+            </div>
           </div>
-          
-           {/* Countdown */}
-           {/* Countdown */}
-            {!time.isEnded && (
-                <div className="mt-4">
-                    <CountdownTimer endAt={auction?.endAt} />
-                </div>
-            )}
+          <div className="flex items-center gap-2 text-right">
+            <div>
+              <p className={`font-bold text-lg ${time.isEnded ? 'text-red-500' : 'text-primary'}`}>
+                {time.isEnded ? "Đã Đóng" : "Đang Diễn Ra"}
+              </p>
+              <p className="text-xs text-muted-foreground">Trạng thái</p>
+            </div>
+            <div className={`p-2 rounded-lg ${time.isEnded ? 'bg-red-500/10' : 'bg-primary/10'}`}>
+              <Clock className={`w-5 h-5 ${time.isEnded ? 'text-red-600' : 'text-primary'}`} />
+            </div>
+          </div>
+        </div>
+
+        {/* Countdown */}
+        {/* Countdown */}
+        {!time.isEnded && (
+          <div className="mt-4">
+            <CountdownTimer endAt={auction?.endAt} />
+          </div>
+        )}
       </div>
 
       {/* Bid Buttons */}
@@ -121,21 +121,22 @@ export default function AuctionSection({ auction, onPlaceBid }) {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-300 flex justify-between">
-                   Giá tối đa
-                   <span className="text-primary">Tối thiểu: {formatPrice(minBid)}</span>
+                  Giá tối đa
+                  <span className="text-primary">Tối thiểu: {formatPrice(minBid)}</span>
                 </label>
                 <div className="relative">
-                    <input
+                  <input
                     type="number"
                     value={bidAmount}
                     onChange={(e) => setBidAmount(e.target.value)}
                     min={minBid}
                     step={auction?.priceStep || 50000}
                     placeholder={minBid}
-                    className="w-full pl-4 pr-12 py-3.5 border border-white/20 rounded-xl bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-lg font-bold shadow-sm transition-all text-white placeholder-gray-500"
+                    onWheel={(e) => e.target.blur()}
+                    className="w-full pl-4 pr-12 py-3.5 border border-white/20 rounded-xl bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-lg font-bold shadow-sm transition-all text-white placeholder-gray-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     autoFocus
-                    />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</div>
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">VND</div>
                 </div>
               </div>
               <div className="flex gap-3">
