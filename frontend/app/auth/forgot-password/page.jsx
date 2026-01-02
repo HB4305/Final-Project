@@ -10,6 +10,7 @@ export default function ForgotPasswordPage() {
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState(null);
@@ -19,9 +20,10 @@ export default function ForgotPasswordPage() {
   const handleSendOtp = async (e) => {
     e.preventDefault();
 
-    if (!email)
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!email || !emailRegex.test(email))
       return setToast({
-        message: "Vui lòng nhập email của bạn",
+        message: "Vui lòng nhập email hợp lệ",
         type: "error",
       });
 
@@ -74,9 +76,17 @@ export default function ForgotPasswordPage() {
   const handleResetPassword = async (e) => {
     e.preventDefault();
 
-    if (newPassword.length < 6) {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
       return setToast({
-        message: "Mật khẩu phải có ít nhất 6 ký tự",
+        message: "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số",
+        type: "error",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return setToast({
+        message: "Mật khẩu xác nhận không khớp",
         type: "error",
       });
     }
@@ -190,7 +200,7 @@ export default function ForgotPasswordPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                   placeholder="000000"
-                  className="w-full px-4 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary text-center text-lg tracking-widest"
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary text-center text-2xl tracking-widest font-mono"
                 />
                 <div className="flex justify-between items-center mt-2">
                   <p className="text-xs text-muted-foreground">
@@ -231,12 +241,25 @@ export default function ForgotPasswordPage() {
                   className="w-full px-4 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Phải có ít nhất 6 ký tự
+                  Phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số
                 </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Xác nhận mật khẩu
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                />
               </div>
               <button
                 type="submit"
-                disabled={loading || newPassword.length < 6}
+                disabled={loading || newPassword.length < 8}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400 flex justify-center items-center"
               >
                 {loading ? (

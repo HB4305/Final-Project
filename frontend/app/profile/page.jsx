@@ -5,6 +5,7 @@ import {
   Calendar,
   MapPin,
   Star,
+  StarHalf,
   Edit2,
   Save,
   X,
@@ -13,18 +14,25 @@ import {
   Settings,
   Bell,
   Shield,
+  Camera,
+  Phone,
+  LogOut,
+  ChevronRight
 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import Navigation from "../../components/navigation";
 import UpgradeRequest from "../../components/upgrade-request";
 import userService from "../services/userService";
+import { useAuth } from "../context/AuthContext";
 import Toast from "../../components/Toast";
 
 export default function ProfilePage() {
+  const { updateUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [toast, setToast] = useState(null);
 
   // Email update states
@@ -35,29 +43,7 @@ export default function ProfilePage() {
   const [emailOtp, setEmailOtp] = useState("");
   const [emailOtpVerifying, setEmailOtpVerifying] = useState(false);
 
-  // Password update states
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [passwordUpdating, setPasswordUpdating] = useState(false);
-  const [showPasswordOtpInput, setShowPasswordOtpInput] = useState(false);
-  const [passwordOtp, setPasswordOtp] = useState("");
-
-  // Settings states
-  const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState({
-    emailNotifications: true,
-    bidNotifications: true,
-    marketingEmails: false,
-    twoFactorAuth: false,
-    privateProfile: false,
-  });
-
-  const [profile, setProfile] = useState(null);
-
+  // Edit Form State
   const [editForm, setEditForm] = useState({
     fullName: "",
     dateOfBirth: "",
@@ -79,10 +65,10 @@ export default function ProfilePage() {
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      const [profileRes] = await Promise.all([userService.getUserProfile()]);
+      const res = await userService.getUserProfile();
 
-      if (profileRes.data?.status === "success") {
-        const userData = profileRes.data.data.user;
+      if (res.data?.status === "success") {
+        const userData = res.data.data.user;
         setProfile(userData);
         setEditForm({
           fullName: userData.fullName || "",
@@ -101,90 +87,19 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error("Error fetching profile:", err);
-      setError("Failed to load profile data");
+      setToast({ message: "Failed to load profile data", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
-  // --- PASSWORD CHANGE FLOW ---
-
-  const handleRequestChangePassword = async () => {
-    try {
-      setPasswordUpdating(true);
-      setError("");
-      setSuccess("");
-
-      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-        setError("Mật khẩu mới không khớp");
-        return;
-      }
-
-      if (passwordForm.newPassword.length < 6) {
-        setError("Mật khẩu phải có ít nhất 6 ký tự");
-        return;
-      }
-
-      // Step 1: Request OTP
-      await userService.requestChangePassword(passwordForm.oldPassword);
-
-      setSuccess("Mã OTP đã được gửi đến email của bạn.");
-      setShowPasswordOtpInput(true);
-    } catch (err) {
-      console.error("Error requesting password change:", err);
-      setError(
-        err.response?.data?.message || "Không thể gửi yêu cầu đổi mật khẩu"
-      );
-    } finally {
-      setPasswordUpdating(false);
-    }
-  };
-
-  const handleConfirmChangePassword = async () => {
-    try {
-      setPasswordUpdating(true);
-      setError("");
-      setSuccess("");
-
-      if (passwordOtp.length !== 6) {
-        setError("Vui lòng nhập mã OTP 6 chữ số");
-        return;
-      }
-
-      // Step 2: Confirm with OTP
-      await userService.confirmChangePassword(
-        passwordOtp,
-        passwordForm.newPassword
-      );
-
-      setSuccess("Đổi mật khẩu thành công!");
-      setToast({ message: "Đổi mật khẩu thành công!", type: "success" });
-
-      // Reset states
-      setIsChangingPassword(false);
-      setShowPasswordOtpInput(false);
-      setPasswordOtp("");
-      setPasswordForm({
-        oldPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-    } catch (err) {
-      console.error("Error confirming password change:", err);
-      setError(err.response?.data?.message || "Đổi mật khẩu thất bại");
-    } finally {
-      setPasswordUpdating(false);
-    }
-  };
-
   // --- AVATAR & PROFILE UPDATE ---
-
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Vui lòng chọn file ảnh");
+      setToast({ message: "Vui lòng chọn file ảnh", type: "error" });
       return;
     }
 
@@ -196,16 +111,23 @@ export default function ProfilePage() {
       const res = await userService.uploadAvatar(formData);
 
       if (res.data?.success) {
-        setProfile({
+        const updatedProfile = {
           ...profile,
           profileImageUrl: res.data.data.profileImageUrl,
+        };
+        setProfile(updatedProfile);
+        updateUser(updatedProfile); 
+        setToast({
+          message: "Cập nhật ảnh đại diện thành công",
+          type: "success",
         });
-        setSuccess("Cập nhật ảnh đại diện thành công");
-        setTimeout(() => setSuccess(""), 3000);
       }
     } catch (err) {
       console.error("Error uploading avatar:", err);
-      setError(err.response?.data?.message || "Lỗi khi upload ảnh");
+      setToast({
+        message: err.response?.data?.message || "Lỗi khi upload ảnh",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -214,7 +136,6 @@ export default function ProfilePage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      setError("");
 
       const updateData = {
         fullName: editForm.fullName,
@@ -228,12 +149,14 @@ export default function ProfilePage() {
       if (res.data?.status === "success") {
         setProfile(res.data.data.user);
         setIsEditing(false);
-        setSuccess("Cập nhật thông tin thành công");
-        setTimeout(() => setSuccess(""), 3000);
+        setToast({ message: "Cập nhật thông tin thành công", type: "success" });
       }
     } catch (err) {
       console.error("Error updating profile:", err);
-      setError(err.response?.data?.message || "Lỗi khi cập nhật thông tin");
+      setToast({
+        message: err.response?.data?.message || "Lỗi khi cập nhật thông tin",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -257,32 +180,35 @@ export default function ProfilePage() {
       });
     }
     setIsEditing(false);
-    setError("");
   };
 
   // --- EMAIL UPDATE ---
-
   const handleUpdateEmail = async () => {
     try {
       setEmailUpdating(true);
-      setError("");
-      setSuccess("");
 
-      if (!newEmail || !newEmail.includes("@")) {
-        setError("Vui lòng nhập email hợp lệ");
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!newEmail || !emailRegex.test(newEmail)) {
+        setToast({ message: "Vui lòng nhập email hợp lệ", type: "error" });
         return;
       }
 
       const res = await userService.updateEmail({ newEmail });
 
       if (res.data?.status === "success") {
-        setSuccess("Mã OTP đã được gửi đến email mới. Vui lòng kiểm tra.");
+        setToast({
+          message: "Mã OTP đã được gửi đến email mới. Vui lòng kiểm tra.",
+          type: "success",
+        });
         setShowEmailOtpInput(true);
         setIsEditingEmail(false);
       }
     } catch (err) {
       console.error("Error updating email:", err);
-      setError(err.response?.data?.message || "Lỗi khi cập nhật email");
+      setToast({
+        message: err.response?.data?.message || "Lỗi khi cập nhật email",
+        type: "error",
+      });
     } finally {
       setEmailUpdating(false);
     }
@@ -291,36 +217,35 @@ export default function ProfilePage() {
   const handleVerifyEmailOtp = async () => {
     try {
       setEmailOtpVerifying(true);
-      setError("");
-      setSuccess("");
 
       if (!emailOtp || emailOtp.length !== 6) {
-        setError("Vui lòng nhập mã OTP 6 chữ số");
+        setToast({ message: "Vui lòng nhập mã OTP 6 chữ số", type: "error" });
         return;
       }
 
       const res = await userService.verifyEmailOtp({ otp: emailOtp });
 
       if (res.data?.status === "success") {
-        setSuccess("Xác thực email thành công!");
+        setToast({ message: "Xác thực email thành công!", type: "success" });
         setShowEmailOtpInput(false);
         setEmailOtp("");
         setNewEmail("");
         fetchProfileData();
-        setTimeout(() => setSuccess(""), 5000);
       }
     } catch (err) {
       console.error("Error verifying OTP:", err);
-      setError(err.response?.data?.message || "Xác thực OTP thất bại");
+      setToast({
+        message: err.response?.data?.message || "Xác thực OTP thất bại",
+        type: "error",
+      });
     } finally {
       setEmailOtpVerifying(false);
     }
   };
 
-  // --- SETTINGS ---
-  const handleToggleSetting = (key) => {
-    setSettings({ ...settings, [key]: !settings[key] });
-    // In a real app, you would save this to backend
+  const handleLogout = () => {
+    logout();
+    navigate("/auth/login");
   };
 
   if (loading) {
@@ -332,8 +257,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Navigation />
+      
       {toast && (
         <Toast
           message={toast.message}
@@ -342,32 +268,370 @@ export default function ProfilePage() {
         />
       )}
 
-      <div className="pt-24">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500 text-red-600 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+      <div className="pt-24 pb-12 max-w-6xl mx-auto px-4">
+        
+        {/* Banner Section */}
 
-          {/* Success Message */}
-          {success && (
-            <div className="mb-4 p-3 bg-green-500/10 border border-green-500 text-green-600 rounded-lg text-sm">
-              {success}
-            </div>
-          )}
 
-          {/* OTP Verification for Email */}
-          {showEmailOtpInput && (
-            <div className="mb-4 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="text-lg font-semibold mb-2 text-blue-900">
+        {/* Profile Header Card (Overlapping Banner) */}
+        {/* Profile Header Card */}
+        <div className="mb-8 animate-slide-up">
+            <div className="glass-card rounded-3xl p-8 md:p-10 shadow-2xl border border-white/10 bg-[#1e293b]/60 backdrop-blur-xl relative overflow-hidden">
+                {/* Background Decoration */}
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 -z-10"></div>
+                
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+                    {/* Avatar */}
+                    <div className="relative group shrink-0">
+                         <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-blue-500 to-cyan-500 shadow-xl">
+                            <img
+                                src={profile?.profileImageUrl || "/placeholder.svg"}
+                                alt={profile?.fullName || profile?.username}
+                                className="w-full h-full rounded-full object-cover border-4 border-[#0f172a]"
+                            />
+                         </div>
+                         <label
+                            htmlFor="avatar-upload"
+                            className="absolute bottom-0 right-0 p-2.5 bg-[#0f172a] text-white rounded-full shadow-lg cursor-pointer hover:bg-primary transition-colors border border-white/10"
+                            title="Đổi ảnh đại diện"
+                        >
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                        </label>
+                        <input
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleAvatarChange}
+                            disabled={saving}
+                        />
+                    </div>
+
+                    {/* Basic Info */}
+                    <div className="flex-1 text-center md:text-left space-y-3">
+                         <div className="flex flex-col md:flex-row items-center md:items-center gap-3">
+                            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">{profile?.fullName || profile?.username}</h1>
+                            {profile?.role === 'admin' && (
+                                <span className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold uppercase rounded-full">Admin</span>
+                            )}
+                         </div>
+                         <p className="text-lg text-primary font-medium">@{profile?.username}</p>
+                         
+                         <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 text-sm text-gray-400 pt-2">
+                             <div className="flex items-center gap-2">
+                               <div className="p-1.5 bg-white/5 rounded-lg"><Mail className="w-4 h-4" /></div>
+                               {profile?.email}
+                             </div>
+                             {profile?.address?.city && (
+                                 <div className="flex items-center gap-2">
+                                   <div className="p-1.5 bg-white/5 rounded-lg"><MapPin className="w-4 h-4" /></div>
+                                   {profile.address.city}
+                                 </div>
+                             )}
+                             <div className="flex items-center gap-2">
+                               <div className="p-1.5 bg-white/5 rounded-lg"><Calendar className="w-4 h-4" /></div>
+                               Tham gia {new Date(profile?.createdAt).getFullYear()}
+                             </div>
+                         </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 mt-4 md:mt-0">
+                        {!isEditing && (
+                            <button 
+                                onClick={() => setIsEditing(true)}
+                                className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 font-medium flex items-center gap-2"
+                            >
+                                <Edit2 className="w-4 h-4" /> Chỉnh sửa
+                            </button>
+                        )}
+                        <Link 
+                            to="/profile/settings"
+                            className="p-2.5 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 hover:text-white transition"
+                            title="Cài đặt"
+                        >
+                            <Settings className="w-5 h-5" />
+                        </Link>
+                         <button 
+                            onClick={handleLogout}
+                            className="p-2.5 bg-red-500/10 border border-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition"
+                            title="Đăng xuất"
+                        >
+                            <LogOut className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Left Column: Forms */}
+            <div className="lg:col-span-2 space-y-8 animate-slide-up" style={{ animationDelay: "100ms" }}>
+                
+                <div className="glass-card p-6 md:p-8 rounded-2xl border border-white/10 bg-white/5">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+                            <User className="w-5 h-5 text-primary" /> Thông tin cá nhân
+                        </h2>
+                    </div>
+
+                    <div className="space-y-6">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div className="space-y-2">
+                                 <label className="text-sm font-medium text-gray-300">Họ và tên</label>
+                                 <input
+                                     type="text"
+                                     disabled={!isEditing}
+                                     value={isEditing ? editForm.fullName : (profile?.fullName || "")}
+                                     onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                                     className={`w-full px-4 py-3 rounded-xl border transition-all ${
+                                         isEditing 
+                                         ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary placeholder-gray-500" 
+                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none"
+                                     }`}
+                                 />
+                             </div>
+                             <div className="space-y-2">
+                                 <label className="text-sm font-medium text-gray-300">Ngày sinh</label>
+                                 <input
+                                     type="date"
+                                     disabled={!isEditing}
+                                     value={isEditing ? editForm.dateOfBirth : (editForm.dateOfBirth || "")}
+                                     onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                                     className={`w-full px-4 py-3 rounded-xl border transition-all ${
+                                         isEditing 
+                                         ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary [color-scheme:dark]" 
+                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none [color-scheme:dark]"
+                                     }`}
+                                 />
+                             </div>
+                             <div className="space-y-2">
+                                 <label className="text-sm font-medium text-gray-300">Email</label>
+                                 <div className="flex gap-2">
+                                      {isEditingEmail ? (
+                                        <>
+                                            <input
+                                                type="email"
+                                                value={newEmail}
+                                                onChange={(e) => setNewEmail(e.target.value)}
+                                                placeholder="Nhập email mới"
+                                                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                                autoFocus
+                                            />
+                                            <button onClick={handleUpdateEmail} disabled={emailUpdating} className="p-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition">
+                                                {emailUpdating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                            </button>
+                                            <button onClick={() => setIsEditingEmail(false)} className="p-3 bg-gray-200 text-gray-600 rounded-xl hover:bg-gray-300 transition">
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </>
+                                      ) : (
+                                        <>
+                                            <input
+                                                type="email"
+                                                disabled
+                                                value={profile?.email || ""}
+                                                className="flex-1 px-4 py-3 bg-white/5 border border-white/5 rounded-xl text-gray-300 pointer-events-none"
+                                            />
+                                            {isEditing && (
+                                                <button onClick={() => setIsEditingEmail(true)} className="px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition font-medium">
+                                                    Thay đổi
+                                                </button>
+                                            )}
+                                        </>
+                                      )}
+                                 </div>
+                             </div>
+                             <div className="space-y-2">
+                                 <label className="text-sm font-medium text-gray-300">Số điện thoại</label>
+                                 <input
+                                     type="tel"
+                                     disabled={!isEditing}
+                                     value={isEditing ? editForm.contactPhone : (profile?.contactPhone || "")}
+                                     onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
+                                     className={`w-full px-4 py-3 rounded-xl border transition-all ${
+                                         isEditing 
+                                         ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary" 
+                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none"
+                                     }`}
+                                 />
+                             </div>
+                         </div>
+
+                         {/* Address Section */}
+                         <div className="space-y-3 pt-2">
+                             <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                                <MapPin className="w-4 h-4" /> Địa chỉ
+                             </label>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <input
+                                    type="text"
+                                    disabled={!isEditing}
+                                    placeholder="Số nhà, đường"
+                                    value={isEditing ? editForm.address.street : (profile?.address?.street || "")}
+                                    onChange={(e) => setEditForm({ ...editForm, address: { ...editForm.address, street: e.target.value } })}
+                                    className={`w-full px-4 py-3 rounded-xl border transition-all ${
+                                         isEditing 
+                                         ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary" 
+                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none"
+                                     }`}
+                                />
+                                <input
+                                    type="text"
+                                    disabled={!isEditing}
+                                    placeholder="Thành phố / Tỉnh"
+                                    value={isEditing ? editForm.address.city : (profile?.address?.city || "")}
+                                    onChange={(e) => setEditForm({ ...editForm, address: { ...editForm.address, city: e.target.value } })}
+                                    className={`w-full px-4 py-3 rounded-xl border transition-all ${
+                                         isEditing 
+                                         ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary" 
+                                         : "bg-white/5 border-white/5 text-gray-300 pointer-events-none"
+                                     }`}
+                                />
+                             </div>
+                         </div>
+
+                         {/* Action Buttons */}
+                         {isEditing && (
+                             <div className="flex gap-4 pt-4 border-t border-gray-100">
+                                 <button
+                                     onClick={handleSave}
+                                     disabled={saving}
+                                     className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 font-medium flex items-center gap-2 disabled:opacity-50"
+                                 >
+                                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                     Lưu thay đổi
+                                 </button>
+                                 <button
+                                     onClick={handleCancel}
+                                     disabled={saving}
+                                     className="px-6 py-2.5 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition font-medium"
+                                 >
+                                     Hủy bỏ
+                                 </button>
+                             </div>
+                         )}
+                    </div>
+                </div>
+
+                <UpgradeRequest currentUser={profile} />
+
+            </div>
+
+             {/* Right Column: Stats & Reviews */}
+            <div className="space-y-8 animate-slide-up" style={{ animationDelay: "200ms" }}>
+                {/* Review Summary Card */}
+                <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/5">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold flex items-center gap-2 text-white">
+                            <Star className="w-5 h-5 text-yellow-500" /> Uy tín người dùng
+                        </h2>
+                        <Link to="/profile/ratings/me" className="text-xs text-primary font-medium hover:underline flex items-center">
+                            Chi tiết <ChevronRight className="w-3 h-3" />
+                        </Link>
+                    </div>
+
+                    <div className="text-center py-6 bg-gradient-to-b from-yellow-500/10 to-transparent rounded-xl border border-yellow-500/10 mb-6">
+                        <div className="flex items-center justify-center gap-1 mb-2">
+                             {[...Array(5)].map((_, i) => {
+                                const score = profile?.ratingSummary?.score || 0;
+                                const isFull = i < Math.floor(score);
+                                const isHalf = i === Math.floor(score) && score % 1 >= 0.5;
+                                return (
+                                    <Star 
+                                        key={i} 
+                                        className={`w-6 h-6 ${isFull || isHalf ? "fill-yellow-400 text-yellow-400" : "text-gray-700"}`} 
+                                    />
+                                );
+                             })}
+                        </div>
+                        <p className="text-3xl font-bold text-white mb-1">
+                            {(profile?.ratingSummary?.score || 0).toFixed(1)} <span className="text-sm text-gray-500 font-normal">/ 5.0</span>
+                        </p>
+                        <p className="text-sm text-gray-400">
+                            Dựa trên {profile?.ratingSummary?.totalCount || 0} lượt đánh giá
+                        </p>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-xl border border-green-500/20">
+                            <div className="flex items-center gap-2">
+                                <div className="bg-green-500/20 p-1.5 rounded-lg text-green-400">
+                                    <User className="w-4 h-4" />
+                                </div>
+                                <span className="text-sm font-medium text-green-400">Đánh giá tốt</span>
+                            </div>
+                            <span className="font-bold text-green-400">{profile?.ratingSummary?.countPositive || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-red-500/10 rounded-xl border border-red-500/20">
+                            <div className="flex items-center gap-2">
+                                <div className="bg-red-500/20 p-1.5 rounded-lg text-red-400">
+                                    <Shield className="w-4 h-4" />
+                                </div>
+                                <span className="text-sm font-medium text-red-400">Đánh giá xấu</span>
+                            </div>
+                            <span className="font-bold text-red-400">{profile?.ratingSummary?.countNegative || 0}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Account Status Card */}
+                <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/5">
+                     <h2 className="font-bold mb-4 flex items-center gap-2 text-white">
+                        <Shield className="w-5 h-5 text-blue-500" /> Trạng thái tài khoản
+                    </h2>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Xác thực Email</span>
+                            {profile?.emailVerified ? (
+                                <span className="text-xs px-2.5 py-1 bg-green-500/20 text-green-400 border border-green-500/20 rounded-full font-bold">Đã xác thực</span>
+                            ) : (
+                                <span className="text-xs px-2.5 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 rounded-full font-bold">Chưa xác thực</span>
+                            )}
+                        </div>
+                         <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Vai trò</span>
+                             <span className="text-sm font-medium capitalize text-white">{profile?.role}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Điểm uy tín</span>
+                            <span className="text-sm font-bold text-primary">High</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+      </div>
+
+      {/* OTP Modal */}
+      {showEmailOtpInput && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 animate-slide-up">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900">
                 Xác thực Email mới
               </h3>
-              <p className="text-sm text-blue-700 mb-4">
-                Chúng tôi đã gửi mã OTP đến <strong>{newEmail}</strong>.
+              <button
+                onClick={() => {
+                  setShowEmailOtpInput(false);
+                  setEmailOtp("");
+                  setNewEmail("");
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors bg-gray-100 p-1.5 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-gray-600 mb-6 text-center">
+                Mã xác thực đã được gửi đến <br/><strong className="text-primary text-base">{newEmail}</strong>
               </p>
-              <div className="flex gap-2">
+              
+              <div className="space-y-6">
                 <input
                   type="text"
                   value={emailOtp}
@@ -377,342 +641,31 @@ export default function ProfilePage() {
                       setEmailOtp(value);
                     }
                   }}
-                  placeholder="Nhập mã OTP"
+                  placeholder="000000"
                   maxLength={6}
-                  className="flex-1 px-4 py-3 border border-blue-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest font-mono"
+                  className="w-full px-4 py-4 border-2 border-primary/20 rounded-xl bg-primary/5 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 text-center text-3xl tracking-[0.5em] font-mono font-bold text-primary placeholder-primary/30 transition-all"
+                  autoFocus
                 />
+                
                 <button
                   onClick={handleVerifyEmailOtp}
                   disabled={emailOtpVerifying || emailOtp.length !== 6}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
+                  className="w-full py-3.5 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all flex items-center justify-center gap-2"
                 >
                   {emailOtpVerifying ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       Đang xác thực...
                     </>
                   ) : (
-                    "Xác thực"
+                    "Xác thực ngay"
                   )}
                 </button>
-                <button
-                  onClick={() => {
-                    setShowEmailOtpInput(false);
-                    setEmailOtp("");
-                    setNewEmail("");
-                  }}
-                  disabled={emailOtpVerifying}
-                  className="px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Profile Header */}
-          <div className="bg-background border border-border rounded-lg p-8 mb-8">
-            <div className="flex flex-col md:flex-row gap-8 items-start">
-              {/* Avatar */}
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative group">
-                  <img
-                    src={profile?.profileImageUrl || "/placeholder.svg"}
-                    alt={profile?.fullName || profile?.username}
-                    className="w-32 h-32 rounded-full object-cover border-4 border-primary"
-                  />
-                  <label
-                    htmlFor="avatar-upload"
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer text-white"
-                  >
-                    <Edit2 className="w-6 h-6" />
-                  </label>
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarChange}
-                    disabled={saving}
-                  />
-                </div>
-                {!isEditing && !showSettings && (
-                  <div className="flex flex-col gap-2 w-full">
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium w-full"
-                    >
-                      <Edit2 className="w-4 h-4" /> Chỉnh sửa hồ sơ
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Profile Info / Forms */}
-              <div className="flex-1 w-full">
-                {isEditing ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Họ và tên
-                      </label>
-                      <input
-                        type="text"
-                        value={editForm.fullName}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, fullName: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Email
-                      </label>
-                      {isEditingEmail ? (
-                        <div className="flex gap-2">
-                          <input
-                            type="email"
-                            value={newEmail}
-                            onChange={(e) => setNewEmail(e.target.value)}
-                            placeholder={profile?.email}
-                            className="flex-1 px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                          />
-                          <button
-                            onClick={handleUpdateEmail}
-                            disabled={emailUpdating}
-                            className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
-                          >
-                            {emailUpdating ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Save className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsEditingEmail(false);
-                              setNewEmail("");
-                            }}
-                            disabled={emailUpdating}
-                            className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="email"
-                            value={profile?.email || ""}
-                            disabled
-                            className="flex-1 px-3 py-2 border border-border rounded-lg bg-gray-100 text-gray-500"
-                          />
-                          <button
-                            onClick={() => setIsEditingEmail(true)}
-                            className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-                          >
-                            Thay đổi
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Ngày sinh
-                      </label>
-                      <input
-                        type="date"
-                        value={editForm.dateOfBirth}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            dateOfBirth: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Số điện thoại
-                      </label>
-                      <input
-                        type="tel"
-                        value={editForm.contactPhone}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            contactPhone: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Địa chỉ
-                      </label>
-                      <input
-                        type="text"
-                        value={editForm.address?.street || ""}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            address: {
-                              ...editForm.address,
-                              street: e.target.value,
-                            },
-                          })
-                        }
-                        placeholder="Số nhà, tên đường"
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary mb-2"
-                      />
-                      <input
-                        type="text"
-                        value={editForm.address?.city || ""}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            address: {
-                              ...editForm.address,
-                              city: e.target.value,
-                            },
-                          })
-                        }
-                        placeholder="Thành phố / Tỉnh"
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium disabled:opacity-50"
-                      >
-                        {saving ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Save className="w-4 h-4" />
-                        )}
-                        {saving ? "Đang lưu..." : "Lưu thay đổi"}
-                      </button>
-                      <button
-                        onClick={handleCancel}
-                        disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition font-medium"
-                      >
-                        <X className="w-4 h-4" /> Hủy
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <h1 className="text-3xl font-bold mb-2">
-                      {profile?.fullName || profile?.username}
-                    </h1>
-                    <p className="text-muted-foreground mb-2">
-                      @{profile?.username}
-                    </p>
-                    <div className="flex flex-wrap gap-6 text-sm mb-4">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
-                        <span>{profile?.email}</span>
-                      </div>
-                      {(profile?.address?.street || profile?.address?.city) && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <span>
-                            {[profile.address.street, profile.address.city]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span>
-                          Tham gia{" "}
-                          {new Date(profile?.createdAt).toLocaleDateString(
-                            "vi-VN",
-                            { month: "long", year: "numeric" }
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                    {profile?.contactPhone && (
-                      <p className="text-sm text-muted-foreground">
-                        SĐT: {profile.contactPhone}
-                      </p>
-                    )}
-                    {profile?.dateOfBirth && (
-                      <p className="text-sm text-muted-foreground">
-                        Ngày sinh:{" "}
-                        {new Date(profile.dateOfBirth).toLocaleDateString(
-                          "vi-VN"
-                        )}
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Rating Card */}
-              <div className="bg-muted rounded-lg p-4 text-center min-w-max">
-                <div className="flex items-center justify-center gap-1 mb-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-5 h-5 ${
-                        i < Math.round(profile?.ratingSummary?.score || 0)
-                          ? "fill-yellow-500 text-yellow-500"
-                          : "text-gray-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="text-lg font-bold">
-                  {(profile?.ratingSummary?.score || 0).toFixed(1)} / 5.0
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {profile?.ratingSummary?.countPositive || 0} tích cực,{" "}
-                  {profile?.ratingSummary?.countNegative || 0} tiêu cực
-                </p>
               </div>
             </div>
           </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-background border border-border rounded-lg p-6 text-center">
-              <p className="text-3xl font-bold text-primary mb-1">
-                {profile?.ratingSummary?.totalCount || 0}
-              </p>
-              <p className="text-sm text-muted-foreground">Tổng đánh giá</p>
-            </div>
-            <div className="bg-background border border-border rounded-lg p-6 text-center">
-              <p className="text-3xl font-bold text-green-600 mb-1">
-                {profile?.ratingSummary?.countPositive || 0}
-              </p>
-              <p className="text-sm text-muted-foreground">Tích cực</p>
-            </div>
-            <div className="bg-background border border-border rounded-lg p-6 text-center">
-              <p className="text-3xl font-bold text-red-600 mb-1">
-                {profile?.ratingSummary?.countNegative || 0}
-              </p>
-              <p className="text-sm text-muted-foreground">Tiêu cực</p>
-            </div>
-            <div className="bg-background border border-border rounded-lg p-6 text-center">
-              <p className="text-3xl font-bold text-primary mb-1">
-                {profile?.emailVerified ? "Đã xác thực" : "Chưa xác thực"}
-              </p>
-              <p className="text-sm text-muted-foreground">Trạng thái Email</p>
-            </div>
-          </div>
-
-          <UpgradeRequest currentUser={profile} />
         </div>
-      </div>
+      )}
     </div>
   );
 }

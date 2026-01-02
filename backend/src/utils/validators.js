@@ -7,14 +7,15 @@
  */
 export const isValidEmail = (email) => {
   try {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Stricter regex: standard email format
+    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const isValid = regex.test(email);
     if (!isValid) {
-      console.warn('[VALIDATOR] Invalid email format:', email);
+      console.warn("[VALIDATOR] Invalid email format:", email);
     }
     return isValid;
   } catch (error) {
-    console.error('[VALIDATOR] Email validation error:', error.message);
+    console.error("[VALIDATOR] Email validation error:", error.message);
     return false;
   }
 };
@@ -29,11 +30,11 @@ export const isValidPassword = (password) => {
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     const isValid = regex.test(password);
     if (!isValid) {
-      console.warn('[VALIDATOR] Invalid password format');
+      console.warn("[VALIDATOR] Invalid password format");
     }
     return isValid;
   } catch (error) {
-    console.error('[VALIDATOR] Password validation error:', error.message);
+    console.error("[VALIDATOR] Password validation error:", error.message);
     return false;
   }
 };
@@ -48,11 +49,11 @@ export const isValidPhoneVN = (phone) => {
     const regex = /^(0[1-9]\d{8,9})$/;
     const isValid = regex.test(phone);
     if (!isValid) {
-      console.warn('[VALIDATOR] Invalid Vietnamese phone format:', phone);
+      console.warn("[VALIDATOR] Invalid Vietnamese phone format:", phone);
     }
     return isValid;
   } catch (error) {
-    console.error('[VALIDATOR] Phone validation error:', error.message);
+    console.error("[VALIDATOR] Phone validation error:", error.message);
     return false;
   }
 };
@@ -67,11 +68,11 @@ export const isValidUsername = (username) => {
     const regex = /^[a-zA-Z0-9_]{3,30}$/;
     const isValid = regex.test(username);
     if (!isValid) {
-      console.warn('[VALIDATOR] Invalid username format:', username);
+      console.warn("[VALIDATOR] Invalid username format:", username);
     }
     return isValid;
   } catch (error) {
-    console.error('[VALIDATOR] Username validation error:', error.message);
+    console.error("[VALIDATOR] Username validation error:", error.message);
     return false;
   }
 };
@@ -85,11 +86,11 @@ export const isValidObjectId = (id) => {
   try {
     const isValid = /^[0-9a-fA-F]{24}$/.test(id);
     if (!isValid) {
-      console.warn('[VALIDATOR] Invalid MongoDB ObjectId:', id);
+      console.warn("[VALIDATOR] Invalid MongoDB ObjectId:", id);
     }
     return isValid;
   } catch (error) {
-    console.error('[VALIDATOR] ObjectId validation error:', error.message);
+    console.error("[VALIDATOR] ObjectId validation error:", error.message);
     return false;
   }
 };
@@ -101,13 +102,14 @@ export const isValidObjectId = (id) => {
  */
 export const isValidAmount = (amount) => {
   try {
-    const isValid = typeof amount === 'number' && amount > 0 && Number.isFinite(amount);
+    const isValid =
+      typeof amount === "number" && amount > 0 && Number.isFinite(amount);
     if (!isValid) {
-      console.warn('[VALIDATOR] Invalid amount:', amount);
+      console.warn("[VALIDATOR] Invalid amount:", amount);
     }
     return isValid;
   } catch (error) {
-    console.error('[VALIDATOR] Amount validation error:', error.message);
+    console.error("[VALIDATOR] Amount validation error:", error.message);
     return false;
   }
 };

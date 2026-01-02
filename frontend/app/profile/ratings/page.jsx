@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Star, ArrowLeft, Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
+import {
+  Star,
+  StarHalf,
+  ArrowLeft,
+  Loader2,
+  ThumbsUp,
+  ThumbsDown,
+  ChevronLeft,
+  ShoppingBag,
+  User,
+  Calendar
+} from "lucide-react";
 import Navigation from "../../../components/navigation";
 import ratingService from "../../services/ratingService";
 import { useAuth } from "../../context/AuthContext";
@@ -29,7 +40,6 @@ export default function RatingsPage() {
     if (userId) {
       fetchRatings();
     } else if (!loading) {
-      // Only invalid if we are not loading and still have no ID
       setError("User not found");
     }
   }, [userId, pagination.page, filter]);
@@ -39,10 +49,8 @@ export default function RatingsPage() {
       setLoading(true);
       setError("");
 
-      // Determine type based on filter
       const type = filter === "given" ? "given" : "received";
 
-      // Fetch user summary using ratingService (stats) and ratings
       const [statsRes, ratingsRes] = await Promise.all([
         ratingService.getUserRatingStats(userId),
         ratingService.getUserRatings(
@@ -53,15 +61,13 @@ export default function RatingsPage() {
         ),
       ]);
 
-      // Handle stats response (direct data)
       if (statsRes.data?.status === "success") {
         setUserInfo({
-          ...currentUser, // Fallback if we are viewing own profile
+          ...currentUser, 
           ratingSummary: statsRes.data.data,
         });
       }
 
-      // Handle ratings response
       if (ratingsRes.data?.status === "success") {
         setRatings(ratingsRes.data.data.ratings);
         setPagination({
@@ -73,7 +79,6 @@ export default function RatingsPage() {
       }
     } catch (err) {
       console.error("Error fetching ratings:", err);
-      // Fallback: If stats fail, user might not have ratings yet
     } finally {
       setLoading(false);
     }
@@ -85,7 +90,7 @@ export default function RatingsPage() {
 
   const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
-    setPagination({ ...pagination, page: 1 }); // Reset to first page
+    setPagination({ ...pagination, page: 1 });
   };
 
   if (loading && !ratings.length) {
@@ -97,247 +102,196 @@ export default function RatingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Navigation />
-      <div className="pt-24">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Back Button */}
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-primary hover:underline mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
+      <div className="pt-24 pb-12 max-w-5xl mx-auto px-4">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-muted-foreground hover:text-primary transition mb-6"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          Quay lại
+        </button>
 
-          {/* Header */}
-          <div className="bg-background border border-border rounded-lg p-6 mb-6">
-            <h1 className="text-3xl font-bold mb-4">
-              Ratings for {userInfo?.fullName || userInfo?.username}
-            </h1>
-
-            {/* Rating Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-primary">
-                  {(userInfo?.ratingSummary?.score || 0).toFixed(1)}
+        {/* Header Stats */}
+        <div className="glass-card rounded-2xl p-6 md:p-8 mb-8 border border-white/20 bg-[#1e293b]/60 shadow-2xl animate-fade-in">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+                 <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                    Đánh giá & Nhận xét
+                </h1>
+                <p className="text-muted-foreground">
+                    Lịch sử đánh giá của {userInfo?.fullName || userInfo?.username}
                 </p>
-                <div className="flex items-center justify-center gap-1 my-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-5 h-5 ${
-                        i < Math.floor(userInfo?.ratingSummary?.score || 0)
-                          ? "fill-yellow-500 text-yellow-500"
-                          : "text-gray-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground">Overall Rating</p>
-              </div>
-
-              <div className="text-center">
-                <p className="text-3xl font-bold">
-                  {userInfo?.ratingSummary?.totalCount || 0}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Total Ratings
-                </p>
-              </div>
-
-              <div className="text-center">
-                <p className="text-3xl font-bold text-green-600">
-                  {userInfo?.ratingSummary?.countPositive || 0}
-                </p>
-                <div className="flex items-center justify-center gap-1 mt-2">
-                  <ThumbsUp className="w-4 h-4" />
-                  <span className="text-sm text-muted-foreground">
-                    Positive
-                  </span>
-                </div>
-              </div>
-
-              <div className="text-center">
-                <p className="text-3xl font-bold text-red-600">
-                  {userInfo?.ratingSummary?.countNegative || 0}
-                </p>
-                <div className="flex items-center justify-center gap-1 mt-2">
-                  <ThumbsDown className="w-4 h-4" />
-                  <span className="text-sm text-muted-foreground">
-                    Negative
-                  </span>
-                </div>
-              </div>
             </div>
+            
+             <div className="flex items-center gap-6 md:gap-12">
+                 <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-yellow-500 mb-1">
+                        <span className="text-3xl font-bold text-white">{(userInfo?.ratingSummary?.score || 0).toFixed(1)}</span>
+                        <Star className="w-6 h-6 fill-current" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Điểm trung bình</p>
+                 </div>
+                 <div className="text-center">
+                    <p className="text-3xl font-bold text-white mb-1">{userInfo?.ratingSummary?.totalCount || 0}</p>
+                    <p className="text-sm text-muted-foreground">Lượt đánh giá</p>
+                 </div>
+                 <div className="text-center hidden sm:block">
+                     <div className="flex items-center justify-center gap-2 mb-1">
+                        <div className="flex items-center text-green-600 font-bold">
+                            <ThumbsUp className="w-4 h-4 mr-1" /> {userInfo?.ratingSummary?.countPositive || 0}
+                        </div>
+                        <div className="w-px h-4 bg-gray-300"></div>
+                        <div className="flex items-center text-red-600 font-bold">
+                             <ThumbsDown className="w-4 h-4 mr-1" /> {userInfo?.ratingSummary?.countNegative || 0}
+                        </div>
+                     </div>
+                     <p className="text-sm text-muted-foreground">Tỷ lệ hài lòng</p>
+                 </div>
+             </div>
           </div>
+        </div>
 
-          {/* Filter Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-border overflow-x-auto">
-            <button
-              onClick={() => handleFilterChange("all")}
-              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${
-                filter === "all"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+        {/* Filter Tabs */}
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none">
+          {[
+              { id: "all", label: "Tất cả đánh giá" },
+              { id: "given", label: "Đã gửi" },
+              { id: "buyer_to_seller", label: "Với tư cách người bán" },
+              { id: "seller_to_buyer", label: "Với tư cách người mua" }
+          ].map((tab) => (
+             <button
+                key={tab.id}
+                onClick={() => handleFilterChange(tab.id)}
+                className={`px-5 py-2.5 rounded-full text-sm font-medium transition whitespace-nowrap ${
+                    filter === tab.id
+                    ? "bg-primary text-white shadow-lg shadow-primary/25"
+                    : "bg-white/5 text-gray-400 hover:bg-white/10 border border-white/10"
+                }`}
             >
-              All Received
+                {tab.label}
             </button>
-            <button
-              onClick={() => handleFilterChange("given")}
-              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${
-                filter === "given"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Sent
-            </button>
-            <button
-              onClick={() => handleFilterChange("buyer_to_seller")}
-              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${
-                filter === "buyer_to_seller"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              As Seller
-            </button>
-            <button
-              onClick={() => handleFilterChange("seller_to_buyer")}
-              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${
-                filter === "seller_to_buyer"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              As Buyer
-            </button>
+          ))}
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 flex items-center gap-2">
+            <div className="p-1 bg-red-100 rounded-full"><ThumbsDown className="w-4 h-4" /></div>
+            {error}
           </div>
+        )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500 text-red-600 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+        {/* Ratings List */}
+        <div className="space-y-4">
+          {ratings.length > 0 ? (
+            ratings.map((rating, index) => {
+              const displayedUser = filter === "given" ? rating.rateeId : rating.raterId;
+              const actionText = filter === "given" ? "Đã gửi đánh giá cho" : "Đánh giá bởi";
+              const isPositive = rating.score === 1;
 
-          {/* Ratings List */}
-          <div className="space-y-4 mb-6">
-            {ratings.length > 0 ? (
-              ratings.map((rating) => {
-                // Determine who to show: rater (if received) or ratee (if given)
-                const displayedUser =
-                  filter === "given" ? rating.rateeId : rating.raterId;
-                const actionText = filter === "given" ? "Rated to" : "Rated by";
-
-                return (
-                  <div
-                    key={rating._id}
-                    className="bg-background border border-border rounded-lg p-6"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-start gap-3">
+              return (
+                <div
+                  key={rating._id}
+                  className="glass-card border border-white/20 bg-[#1e293b]/60 rounded-2xl p-6 hover:shadow-xl transition duration-300 flex flex-col md:flex-row gap-6 animate-slide-up"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                    {/* User Info */}
+                    <div className="flex items-start gap-4 min-w-[200px]">
                         <img
-                          src={
-                            displayedUser?.profileImageUrl || "/placeholder.svg"
-                          }
-                          alt={displayedUser?.username}
-                          className="w-12 h-12 rounded-full object-cover"
+                            src={displayedUser?.profileImageUrl || "/placeholder.svg"}
+                            alt={displayedUser?.username}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
                         />
                         <div>
-                          <p className="font-semibold">
-                            {displayedUser?.fullName || displayedUser?.username}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {actionText} • {rating.context.replace(/_/g, " ")} •{" "}
-                            {new Date(rating.createdAt).toLocaleDateString()}
-                          </p>
+                            <p className="text-xs text-muted-foreground mb-0.5">{actionText}</p>
+                            <h3 className="font-bold text-white">{displayedUser?.fullName || displayedUser?.username}</h3>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(rating.createdAt).toLocaleDateString('vi-VN')}
+                            </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {rating.score === 1 ? (
-                          <>
-                            <ThumbsUp className="w-5 h-5 text-green-600" />
-                            <span className="text-sm font-medium text-green-600">
-                              Positive
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <ThumbsDown className="w-5 h-5 text-red-600" />
-                            <span className="text-sm font-medium text-red-600">
-                              Negative
-                            </span>
-                          </>
-                        )}
-                      </div>
                     </div>
 
-                    {/* Product Info if available */}
-                    {rating.orderId?.productId && (
-                      <div className="mb-3 p-3 bg-muted/50 rounded-lg flex items-center gap-3">
-                        <img
-                          src={
-                            rating.orderId.productId.primaryImageUrl ||
-                            "/placeholder.svg"
-                          }
-                          alt={rating.orderId.productId.title}
-                          className="w-10 h-10 rounded object-cover"
-                        />
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            Product:
-                          </p>
-                          <a
-                            href={`/product/${rating.orderId.productId._id}`}
-                            className="text-sm font-medium hover:underline text-primary"
-                          >
-                            {rating.orderId.productId.title}
-                          </a>
-                        </div>
-                      </div>
-                    )}
+                    {/* Content */}
+                    <div className="flex-1">
+                         <div className="flex items-center gap-3 mb-3">
+                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                 isPositive ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                             }`}>
+                                 {isPositive ? <ThumbsUp className="w-3.5 h-3.5" /> : <ThumbsDown className="w-3.5 h-3.5" />}
+                                 {isPositive ? "Tích cực" : "Tiêu cực"}
+                             </span>
+                             <span className="text-xs text-gray-400 font-medium px-2 py-0.5 bg-white/10 rounded">
+                                 {rating.context.replace(/_/g, " ")}
+                             </span>
+                         </div>
+                         
+                         {rating.comment && (
+                            <p className="text-gray-300 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/10 italic">
+                                "{rating.comment}"
+                            </p>
+                         )}
 
-                    {rating.comment && (
-                      <p className="text-sm text-foreground mt-3 pl-15">
-                        {rating.comment}
-                      </p>
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              <div className="bg-background border border-border rounded-lg p-12 text-center">
-                <p className="text-muted-foreground">No ratings found</p>
-              </div>
-            )}
-          </div>
-
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="px-4 py-2 text-sm text-muted-foreground">
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page === pagination.totalPages}
-                className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
+                         {rating.orderId?.productId && (
+                            <Link 
+                                to={`/product/${rating.orderId.productId._id}`}
+                                className="flex items-center gap-3 mt-4 p-3 rounded-xl hover:bg-white/5 transition group border border-transparent hover:border-white/10"
+                            >
+                                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-gray-400">
+                                    {rating.orderId.productId.primaryImageUrl ? (
+                                        <img src={rating.orderId.productId.primaryImageUrl} className="w-full h-full object-cover rounded-lg" alt="" />
+                                    ) : (
+                                        <ShoppingBag className="w-5 h-5" />
+                                    )}
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Sản phẩm</p>
+                                    <p className="text-sm font-medium text-white group-hover:text-primary transition line-clamp-1">
+                                        {rating.orderId.productId.title}
+                                    </p>
+                                </div>
+                            </Link>
+                         )}
+                    </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                     <Star className="w-10 h-10 text-gray-300" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Chưa có đánh giá nào</h3>
+                <p className="text-muted-foreground">Người dùng này chưa nhận được đánh giá nào cho bộ lọc này.</p>
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page === 1}
+              className="px-4 py-2 border border-border rounded-lg hover:bg-white hover:shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-sm font-medium"
+            >
+              Trang trước
+            </button>
+            <span className="text-sm font-medium text-gray-600">
+              Trang {pagination.page} / {pagination.totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page === pagination.totalPages}
+              className="px-4 py-2 border border-border rounded-lg hover:bg-white hover:shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-sm font-medium"
+            >
+              Trang sau
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

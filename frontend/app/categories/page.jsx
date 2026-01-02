@@ -9,7 +9,7 @@ const categories = [
     slug: 'flash-deals', 
     icon: Zap, 
     count: 234,
-    color: 'bg-orange-500',
+    color: 'orange',
     description: 'Limited time offers'
   },
   { 
@@ -17,7 +17,7 @@ const categories = [
     slug: 'electronics', 
     icon: Laptop, 
     count: 1567,
-    color: 'bg-blue-500',
+    color: 'blue',
     description: 'Tech & gadgets'
   },
   { 
@@ -25,7 +25,7 @@ const categories = [
     slug: 'fashion', 
     icon: Shirt, 
     count: 892,
-    color: 'bg-pink-500',
+    color: 'pink',
     description: 'Clothing & accessories'
   },
   { 
@@ -33,7 +33,7 @@ const categories = [
     slug: 'home', 
     icon: Home, 
     count: 456,
-    color: 'bg-green-500',
+    color: 'green',
     description: 'Home decor & furniture'
   },
   { 
@@ -41,7 +41,7 @@ const categories = [
     slug: 'collectibles', 
     icon: Sparkles, 
     count: 678,
-    color: 'bg-purple-500',
+    color: 'blue',
     description: 'Rare & vintage items'
   },
   { 
@@ -49,7 +49,7 @@ const categories = [
     slug: 'art', 
     icon: Palette, 
     count: 345,
-    color: 'bg-yellow-500',
+    color: 'yellow',
     description: 'Handmade & artwork'
   },
   { 
@@ -57,7 +57,7 @@ const categories = [
     slug: 'jewelry', 
     icon: Watch, 
     count: 523,
-    color: 'bg-red-500',
+    color: 'red',
     description: 'Luxury timepieces'
   },
   { 
@@ -65,7 +65,7 @@ const categories = [
     slug: 'books', 
     icon: Book, 
     count: 789,
-    color: 'bg-indigo-500',
+    color: 'indigo',
     description: 'Books & collectibles'
   },
 ];
@@ -100,12 +100,14 @@ export default function CategoriesPage() {
               <button
                 key={category.slug}
                 onClick={() => handleCategoryClick(category.slug)}
-                className="bg-background border border-border rounded-lg p-6 hover:shadow-lg hover:border-primary transition-all group"
+                className={`bg-black/40 border border-white/10 rounded-2xl p-6 hover:shadow-lg hover:border-${category.color}-500/50 transition-all group relative overflow-hidden`}
               >
-                <div className={`w-16 h-16 ${category.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <IconComponent className="w-8 h-8 text-white" />
+                <div className={`absolute inset-0 bg-${category.color}-500/5 opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                
+                <div className={`w-16 h-16 bg-${category.color}-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ring-1 ring-${category.color}-500/20`}>
+                  <IconComponent className={`w-8 h-8 text-${category.color}-500`} />
                 </div>
-                <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                <h3 className="text-xl font-bold mb-2 group-hover:text-white transition-colors">
                   {category.name}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-3">
@@ -139,12 +141,12 @@ export default function CategoriesPage() {
               </button>
             </div>
             
-            <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg p-6 text-white">
+            <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg p-6 text-white">
               <h3 className="text-xl font-bold mb-2">Fashion</h3>
               <p className="text-white/90 mb-4">Designer brands at auction prices</p>
               <button 
                 onClick={() => handleCategoryClick('fashion')}
-                className="px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition font-medium"
+                className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition font-medium"
               >
                 Shop Now
               </button>

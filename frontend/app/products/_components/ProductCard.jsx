@@ -1,9 +1,17 @@
-import { Heart, Clock, TrendingUp, User } from 'lucide-react';
+import { Heart, Clock, TrendingUp, User, ShoppingBag } from 'lucide-react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { formatPrice, FALLBACK_IMAGE, calculateTimeLeft } from './utils';
+import { formatPrice, FALLBACK_IMAGE } from './utils';
 
 const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
-  // Tính toán badges
+  const [imgSrc, setImgSrc] = React.useState(product.image || FALLBACK_IMAGE);
+  const [imgError, setImgError] = React.useState(false);
+
+  React.useEffect(() => {
+     setImgSrc(product.image || FALLBACK_IMAGE);
+     setImgError(false);
+  }, [product.image]);
+
   const isEndingSoon = () => {
     if (!product.auction?.endAt) return false;
     const hoursRemaining = (new Date(product.auction.endAt) - new Date()) / (1000 * 60 * 60);
@@ -13,29 +21,51 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
   const isHot = product.bids > 10;
 
   return (
-    <Link to={`/product/${product.id}`}>
-      <div className="bg-background border border-border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer h-full flex flex-col group">
+    <Link to={`/product/${product.id}`} className="group h-full">
+      <div className="glass-card rounded-2xl overflow-hidden hover:bg-white/5 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col border border-white/10">
         {/* Image Section */}
-        <div className="relative h-48 bg-muted overflow-hidden">
-          <img
-            src={product.image || FALLBACK_IMAGE}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-            onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
-          />
+        <div className="relative aspect-[4/3] bg-gray-800/50 overflow-hidden flex items-center justify-center">
+          {!imgError ? (
+            <img
+              src={imgSrc}
+              alt={product.name}
+              className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
+              onError={() => {
+                 if (imgSrc !== FALLBACK_IMAGE) {
+                     setImgSrc(FALLBACK_IMAGE);
+                 } else {
+                     setImgError(true);
+                 }
+              }}
+            />
+          ) : (
+             <div className="flex flex-col items-center justify-center text-gray-500 gap-2">
+                 <ShoppingBag className="w-12 h-12 opacity-20" />
+                 <span className="text-xs font-medium opacity-40">No Image</span>
+             </div>
+          )}
           
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+
           {/* Badges */}
-          <div className="absolute top-2 left-2 flex gap-2">
+          <div className="absolute top-3 left-3 flex flex-wrap gap-2">
             {isEndingSoon() && (
-              <span className="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded flex items-center gap-1">
+              <span className="px-2.5 py-1 bg-red-500/90 backdrop-blur-md text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-lg">
                 <Clock className="w-3 h-3" /> Sắp kết thúc
               </span>
             )}
             {isHot && (
-              <span className="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded flex items-center gap-1">
+              <span className="px-2.5 py-1 bg-orange-500/90 backdrop-blur-md text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-lg">
                 <TrendingUp className="w-3 h-3" /> Hot
               </span>
             )}
+             <span className={`px-2.5 py-1 text-xs font-bold rounded-full backdrop-blur-md shadow-lg ${
+              product.auction?.status === 'active' 
+                ? 'bg-green-500/90 text-white' 
+                : 'bg-gray-600/90 text-white'
+            }`}>
+              {product.auction?.status === 'active' ? 'Đang diễn ra' : product.auction?.status || 'N/A'}
+            </span>
           </div>
 
           {/* Watchlist button */}
@@ -45,110 +75,70 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
               e.stopPropagation();
               onToggleWatchlist(product.id);
             }}
-            className="absolute top-2 right-2 p-2 bg-white rounded-full hover:bg-gray-100 transition shadow-sm"
+            className="absolute top-3 right-3 p-2.5 bg-black/40 border border-white/10 backdrop-blur rounded-full hover:bg-black/60 transition shadow-lg group/btn"
           >
             <Heart
-              className={`w-5 h-5 ${
-                isWatchlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'
+              className={`w-4 h-4 transition ${
+                isWatchlisted ? 'fill-red-500 text-red-500' : 'text-gray-200 group-hover/btn:text-red-500'
               }`}
             />
           </button>
-
-          {/* Auction status badge */}
-          <div className="absolute bottom-2 left-2">
-            <span className={`px-2 py-1 text-xs font-medium rounded ${
-              product.auction?.status === 'active' 
-                ? 'bg-green-100 text-green-700' 
-                : 'bg-gray-100 text-gray-700'
-            }`}>
-              {product.auction?.status === 'active' ? 'Đang diễn ra' : product.auction?.status || 'N/A'}
-            </span>
-          </div>
         </div>
 
         {/* Info Section */}
-        <div className="p-4 flex-1 flex flex-col">
+        <div className="p-5 flex-1 flex flex-col">
+          {/* Category */}
+          <div className="flex items-center justify-between mb-2">
+             <span className="text-xs font-medium px-2 py-0.5 rounded bg-white/10 text-blue-200 border border-white/10">
+                {product.category}
+             </span>
+             <div className="flex items-center gap-1">
+                <span className="text-yellow-400 fill-current text-xs">★</span>
+                <span className="text-xs font-bold text-gray-300">{product.rating}</span>
+             </div>
+          </div>
+
           {/* Title */}
-          <h3 className="font-semibold mb-1 line-clamp-2 group-hover:text-primary transition">
+          <h3 className="font-bold text-gray-100 mb-2 line-clamp-2 group-hover:text-primary transition text-base min-h-[3rem]">
             {product.name}
           </h3>
           
-          {/* Category */}
-          <p className="text-xs text-muted-foreground mb-2">{product.category}</p>
-
-          {/* Highest bidder (nếu có) */}
-          {(product.currentHighestBidder || product.auction?.currentHighestBidder) && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-              <User className="w-3 h-3" />
-              <span>Nhà đấu giá cao nhất: <span className="font-medium text-foreground">{product.currentHighestBidder || product.auction?.currentHighestBidder}</span></span>
+          {/* Seller info */}
+           {product.sellerId && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-4">
+              <div className="p-1 bg-white/10 rounded-full">
+                <User className="w-3 h-3" />
+              </div>
+              <span className="truncate max-w-[150px]">{product.sellerId.username || 'Người bán'}</span>
             </div>
-          )}
-
-          {/* Buy Now price (nếu có) */}
-          {product.auction?.buyNowPrice && (
-            <div className="mb-2 text-sm">
-              <span className="text-xs text-muted-foreground">Giá mua ngay: </span>
-              <span className="font-semibold text-primary">{formatPrice(product.auction.buyNowPrice)}</span>
-            </div>
-          )}
-
-          {/* Ngày đăng sản phẩm */}
-          {product.createdAt && (
-            <p className="text-xs text-muted-foreground mb-2">Đăng: {new Date(product.createdAt).toLocaleDateString('vi-VN')}</p>
-          )}
-
-          {/* Seller info (nếu có) */}
-          {product.sellerId && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-              <User className="w-3 h-3" />
-              <span>Người bán: {product.sellerId.username || 'N/A'}</span>
-            </div>
-          )}
-
-          {/* Rating */}
-          <div className="flex items-center gap-1 mb-3">
-            <span className="text-yellow-500">★</span>
-            <span className="text-sm font-medium">{product.rating}</span>
-          </div>
+           )}
 
           {/* Price section */}
-          <div className="mt-auto space-y-2">
-            <div className="flex justify-between items-end">
+          <div className="mt-auto pt-4 border-t border-white/10">
+            <div className="flex justify-between items-end mb-3">
               <div>
-                <p className="text-xs text-muted-foreground">Giá hiện tại</p>
-                <p className="text-xl font-bold text-primary">{formatPrice(product.price)}</p>
+                <p className="text-xs text-gray-400 font-medium mb-0.5">Giá hiện tại</p>
+                <p className="text-lg font-bold text-primary bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">
+                    {formatPrice(product.price)}
+                </p>
               </div>
-              {product.auction?.startPrice && product.auction.startPrice !== product.price && (
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Giá khởi điểm</p>
-                  <p className="text-sm text-muted-foreground line-through">
-                    {formatPrice(product.auction.startPrice)}
-                  </p>
-                </div>
-              )}
+              <div className="text-right">
+                <p className="text-xs text-gray-400 font-medium mb-0.5">Thời gian còn lại</p>
+                <span className={`text-sm font-bold flex items-center gap-1 justify-end ${
+                    isEndingSoon() ? 'text-red-500' : 'text-orange-400'
+                }`}>
+                    <Clock className="w-3.5 h-3.5" />
+                    {product.timeLeft}
+                </span>
+              </div>
             </div>
 
-            {/* Bids and Time */}
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{product.bids} lượt đấu giá</span>
-              <span className={`font-semibold ${
-                isEndingSoon() ? 'text-red-500' : 'text-orange-500'
-              }`}>
-                {product.timeLeft}
-              </span>
-            </div>
-
-            {/* Bid step (nếu có) */}
-            {product.auction?.bidStep && (
-              <p className="text-xs text-muted-foreground">
-                Bước giá: {formatPrice(product.auction.bidStep)}
-              </p>
-            )}
+             <div className="flex items-center gap-2">
+                 <button className="flex-1 py-2.5 rounded-xl bg-primary text-white font-medium text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+                     <ShoppingBag className="w-4 h-4" /> Đấu giá
+                 </button>
+             </div>
           </div>
-
-          <button className="w-full mt-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition text-sm font-medium">
-            Đấu giá ngay
-          </button>
         </div>
       </div>
     </Link>

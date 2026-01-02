@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Heart, Search, User, Menu, X, Bell } from "lucide-react";
+import { Heart, Search, User, Menu, X, Bell, Zap, Settings, Star, LogOut, Gavel } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../app/context/AuthContext";
 
@@ -58,167 +58,153 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-white z-50 border-b border-border">
-      <div className="bg-primary text-white py-3">
+    <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 glass border-b border-white/5">
+      <div className="py-3">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 bg-white rounded flex items-center justify-center font-bold text-primary text-xl">
-              ⚡
+          <Link to="/" className="flex items-center gap-2 shrink-0 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-all duration-300 border border-white/10">
+              <Gavel className="w-5 h-5 fill-white/20" />
             </div>
-            <span className="font-extrabold text-xl hidden sm:inline">
-              Online Auction
+            <span className="font-extrabold text-2xl hidden sm:inline bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
+              AuctionHub
             </span>
           </Link>
 
           {/* Navigation Links - Desktop */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link
-              to="/"
-              className={`text-base font-bold transition ${
-                isActive("/") ? "text-white" : "text-white hover:text-white/90"
-              }`}
-            >
-              Trang chủ
-            </Link>
-            <Link
-              to="/products"
-              className={`text-base font-bold transition ${
-                isActive("/products")
-                  ? "text-white"
-                  : "text-white hover:text-white/90"
-              }`}
-            >
-              Đấu giá
-            </Link>
-            <Link
-              to="/categories"
-              className={`text-base font-bold transition ${
-                isActive("/categories")
-                  ? "text-white"
-                  : "text-white hover:text-white/90"
-              }`}
-            >
-              Danh mục
-            </Link>
+          <div className="hidden md:flex items-center gap-8">
+            {["/", "/products", "/categories"].map((path) => (
+              <Link
+                key={path}
+                to={path}
+                className={`text-sm font-medium transition-all duration-200 relative py-1 ${
+                  isActive(path)
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-primary"
+                }`}
+              >
+                {path === "/" ? "Trang chủ" : path === "/products" ? "Đấu giá" : "Danh mục"}
+                {isActive(path) && (
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>
+                )}
+              </Link>
+            ))}
           </div>
 
           {/* Search Bar - Full-text search */}
           <form
             onSubmit={handleSearch}
-            className="hidden lg:flex items-center flex-1 max-w-sm bg-white rounded-sm ml-4"
+            className="hidden lg:flex items-center flex-1 max-w-sm ml-8 relative group"
           >
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm..."
-              className="flex-1 px-4 py-2 text-foreground placeholder-muted-foreground outline-none text-sm"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 text-primary hover:bg-muted transition"
-              title="Tìm kiếm"
-            >
-              <Search className="w-5 h-5" />
-            </button>
+            <div className="absolute inset-0 bg-primary/20 rounded-full -m-1 blur-md opacity-0 group-focus-within:opacity-100 transition-all duration-500"></div>
+            <div className="relative flex items-center w-full bg-white/10 border border-white/10 rounded-full overflow-hidden focus-within:ring-2 focus-within:ring-primary/50 transition-all backdrop-blur-sm">
+              <Search className="w-5 h-5 text-muted-foreground ml-4 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm sản phẩm..."
+                className="flex-1 px-3 py-2.5 bg-transparent text-foreground placeholder-muted-foreground outline-none text-sm w-full"
+              />
+            </div>
           </form>
 
           {/* Right Actions */}
           <div className="flex items-center gap-3">
-            {isLoggedIn && (
-              <button className="relative p-2 hover:bg-white/20 rounded transition">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-yellow-300 rounded-full"></span>
-              </button>
-            )}
+
 
             {isLoggedIn ? (
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/20 transition cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-white/5 transition border border-transparent hover:border-white/10"
                 >
-                  <User className="w-5 h-5" />
-                  <span className="text-base font-bold hidden sm:inline">
+                  {currentUser?.profileImageUrl ? (
+                    <img
+                      src={currentUser.profileImageUrl}
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full object-cover border border-primary/20"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                        <User className="w-5 h-5" />
+                    </div>
+                  )}
+                  <span className="text-sm font-semibold hidden sm:inline text-foreground">
                     {currentUser?.fullName || currentUser?.username || "User"}
                   </span>
                 </button>
 
                 {/* User Dropdown Menu */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-border overflow-hidden z-50">
-                    <Link
-                      to="/profile"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
-                    >
-                      Hồ sơ
-                    </Link>
-                    <Link
-                      to="/dashboard"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
-                    >
-                      Bảng điều khiển
-                    </Link>
-                    <Link
-                      to="/profile/settings"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
-                    >
-                      Cài đặt
-                    </Link>
-                    <Link
-                      to={`/profile/ratings/${currentUser?._id}`}
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
-                    >
-                      Đánh giá của tôi
-                    </Link>
-                    {isAdmin && (
-                      <>
-                        <hr className="border-border" />
+                  <div className="absolute right-0 mt-4 w-64 bg-[#0f172a]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 shadow-2xl shadow-black/50">
+                    <div className="px-4 py-3 bg-white/5 rounded-xl mb-2">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tài khoản</p>
+                      <p className="truncate font-medium text-foreground">{currentUser?.email}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      {[
+                        { to: "/profile", icon: User, label: "Hồ sơ cá nhân" },
+                        { to: "/dashboard", icon: Zap, label: "Bảng điều khiển" },
+                        { to: "/profile/settings", icon: Settings, label: "Cài đặt" },
+                        { to: `/profile/ratings/${currentUser?._id}`, icon: Star, label: "Đánh giá của tôi" },
+                      ].map((item) => (
                         <Link
-                          to="/admin/dashboard"
+                          key={item.to}
+                          to={item.to}
                           onClick={() => setIsUserMenuOpen(false)}
-                          className="block px-4 py-3 text-sm text-orange-600 hover:bg-orange-50 transition font-semibold"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-white hover:bg-primary/20 rounded-xl transition-all"
                         >
-                          🛡️ Bảng quản trị
+                          <item.icon className="w-4 h-4" /> {item.label}
                         </Link>
-                      </>
-                    )}
-                    <hr className="border-border" />
-                    <button
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        handleLogout();
-                      }}
-                      className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition"
-                    >
-                      Đăng xuất
-                    </button>
+                      ))}
+
+                      {isAdmin && (
+                        <>
+                          <div className="h-px bg-white/10 my-2 mx-2"></div>
+                          <Link
+                            to="/admin/dashboard"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-orange-400 hover:bg-orange-500/10 rounded-xl transition-colors"
+                          >
+                             🛡️ Trang quản trị
+                          </Link>
+                        </>
+                      )}
+                      
+                      <div className="h-px bg-white/10 my-2 mx-2"></div>
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-xl transition-colors text-left"
+                      >
+                        <LogOut className="w-4 h-4" /> Đăng xuất
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
-              <button
-                onClick={handleLogin}
-                className="px-3 py-2 text-sm font-medium hover:bg-white/20 rounded transition"
-              >
-                Đăng nhập
-              </button>
+                <button
+                  onClick={handleLogin}
+                  className="px-6 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-full shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95"
+                >
+                  Đăng nhập
+                </button>
             )}
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2"
+              className="md:hidden p-2 text-muted-foreground hover:text-white"
             >
               {isMobileMenuOpen ? (
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               ) : (
-                <Menu className="w-5 h-5" />
+                <Menu className="w-6 h-6" />
               )}
             </button>
           </div>
@@ -227,72 +213,65 @@ export default function Navigation() {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-border">
-          <div className="flex flex-col p-4 gap-3">
+        <div className="md:hidden glass border-t border-white/10 absolute w-full animate-accordion-down">
+          <div className="flex flex-col p-4 gap-2">
             <form
               onSubmit={handleSearch}
-              className="flex items-center bg-muted rounded mb-2"
+              className="flex items-center bg-white/5 rounded-lg mb-4 border border-white/10"
             >
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm..."
-                className="flex-1 px-3 py-2 bg-muted text-foreground placeholder-muted-foreground outline-none text-sm"
+                className="flex-1 px-4 py-3 bg-transparent text-foreground placeholder-muted-foreground outline-none text-sm"
               />
-              <button className="px-3 text-primary">
-                <Search className="w-4 h-4" />
+              <button className="px-4 text-primary">
+                <Search className="w-5 h-5" />
               </button>
             </form>
-            <Link
-              to="/"
-              className={`hover:text-primary transition font-medium ${
-                isActive("/") ? "text-primary font-bold" : "text-foreground"
-              }`}
-            >
-              Trang chủ
-            </Link>
-            <Link
-              to="/products"
-              className={`hover:text-primary transition font-medium ${
-                isActive("/products")
-                  ? "text-primary font-bold"
-                  : "text-foreground"
-              }`}
-            >
-              Đấu giá
-            </Link>
-            <Link
-              to="/categories"
-              className={`hover:text-primary transition font-medium ${
-                isActive("/categories")
-                  ? "text-primary font-bold"
-                  : "text-foreground"
-              }`}
-            >
-              Danh mục
-            </Link>
-            {isLoggedIn && (
+            
+            {["/", "/products", "/categories"].map((path) => (
+              <Link
+                key={path}
+                to={path}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`py-3 px-4 rounded-lg transition-colors font-medium ${
+                  isActive(path) 
+                  ? "bg-primary/20 text-primary" 
+                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                {path === "/" ? "Trang chủ" : path === "/products" ? "Đấu giá" : "Danh mục"}
+              </Link>
+            ))}
+
+            <div className="h-px bg-white/10 my-2"></div>
+
+            {isLoggedIn ? (
               <>
                 <Link
                   to="/watchlist"
-                  className="text-foreground hover:text-primary transition font-medium flex items-center gap-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="py-3 px-4 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition font-medium flex items-center gap-3"
                 >
-                  <Heart className="w-4 h-4" /> Danh sách theo dõi
+                  <Heart className="w-5 h-5" /> Danh sách theo dõi
                 </Link>
-                <Link
-                  to="/dashboard"
-                  className="text-foreground hover:text-primary transition font-medium"
-                >
-                  Đơn hàng của tôi
-                </Link>
+               
                 <button
                   onClick={handleLogout}
-                  className="mt-2 px-4 py-2 rounded bg-primary text-white hover:bg-primary/90 transition font-medium text-sm"
+                  className="mt-2 w-full py-3 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition font-bold text-sm"
                 >
                   Đăng xuất
                 </button>
               </>
+            ) : (
+                 <button
+                  onClick={handleLogin}
+                  className="w-full py-3 mt-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/25 transition-all"
+                >
+                  Đăng nhập
+                </button>
             )}
           </div>
         </div>

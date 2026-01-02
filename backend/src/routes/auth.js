@@ -123,54 +123,67 @@ router.get(
  */
 router.get(
   "/google/callback",
-  passport.authenticate("google", {
-    session: false,
-    failureRedirect: "/login",
-  }),
-  async (req, res) => {
-    try {
-      // Generate tokens for the authenticated user
-      const { generateAccessToken, generateRefreshToken } = await import(
-        "../utils/jwt.js"
-      );
+  (req, res, next) => {
+    passport.authenticate(
+      "google",
+      { session: false },
+      async (err, user, info) => {
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
-      // Convert Mongoose document to plain object for JWT
-      const userPayload = {
-        _id: req.user._id,
-        email: req.user.email,
-        username: req.user.username,
-        roles: req.user.roles,
-      };
+        if (err) {
+          console.error("Google auth error:", err);
+          if (err.message === "email_exists_use_password") {
+            return res.redirect(
+              `${frontendUrl}/auth/login?error=email_exists_use_password`
+            );
+          }
+          return res.redirect(`${frontendUrl}/auth/login?error=auth_failed`);
+        }
 
-      const accessToken = generateAccessToken(userPayload);
-      const refreshToken = generateRefreshToken(userPayload);
+        if (!user) {
+          return res.redirect(`${frontendUrl}/auth/login?error=auth_failed`);
+        }
 
-      // Set cookies
-      res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+        try {
+          // Generate tokens for the authenticated user
+          const { generateAccessToken, generateRefreshToken } = await import(
+            "../utils/jwt.js"
+          );
 
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
+          // Convert Mongoose document to plain object for JWT
+          const userPayload = {
+            _id: user._id,
+            email: user.email,
+            username: user.username,
+            roles: user.roles,
+          };
 
-      // Redirect to frontend home with token
-      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-      res.redirect(`${frontendUrl}/?token=${accessToken}`);
-    } catch (error) {
-      console.error("Google auth callback error:", error);
-      res.redirect(
-        `${
-          process.env.FRONTEND_URL || "http://localhost:5173"
-        }/auth/login?error=auth_failed`
-      );
-    }
+          const accessToken = generateAccessToken(userPayload);
+          const refreshToken = generateRefreshToken(userPayload);
+
+          // Set cookies
+          res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+          });
+
+          res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+          });
+
+          // Redirect to frontend home with token
+          res.redirect(`${frontendUrl}/?token=${accessToken}`);
+        } catch (error) {
+          console.error("Google auth callback processing error:", error);
+          res.redirect(`${frontendUrl}/auth/login?error=auth_failed`);
+        }
+      }
+    )(req, res, next);
   }
 );
 

@@ -177,11 +177,11 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       <Navigation />
 
       {/* ===== Search Header ===== */}
-      <header className="pt-24 pb-6 bg-white border-b border-border shadow-sm">
+      <header className="pt-24 pb-6 bg-background/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4">
           <h1 className="text-3xl font-bold mb-6">Tìm kiếm sản phẩm</h1>
           

@@ -10,6 +10,7 @@ import {
   Type,
   CheckCircle,
   AlertCircle,
+  Loader
 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -19,22 +20,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from '../app/context/AuthContext';
 import categoryService from '../app/services/categoryService';
 import productService from '../app/services/productService';
+import Navigation from './navigation';
 
-/**
- * ProductListingForm Component
- * Form for sellers to create auction listings (section 3.1)
- * - Product details with WYSIWYG editor
- * - Minimum 3 images
- * - Auto-renewal option
- * 
- * Form fields aligned with Product MongoDB schema:
- * - name, category (ObjectId), seller (ObjectId)
- * - startPrice, currentPrice, stepPrice, buyNowPrice
- * - endDate (calculated from auctionDays), isAutoRenew
- * - images (array of URLs), description (HTML)
- * 
- * TODO: Replace hardcoded seller ID with authenticated user's ID from auth context
- */
 export default function ProductListingForm({ onSubmit, initialData = null }) {
   const { currentUser } = useAuth();
   const [categories, setCategories] = useState([]);
@@ -49,30 +36,10 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true);
-        console.log('Fetching categories from API...');
         const response = await categoryService.getAllCategories();
-        console.log('Categories response:', response);
         
         if (response.success) {
           setCategories(response.data);
-          console.log(`Loaded ${response.data.length} categories`);
-          
-          // Debug: Check category structure
-          if (response.data.length > 0) {
-            const firstCat = response.data[0];
-            console.log('First category full object:', firstCat);
-            console.log('Has _id?', firstCat._id);
-            console.log('Has id?', firstCat.id);
-            console.log('Has name?', firstCat.name);
-            
-            // Check all categories
-            response.data.forEach((cat, index) => {
-              const idValue = cat._id || cat.id;
-              if (!idValue) {
-                console.error(`Category ${index} has no _id or id:`, cat);
-              }
-            });
-          }
         } else {
           console.error('Failed to fetch categories:', response.message);
         }
@@ -86,30 +53,30 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   }, []);
 
   const schema = z.object({
-    title: z.string().min(3, "Tieu de san pham la bat buoc"),
-    categoryId: z.string().min(1, "Danh muc la bat buoc"),
+    title: z.string().min(3, "Tiêu đề sản phẩm là bắt buộc"),
+    categoryId: z.string().min(1, "Danh mục là bắt buộc"),
     startPrice: z.union([z.string(), z.number()]).refine(
       (val) => {
         const num = typeof val === 'string' ? Number(val) : val;
         return !isNaN(num) && num > 0;
       },
-      { message: "Gia khoi diem phai lon hon 0" }
+      { message: "Giá khởi điểm phải lớn hơn 0" }
     ),
     priceStep: z.union([z.string(), z.number()]).refine(
       (val) => {
         const num = typeof val === 'string' ? Number(val) : val;
         return !isNaN(num) && num > 0;
       },
-      { message: "Buoc gia phai lon hon 0" }
+      { message: "Bước giá phải lớn hơn 0" }
     ),
     buyNowPrice: z.union([z.string(), z.number()]).optional(),
-    startTime: z.string().min(1, "Thoi gian bat dau la bat buoc"),
-    endTime: z.string().min(1, "Thoi gian ket thuc la bat buoc"),
+    startTime: z.string().min(1, "Thời gian bắt đầu là bắt buộc"),
+    endTime: z.string().min(1, "Thời gian kết thúc là bắt buộc"),
     autoExtendEnabled: z.boolean().optional(),
     description: z
       .string()
-      .min(10, "Mo ta phai co it nhat 10 ky tu"),
-    images: z.array(z.any()).min(3, "Yeu cau toi thieu 3 anh"),
+      .min(10, "Mô tả phải có ít nhất 10 ký tự"),
+    images: z.array(z.any()).min(3, "Yêu cầu tối thiểu 3 ảnh"),
   });
 
   const {
@@ -117,7 +84,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -146,11 +113,6 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  // Parse formatted currency back to number
-  const parseCurrency = (value) => {
-    return value.replace(/\./g, "");
-  };
-
   const handlePriceChange = (e, field, setDisplay) => {
     const value = e.target.value.replace(/\./g, ""); // Remove existing dots
     if (value === "" || /^\d+$/.test(value)) {
@@ -171,11 +133,6 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   
   
   const submitForm = async (data) => {
-    console.log("Starting form submission...");
-    console.log("Form data:", data);
-    console.log("Images to upload:", images.length);
-    console.log("Current user:", currentUser);
-    
     // Validate minimum images
     if (images.length < 3) {
       setModalMessage("Vui lòng tải lên ít nhất 3 ảnh");
@@ -213,42 +170,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       }));
       
       // Append image files
-      console.log("Appending images to FormData...");
       for (const img of images) {
         formData.append("images", img.file); // 'images' matches multer field name
       }
       
-      console.log("FormData prepared with:");
-      console.log("- Title:", data.title);
-      console.log("- Category:", data.categoryId);
-      console.log("- Start Price:", data.startPrice);
-      console.log("- Price Step:", data.priceStep);
-      console.log("- Images:", images.length);
-      
       // Send request with FormData via productService
       const result = await productService.createProduct(formData);
-      console.log("Response data:", result);
       
       if (result.success) {
-        // Success logging
-        console.log("AUCTION CREATED SUCCESSFULLY!");
-        console.log("=".repeat(50));
-        console.log("Product ID:", result.data.product._id);
-        console.log("Auction ID:", result.data.auction._id);
-        console.log("Auction Status:", result.data.auction.status);
-        console.log("Product Details:", {
-          title: result.data.product.title,
-          category: result.data.product.category,
-          startPrice: result.data.auction.startPrice,
-          priceStep: result.data.auction.priceStep,
-          startTime: result.data.auction.startTime,
-          endTime: result.data.auction.endTime,
-          status: result.data.auction.status,
-          imageCount: result.data.product.imageUrls?.length || 0,
-          timestamp: result.data.product.createdAt
-        });
-        console.log("=".repeat(50));
-        
         const statusMsg = result.data.auction.status === 'scheduled' 
           ? ' Cuộc đấu giá đã được lên lịch và sẽ bắt đầu vào thời gian đã chỉ định.'
           : ' Cuộc đấu giá hiện đang hoạt động!';
@@ -261,7 +190,6 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
           window.location.href = "/products";
         }, 2000);
       } else {
-        console.error("Failed to create product:", result);
         setModalMessage(result.message || "Không thể tạo sản phẩm");
         setShowErrorModal(true);
       }
@@ -291,30 +219,35 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white shadow-lg rounded-lg p-8">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Tạo sản phẩm đấu giá mới</h2>
-            <p className="text-gray-600">Điền thông tin để đăng sản phẩm đấu giá</p>
+    <div className="min-h-screen bg-background text-foreground">
+        <Navigation />
+      
+      <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto animate-fade-in">
+        <div className="glass-card bg-[#1e293b]/40 rounded-2xl p-8 md:p-10 border border-white/10 shadow-xl relative overflow-hidden">
+             {/* Decorative background blob */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 -translate-y-1/2 translate-x-1/2" />
+
+
+          <div className="mb-8 border-b border-white/10 pb-6">
+            <h2 className="text-3xl font-bold text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-400">
+                Tạo sản phẩm đấu giá mới
+            </h2>
+            <p className="text-gray-400">Điền thông tin chi tiết để bắt đầu phiên đấu giá của bạn</p>
           </div>
 
-          <form onSubmit={(e) => {
-            console.log("📝 Sự kiện gửi form đã được kích hoạt");
-            handleSubmit(submitForm)(e);
-          }} className="space-y-6">
+          <form onSubmit={handleSubmit(submitForm)} className="space-y-8">
             
             {/* Product Name */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <Type className="inline w-4 h-4 mr-1" />
-                Tiêu đề sản phẩm *
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <Type className="w-4 h-4 text-primary" />
+                Tiêu đề sản phẩm <span className="text-red-500">*</span>
               </label>
               <input
                 {...register("title")}
-                placeholder="Nhập tiêu đề sản phẩm"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                  errors.title ? 'border-red-500' : 'border-gray-300'
+                placeholder="Ví dụ: MacBook Pro M2 Max 2024..."
+                className={`w-full px-5 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-500 focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none ${
+                  errors.title ? 'border-red-500' : 'border-white/10'
                 }`}
               />
               {errors.title && (
@@ -322,208 +255,210 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               )}
             </div>
 
-            {/* Parent Category */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <Tag className="inline w-4 h-4 mr-1" />
-                Danh mục cha *
-              </label>
-              <select 
-                value={selectedParentCategory || ''}
-                onChange={(e) => {
-                  setSelectedParentCategory(e.target.value);
-                  setValue('categoryId', ''); // Reset subcategory when parent changes
-                }}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                disabled={loadingCategories}
-              >
-                <option value="">
-                  {loadingCategories ? 'Đang tải danh mục...' : 'Chọn danh mục cha'}
-                </option>
-                {parentCategories.map((cat) => {
-                  const catId = cat._id || cat.id;
-                  return (
-                    <option key={catId} value={catId}>
-                      {cat.name}
-                    </option>
-                  );
-                })}
-              </select>
-              {loadingCategories && (
-                <p className="text-blue-500 text-sm mt-1">Đang tải danh mục từ cơ sở dữ liệu...</p>
-              )}
-            </div>
-
-            {/* Subcategory - Only show when parent is selected */}
-            {selectedParentCategory && getSubCategories().length > 0 && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  <Tag className="inline w-4 h-4 mr-1" />
-                  Danh mục con *
+            {/* Categories Grid */}
+            <div className="grid md:grid-cols-2 gap-6">
+                 {/* Parent Category */}
+                <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    Danh mục chính <span className="text-red-500">*</span>
                 </label>
-                <select 
-                  {...register("categoryId")} 
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                    errors.categoryId ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Chọn danh mục con</option>
-                  {getSubCategories().map((child) => {
-                    const childId = child._id || child.id;
-                    return (
-                      <option key={childId} value={childId}>
-                        {child.name}
-                      </option>
-                    );
-                  })}
-                </select>
-                {errors.categoryId && (
-                  <p className="text-red-500 text-sm mt-1">{errors.categoryId.message}</p>
+                <div className="relative">
+                     <select 
+                        value={selectedParentCategory || ''}
+                        onChange={(e) => {
+                        setSelectedParentCategory(e.target.value);
+                        setValue('categoryId', ''); // Reset subcategory when parent changes
+                        }}
+                        className="w-full px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none appearance-none cursor-pointer"
+                        disabled={loadingCategories}
+                    >
+                        <option value="" className="bg-slate-800">
+                        {loadingCategories ? 'Đang tải danh mục...' : 'Chọn danh mục'}
+                        </option>
+                        {parentCategories.map((cat) => {
+                        const catId = cat._id || cat.id;
+                        return (
+                            <option key={catId} value={catId} className="bg-slate-800">
+                            {cat.name}
+                            </option>
+                        );
+                        })}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        ▼
+                    </div>
+                </div>
+                </div>
+
+                {/* Subcategory */}
+                <div className="space-y-2">
+                 <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    Danh mục chi tiết <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                    <select 
+                        {...register("categoryId")} 
+                        className={`w-full px-5 py-3 rounded-xl bg-white/5 border text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none appearance-none cursor-pointer ${
+                            errors.categoryId ? 'border-red-500' : 'border-white/10'
+                        } ${!selectedParentCategory ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={!selectedParentCategory}
+                    >
+                        <option value="" className="bg-slate-800">Chọn chi tiết</option>
+                        {getSubCategories().map((child) => {
+                            const childId = child._id || child.id;
+                            return (
+                            <option key={childId} value={childId} className="bg-slate-800">
+                                {child.name}
+                            </option>
+                            );
+                        })}
+                    </select>
+                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        ▼
+                    </div>
+                </div>
+                 {errors.categoryId && (
+                    <p className="text-red-500 text-sm mt-1">{errors.categoryId.message}</p>
                 )}
-              </div>
-            )}
+                </div>
+            </div>
 
             {/* If parent has no children, use parent as categoryId */}
             {selectedParentCategory && getSubCategories().length === 0 && (
               <input type="hidden" {...register("categoryId")} value={selectedParentCategory} />
             )}
 
-            {/* Price Fields - Inline Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Starting Price */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Giá khởi điểm *
+            {/* Price Fields */}
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                <h3 className="font-bold text-gray-200 mb-4 flex items-center gap-2">
+                    💰 Thiết lập giá
+                </h3>
+                <div className="grid md:grid-cols-3 gap-6">
+                    {/* Starting Price */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-300">Giá khởi điểm <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                        <input 
+                            type="text"
+                            value={startPriceDisplay}
+                            onChange={(e) => handlePriceChange(e, "startPrice", setStartPriceDisplay)}
+                            placeholder="0"
+                            className={`w-full pl-4 pr-12 py-3 rounded-xl bg-white/5 border focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none font-bold text-white placeholder-gray-500 ${
+                            errors.startPrice ? 'border-red-500' : 'border-white/10'
+                            }`}
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">₫</span>
+                        </div>
+                         {errors.startPrice && <p className="text-red-500 text-xs mt-1">{errors.startPrice.message}</p>}
+                    </div>
+
+                    {/* Step Price */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-300">Bước giá <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                        <input 
+                            type="text"
+                            value={priceStepDisplay}
+                            onChange={(e) => handlePriceChange(e, "priceStep", setPriceStepDisplay)}
+                            placeholder="0"
+                             className={`w-full pl-4 pr-12 py-3 rounded-xl bg-white/5 border focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none font-bold text-white placeholder-gray-500 ${
+                            errors.priceStep ? 'border-red-500' : 'border-white/10'
+                            }`}
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">₫</span>
+                        </div>
+                        {errors.priceStep && <p className="text-red-500 text-xs mt-1">{errors.priceStep.message}</p>}
+                    </div>
+
+                    {/* Buy Now Price */}
+                    <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-300">Giá mua ngay (Tùy chọn)</label>
+                    <div className="relative">
+                        <input 
+                        type="text"
+                        value={buyNowPriceDisplay}
+                        onChange={(e) => handlePriceChange(e, "buyNowPrice", setBuyNowPriceDisplay)}
+                        placeholder="0"
+                        className="w-full pl-4 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none font-bold text-white placeholder-gray-500"
+                        />
+                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">₫</span>
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+             {/* Time Settings */}
+             <div className="grid md:grid-cols-2 gap-6">
+                 {/* Start Time */}
+                <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    Bắt đầu <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute right-3 top-3 text-gray-500">VND</span>
-                  <input 
-                    type="text"
-                    value={startPriceDisplay}
-                    onChange={(e) => handlePriceChange(e, "startPrice", setStartPriceDisplay)}
-                    placeholder="0"
-                    onWheel={(e) => e.target.blur()}
-                    className={`w-full pl-3 pr-14 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                      errors.startPrice ? 'border-red-500' : 'border-gray-300'
+                <input 
+                    type="datetime-local"
+                    {...register("startTime")}
+                    className={`w-full px-5 py-3 rounded-xl bg-white/5 border text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none cursor-pointer ${
+                    errors.startTime ? 'border-red-500' : 'border-white/10'
                     }`}
-                  />
+                />
+                 {errors.startTime && <p className="text-red-500 text-sm mt-1">{errors.startTime.message}</p>}
                 </div>
-                {errors.startPrice && (
-                  <p className="text-red-500 text-sm mt-1">{errors.startPrice.message}</p>
-                )}
-              </div>
 
-              {/* Step Price */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Bước giá *
+                {/* End Time */}
+                <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                     <Clock className="w-4 h-4 text-red-500" />
+                     Kết thúc <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute right-3 top-3 text-gray-500">VND</span>
-                  <input 
-                    type="text"
-                    value={priceStepDisplay}
-                    onChange={(e) => handlePriceChange(e, "priceStep", setPriceStepDisplay)}
-                    placeholder="0"
-                    onWheel={(e) => e.target.blur()}
-                    className={`w-full pl-3 pr-14 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                      errors.priceStep ? 'border-red-500' : 'border-gray-300'
+                <input 
+                    type="datetime-local"
+                    {...register("endTime")}
+                     className={`w-full px-5 py-3 rounded-xl bg-white/5 border text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none cursor-pointer ${
+                    errors.endTime ? 'border-red-500' : 'border-white/10'
                     }`}
-                  />
+                />
+                 {errors.endTime && <p className="text-red-500 text-sm mt-1">{errors.endTime.message}</p>}
                 </div>
-                {errors.priceStep && (
-                  <p className="text-red-500 text-sm mt-1">{errors.priceStep.message}</p>
-                )}
-              </div>
+            </div>
 
-              {/* Buy Now Price (Optional) */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Giá mua ngay
+             {/* Auto Extend Toggle */}
+             <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                 <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer">
+                     <input 
+                        type="checkbox"
+                        {...register("autoExtendEnabled")}
+                        id="autoExtend"
+                        className="peer sr-only"
+                    />
+                     <label htmlFor="autoExtend" className="block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer peer-checked:bg-primary transition-colors"></label>
+                     <span className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-6"></span>
+                 </div>
+                <label htmlFor="autoExtend" className="text-sm font-medium text-gray-300 cursor-pointer select-none">
+                    Kích hoạt tự động gia hạn (thêm 10 phút nếu có bid phút chót)
                 </label>
-                <div className="relative">
-                  <span className="absolute right-3 top-3 text-gray-500">VND</span>
-                  <input 
-                    type="text"
-                    value={buyNowPriceDisplay}
-                    onChange={(e) => handlePriceChange(e, "buyNowPrice", setBuyNowPriceDisplay)}
-                    placeholder="0"
-                    onWheel={(e) => e.target.blur()}
-                    className="w-full pl-3 pr-14 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Tùy chọn</p>
-              </div>
             </div>
 
-            {/* Start Time */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <Clock className="inline w-4 h-4 mr-1" />
-                Thời gian bắt đầu đấu giá *
+            {/* Description Editor */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-300 mb-2 block">
+                Mô tả chi tiết <span className="text-red-500">*</span>
               </label>
-              <input 
-                type="datetime-local"
-                {...register("startTime")}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                  errors.startTime ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.startTime && (
-                <p className="text-red-500 text-sm mt-1">{errors.startTime.message}</p>
-              )}
-            </div>
-
-            {/* End Time */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <Clock className="inline w-4 h-4 mr-1" />
-                Thời gian kết thúc đấu giá *
-              </label>
-              <input 
-                type="datetime-local"
-                {...register("endTime")}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                  errors.endTime ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.endTime && (
-                <p className="text-red-500 text-sm mt-1">{errors.endTime.message}</p>
-              )}
-              <p className="text-sm text-gray-500 mt-1">Phải sau thời gian bắt đầu</p>
-            </div>
-
-            {/* Auto Extend */}
-            <div className="flex items-center">
-              <input 
-                type="checkbox"
-                {...register("autoExtendEnabled")}
-                id="autoExtend"
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="autoExtend" className="ml-2 text-sm font-medium text-gray-700">
-                Bật tự động gia hạn (thêm 10 phút nếu có đặt giá trong 5 phút cuối)
-              </label>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Mô tả * (tối thiểu 10 ký tự)
-              </label>
-              <div className={`border rounded-lg overflow-hidden ${
-                errors.description ? 'border-red-500' : 'border-gray-300'
+              <div className={`rounded-xl overflow-hidden border ${
+                errors.description ? 'border-red-500' : 'border-white/10'
               }`}>
                 <ReactQuill
                   value={description}
                   onChange={handleQuillChange}
-                  className="bg-white"
-                  placeholder="Describe your product in detail..."
+                  className="bg-white min-h-[200px]"
                   modules={{
                     toolbar: [
-                      ['bold', 'italic', 'underline'],
-                      [{ list: 'ordered' }, { list: 'bullet' }],
-                      ['clean']
+                      [{ 'header': [1, 2, 3, false] }],
+                      ['bold', 'italic', 'underline', 'strike'],
+                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                      ['link', 'clean']
                     ]
                   }}
                 />
@@ -533,54 +468,60 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               )}
             </div>
 
-            {/* Images */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <ImageIcon className="inline w-4 h-4 mr-1" />
-                Ảnh sản phẩm * (Tối thiểu 3 ảnh)
+            {/* Image Upload */}
+            <div className="space-y-4">
+              <label className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-primary" />
+                Ảnh sản phẩm <span className="text-red-500">*</span>
+                <span className="text-xs font-normal text-muted-foreground">(Tối thiểu 3 ảnh)</span>
               </label>
-              <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer ${
-                errors.images ? 'border-red-500' : 'border-gray-300'
+              
+              <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group cursor-pointer hover:border-primary/50 hover:bg-primary/5 ${
+                errors.images ? 'border-red-500 bg-red-900/10' : 'border-white/10 bg-white/5'
               }`}>
                 <input 
                   type="file" 
                   multiple 
                   accept="image/*"
                   onChange={handleImageUpload}
-                  className="hidden"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   id="image-upload"
                 />
-                <label htmlFor="image-upload" className="cursor-pointer">
-                  <Upload className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                  <p className="text-gray-600">Nhấp để tải lên hoặc kéo và thả</p>
-                  <p className="text-sm text-gray-500 mt-1">PNG, JPG, GIF tối đa 10MB</p>
-                </label>
+                <div className="flex flex-col items-center justify-center pointer-events-none">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
+                        <Upload className="w-8 h-8 text-primary" />
+                    </div>
+                    <p className="font-bold text-gray-200 mb-1">Tải ảnh lên</p>
+                    <p className="text-sm text-gray-400">Kéo thả hoặc click để chọn ảnh (PNG, JPG, MAX 10MB)</p>
+                </div>
               </div>
-              {errors.images && (
+               {errors.images && (
                 <p className="text-red-500 text-sm mt-1">{errors.images.message}</p>
               )}
 
-              {/* Preview UI */}
+              {/* Preview Grid */}
               {images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
                   {images.map((img) => (
-                    <div key={img.id} className="relative group">
+                    <div key={img.id} className="relative group aspect-square rounded-xl overflow-hidden shadow-sm border border-gray-100">
                       <img 
                         src={img.preview}
                         alt="Preview"
-                        className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newImages = images.filter(i => i.id !== img.id);
-                          setImages(newImages);
-                          setValue("images", newImages);
-                        }}
-                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                           <button
+                            type="button"
+                            onClick={() => {
+                            const newImages = images.filter(i => i.id !== img.id);
+                            setImages(newImages);
+                            setValue("images", newImages);
+                            }}
+                            className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition hover:scale-110"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -588,61 +529,65 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             </div>
 
             {/* Submit Button */}
-            <div className="pt-6 border-t border-gray-200">
+            <div className="pt-6 border-t border-gray-100">
               <button 
                 type="submit"
-                className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/25 focus:ring-4 focus:ring-primary/20 transition transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <Plus className="w-5 h-5" />
-                Tạo sản phẩm đấu giá
+                {isSubmitting ? (
+                    <>
+                        <Loader className="w-5 h-5 animate-spin" />
+                        Đang xử lý...
+                    </>
+                ) : (
+                    <>
+                        <Plus className="w-5 h-5" />
+                        Tạo phiên đấu giá ngay
+                    </>
+                )}
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all">
+      {(showSuccessModal || showErrorModal) && (
+         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
+            <div className="glass-card bg-[#1e293b] rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all scale-100 animate-slide-up border border-white/10">
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="w-10 h-10 text-green-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Thành công!</h3>
-              <p className="text-gray-600 mb-6">{modalMessage}</p>
-              <button
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${
+                    showSuccessModal ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                }`}>
+                {showSuccessModal ? <CheckCircle className="w-10 h-10" /> : <AlertCircle className="w-10 h-10" />}
+                </div>
+                
+                <h3 className="text-2xl font-bold text-white mb-2">
+                    {showSuccessModal ? 'Thành công!' : 'Đã có lỗi xảy ra'}
+                </h3>
+                
+                <p className="text-gray-300 mb-8 leading-relaxed">
+                    {modalMessage}
+                </p>
+                
+                <button
                 onClick={() => {
-                  setShowSuccessModal(false);
-                  window.location.href = "/products";
+                    if (showSuccessModal) {
+                        window.location.href = "/products";
+                    }
+                    setShowSuccessModal(false);
+                    setShowErrorModal(false);
                 }}
-                className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition"
-              >
-                Đóng
-              </button>
+                className={`w-full py-3.5 px-6 rounded-xl font-bold text-white transition-all hover:shadow-lg ${
+                    showSuccessModal 
+                    ? 'bg-green-600 hover:bg-green-700 shadow-green-900/20' 
+                    : 'bg-red-600 hover:bg-red-700 shadow-red-900/20'
+                }`}
+                >
+                {showSuccessModal ? 'Hoàn tất' : 'Thử lại'}
+                </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Error Modal */}
-      {showErrorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertCircle className="w-10 h-10 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Lỗi</h3>
-              <p className="text-gray-600 mb-6">{modalMessage}</p>
-              <button
-                onClick={() => setShowErrorModal(false)}
-                className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition"
-              >
-                Đóng
-              </button>
             </div>
-          </div>
         </div>
       )}
     </div>

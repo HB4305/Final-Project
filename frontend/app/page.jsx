@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Zap } from "lucide-react";
+import { Zap, TrendingUp, ShieldCheck, Clock } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navigation from "../components/navigation";
@@ -11,14 +11,11 @@ export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { loginWithToken } = useAuth();
 
-  // Handle OAuth callback token
   useEffect(() => {
     const token = searchParams.get("token");
     if (token) {
-      // Login with token from OAuth
       loginWithToken(token)
         .then(() => {
-          // Remove token from URL
           searchParams.delete("token");
           setSearchParams(searchParams);
         })
@@ -30,146 +27,201 @@ export default function Home() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden animate-fade-in">
       <Navigation />
 
-      <main className="pt-16">
-        {/* Category Navigation */}
-        <CategoryNav />
-        <section className="bg-gradient-to-r from-primary via-red-500 to-orange-500 text-white py-10 px-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Main Promo */}
-              <div className="md:col-span-2 bg-black/20 rounded-lg p-8 flex flex-col justify-center">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-5 h-5" />
-                  <span className="text-sm font-bold">DEAL HOT HÔM NAY</span>
-                </div>
-                <h2 className="text-4xl font-bold mb-2">Săn Hàng Hot</h2>
-                <p className="text-white/90 mb-6 text-lg">
-                  Ưu đãi có hạn cho các phiên đấu giá cao cấp
-                </p>
-                <button className="w-fit px-6 py-2 bg-white text-primary rounded hover:bg-gray-100 transition font-bold">
-                  Mua Ngay →
+      <main className="pt-20">
+        {/* Category Nav - Static Top */}
+        <section className="py-2 border-b border-white/5 bg-[#0b1121]/90 backdrop-blur-md shadow-lg mb-8">
+           <div className="max-w-7xl mx-auto px-4">
+             <CategoryNav />
+           </div>
+        </section>
+
+        {/* Hero Section */}
+        <section className="relative px-4 py-12 md:py-20 lg:py-28 overflow-hidden">
+          {/* Background Elements */}
+          <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-float" />
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 animate-float" style={{ animationDelay: "-2s" }} />
+          </div>
+
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8 animate-slide-up">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-primary backdrop-blur-sm">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                Sàn đấu giá trực tuyến số 1 Việt Nam
+              </div>
+              
+              <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
+                Săn Hàng Hiệu <br />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400">
+                  Giá Cực Sốc
+                </span>
+              </h1>
+              
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl">
+                Tham gia đấu giá các sản phẩm công nghệ, thời trang và sưu tầm chất lượng cao. 
+                Cơ hội sở hữu món đồ mơ ước với mức giá không tưởng.
+              </p>
+
+              <div className="flex flex-wrap gap-4">
+                <button 
+                  onClick={() => navigate("/products")}
+                  className="px-8 py-4 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 hover:scale-105 active:scale-95"
+                >
+                  Khám Phá Ngay
+                </button>
+                <button 
+                  onClick={() => navigate("/auth/signup")}
+                  className="px-8 py-4 bg-white/5 text-foreground border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all backdrop-blur-sm"
+                >
+                  Đăng Ký Miễn Phí
                 </button>
               </div>
 
-              {/* Side Promos */}
-              <div className="flex flex-col gap-4">
-                <div className="bg-black/20 rounded-lg p-4 text-center">
-                  <div className="text-sm text-white/80 mb-1">Lên đến</div>
-                  <div className="text-3xl font-bold mb-1">70%</div>
-                  <div className="text-xs text-white/80">
-                    Cho các sản phẩm đã chọn
+              <div className="flex items-center gap-8 text-sm text-muted-foreground pt-4">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-green-500" />
+                  <span>Uy tín 100%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-blue-500" />
+                  <span>Hỗ trợ 24/7</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-orange-500" />
+                  <span>Giá tốt nhất</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative hidden lg:block animate-fade-in">
+              <div className="relative z-10 glass rounded-3xl p-6 rotate-3 hover:rotate-0 transition-transform duration-500 bg-gradient-to-br from-white/10 to-transparent border border-white/20">
+                <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center relative group">
+                  <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
+                  <img 
+                    src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
+                    alt="Premium Auction" 
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
+                  />
+                  <div className="absolute bottom-4 left-4 right-4 z-20">
+                    <div className="glass rounded-xl p-4 flex justify-between items-center">
+                      <div>
+                        <p className="text-xs text-gray-300">Đang đấu giá</p>
+                        <p className="font-bold text-white">Sony Electronics Set</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-300">Giá hiện tại</p>
+                        <p className="font-bold text-green-400">12,500,000 ₫</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="bg-black/20 rounded-lg p-4 text-center">
-                  <div className="text-sm text-white/80 mb-1">
-                    Miễn Phí Vận Chuyển
+              </div>
+              
+              {/* Decorative floating cards */}
+              <div className="absolute -top-10 -right-10 glass p-4 rounded-2xl animate-float" style={{ animationDelay: "1s" }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-green-500" />
                   </div>
-                  <div className="text-2xl font-bold mb-1">Hôm nay</div>
-                  <div className="text-xs text-white/80">Tất cả đơn hàng</div>
+                  <div>
+                    <p className="text-xs text-gray-400">Vừa bán xong</p>
+                    <p className="font-bold text-sm">+ 2.5 Triệu</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Top 5 Products Sections */}
-        <section className="max-w-7xl mx-auto px-4 py-12">
+
+
+        {/* Featured / Top Products */}
+        <section className="max-w-7xl mx-auto px-4 py-20">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+               <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                Sản Phẩm Hot
+              </h2>
+              <p className="text-muted-foreground mt-2">Các phiên đấu giá được quan tâm nhiều nhất</p>
+            </div>
+            <button 
+              onClick={() => navigate('/products')}
+              className="text-primary font-bold hover:underline underline-offset-4"
+            >
+              Xem tất cả &rarr;
+            </button>
+          </div>
           <TopProductsSection />
         </section>
 
-        {/* Stats Section */}
-        <section className="bg-white py-12 px-4 border-t border-border">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">5,234</div>
-              <p className="text-sm text-muted-foreground">Phiên đấu giá</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">48.2K</div>
-              <p className="text-sm text-muted-foreground">
-                Người mua hài lòng
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">$2.3M</div>
-              <p className="text-sm text-muted-foreground">Tổng giá trị</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">99.8%</div>
-              <p className="text-sm text-muted-foreground">Đánh giá tích cực</p>
-            </div>
-          </div>
-        </section>
+        {/* Stats Section with Glass Effect */}
+
 
         {/* CTA Section */}
-        <section className="bg-gradient-to-r from-primary to-red-500 text-white py-12 px-4 mt-8">
-          <div className="max-w-7xl mx-auto text-center">
-            <h3 className="text-3xl font-bold mb-4">
-              Sẵn sàng để bắt đầu đấu giá?
+        <section className="py-20 px-4">
+          <div className="max-w-5xl mx-auto glass rounded-3xl p-8 md:p-16 text-center relative overflow-hidden border border-primary/20">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/10 to-blue-600/10 -z-10" />
+            
+            <h3 className="text-3xl md:text-5xl font-bold mb-6">
+              Sẵn sàng săn 'vàng'?
             </h3>
-            <p className="text-white/90 mb-6 text-lg">
-              Tham gia cùng hàng ngàn người mua sắm thông minh tìm kiếm những ưu
-              đãi tuyệt vời
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Đừng bỏ lỡ những món hời độc quyền chỉ có tại AuctionHub. Tham gia cộng đồng đấu giá sôi động ngay hôm nay!
             </p>
             <button
               onClick={() => navigate("/auth/signup")}
-              className="px-8 py-3 bg-white text-primary rounded font-bold hover:bg-gray-100 transition"
+              className="px-10 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/40 transition-all hover:-translate-y-1"
             >
-              Tạo tài khoản
+              Tạo tài khoản ngay
             </button>
           </div>
         </section>
       </main>
 
-      <footer className="bg-foreground text-white py-12 px-4 mt-16">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-center gap-16 md:gap-32 mb-8">
+      <footer className="bg-black/40 border-t border-white/10 py-12 px-4 mt-12 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12 mb-12">
           <div>
-            <h4 className="font-bold mb-4">Về chúng tôi</h4>
-            <ul className="space-y-2 text-sm text-gray-300">
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Về AuctionHub
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Tuyển dụng
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Tin tức
-                </a>
-              </li>
-            </ul>
+            <div className="flex items-center gap-2 mb-6">
+               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center font-bold text-white">⚡</div>
+               <span className="font-extrabold text-xl tracking-tight">AuctionHub</span>
+            </div>
+            <p className="text-muted-foreground max-w-xs">
+              Nền tảng đấu giá trực tuyến uy tín và hiện đại nhất.
+            </p>
           </div>
-
-          <div>
-            <h4 className="font-bold mb-4">Theo dõi chúng tôi</h4>
-            <ul className="space-y-2 text-sm text-gray-300">
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Facebook
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Instagram
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Twitter
-                </a>
-              </li>
-            </ul>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-12">
+            <div>
+              <h4 className="font-bold mb-4 text-white">Khám phá</h4>
+              <ul className="space-y-3 text-sm text-gray-400">
+                <li><a href="#" className="hover:text-primary transition">Đấu giá đang diễn ra</a></li>
+                <li><a href="#" className="hover:text-primary transition">Sắp diễn ra</a></li>
+                <li><a href="#" className="hover:text-primary transition">Đã kết thúc</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4 text-white">Hỗ trợ</h4>
+              <ul className="space-y-3 text-sm text-gray-400">
+                <li><a href="#" className="hover:text-primary transition">Trung tâm trợ giúp</a></li>
+                <li><a href="#" className="hover:text-primary transition">Quy chế hoạt động</a></li>
+                <li><a href="#" className="hover:text-primary transition">Bảo mật thông tin</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4 text-white">Kết nối</h4>
+              <ul className="space-y-3 text-sm text-gray-400">
+                <li><a href="#" className="hover:text-primary transition">Facebook</a></li>
+                <li><a href="#" className="hover:text-primary transition">Instagram</a></li>
+                <li><a href="#" className="hover:text-primary transition">Twitter</a></li>
+              </ul>
+            </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto text-center text-sm text-gray-400 border-t border-gray-700 pt-8">
-          <p>&copy; 2025 AuctionHub. Bảo lưu mọi quyền.</p>
+        <div className="max-w-7xl mx-auto text-center text-sm text-gray-600 border-t border-gray-800 pt-8">
+          <p>&copy; 2025 AuctionHub. All rights reserved.</p>
         </div>
       </footer>
     </div>

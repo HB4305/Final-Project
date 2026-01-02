@@ -11,11 +11,11 @@ import {
 import { AppError } from "../utils/errors.js";
 import { AUCTION_STATUS, ERROR_CODES } from "../lib/constants.js";
 import {
-    sendBidSuccessNotification,
-    sendPriceUpdatedNotification,
-    sendOutbidNotification,
-    sendBidRejectedNotification
-} from '../utils/email.js';
+  sendBidSuccessNotification,
+  sendPriceUpdatedNotification,
+  sendOutbidNotification,
+  sendBidRejectedNotification,
+} from "../utils/email.js";
 
 export class BidService {
   /**
@@ -83,13 +83,21 @@ export class BidService {
       throw new AppError("User not found", 404);
     }
 
-    const ratingPercentage = bidder.ratingSummary?.score * 100 || 0;
-    if (ratingPercentage < 80) {
-      throw new AppError(
-        `Your rating (${ratingPercentage}%) must be >= 80% to bid`,
-        403,
-        ERROR_CODES.RATING_TOO_LOW
-      );
+    const ratingSummary = bidder.ratingSummary || { totalCount: 0, score: 0 };
+
+    // Chỉ kiểm tra nếu user đã có đánh giá
+    if (ratingSummary.totalCount > 0) {
+      // Yêu cầu 80% positive => Score >= 4.0 (trên thang 5)
+      if (ratingSummary.score < 4.0) {
+        const percentage = (ratingSummary.score / 5) * 100;
+        throw new AppError(
+          `Điểm đánh giá của bạn (${percentage.toFixed(
+            1
+          )}%) thấp hơn mức yêu cầu (80%) để tham gia đấu giá.`,
+          403,
+          ERROR_CODES.RATING_TOO_LOW
+        );
+      }
     }
 
     // 5. Validate Max Amount
@@ -128,10 +136,13 @@ export class BidService {
 
     try {
       // Check existing bid to preserve priority
-      const existingBid = await AutoBid.findOne({ auctionId, bidderId }).session(session);
+      const existingBid = await AutoBid.findOne({
+        auctionId,
+        bidderId,
+      }).session(session);
       let updateFields = {
         maxAmount,
-        active: true
+        active: true,
       };
 
       // Only update timestamp if amount is DIFFERENT.
@@ -445,15 +456,15 @@ export class BidService {
     const seller = await User.findById(product.sellerId);
 
     if (rejectedUser && product) {
-        const productUrl = `${process.env.FRONTEND_URL}/product/${productId}`;
-        await sendBidRejectedNotification({
-            bidderEmail: rejectedUser.email,
-            bidderName: rejectedUser.fullName,
-            productTitle: product.title,
-            sellerName: seller ? seller.fullName : 'Seller',
-            reason: reason,
-            homeUrl: process.env.FRONTEND_URL
-        });
+      const productUrl = `${process.env.FRONTEND_URL}/product/${productId}`;
+      await sendBidRejectedNotification({
+        bidderEmail: rejectedUser.email,
+        bidderName: rejectedUser.fullName,
+        productTitle: product.title,
+        sellerName: seller ? seller.fullName : "Seller",
+        reason: reason,
+        homeUrl: process.env.FRONTEND_URL,
+      });
     }
 
     return rejection;

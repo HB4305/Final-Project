@@ -92,6 +92,7 @@ const userSchema = new mongoose.Schema({
   otp: {
     code: String,
     expiresAt: Date,
+    newEmail: String,
     _id: false,
   },
   profileImageUrl: {

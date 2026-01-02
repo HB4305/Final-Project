@@ -181,11 +181,13 @@ function TopProductsGroup({
   onWatchlistChange,
 }) {
   return (
-    <div className="border rounded-lg overflow-hidden bg-white">
+    <div className="rounded-2xl overflow-hidden glass border border-white/10">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
-        <h2 className="text-xl font-bold text-white mb-1">{title}</h2>
-        <p className="text-blue-100 text-sm">{subtitle}</p>
+      <div className="bg-white/5 border-b border-white/10 px-6 py-4 backdrop-blur-3xl">
+        <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+            {title}
+        </h2>
+        <p className="text-gray-400 text-sm">{subtitle}</p>
       </div>
 
       {/* Products Grid */}
@@ -246,9 +248,9 @@ function ProductCard({
   };
 
   return (
-    <div className="group cursor-pointer bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-all overflow-hidden relative">
+    <div className="group cursor-pointer glass-card rounded-2xl hover:bg-white/5 transition-all duration-300 overflow-hidden relative border border-white/10">
       {/* Product Image */}
-      <div className="relative h-40 bg-gray-100 overflow-hidden">
+      <div className="relative h-48 overflow-hidden">
         <Link
           to={`/product/${product.product?.productId || product.auctionId}`}
           className="block w-full h-full"
@@ -256,60 +258,68 @@ function ProductCard({
           <img
             src={product.product?.image || FALLBACK_IMAGE}
             alt={product.product?.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             onError={(e) => {
               e.target.src = FALLBACK_IMAGE;
             }}
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
         </Link>
 
         {/* Favorite Button */}
         <button
           onClick={handleToggleWatchlist}
-          className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition z-10"
+          className="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur rounded-full hover:bg-black/60 transition z-10 border border-white/10"
         >
           <Heart
-            size={18}
+            size={16}
             className={
-              isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"
+              isFavorite ? "fill-red-500 text-red-500" : "text-white"
             }
           />
         </button>
       </div>
 
       {/* Product Info */}
-      <div className="p-3">
+      <div className="p-4">
         <Link
           to={`/product/${product.product?.productId || product.auctionId}`}
         >
           {/* Title */}
-          <h3 className="font-semibold text-sm text-gray-800 line-clamp-2 group-hover:text-blue-600 pb-1">
+          <h3 className="font-bold text-gray-100 line-clamp-2 group-hover:text-primary transition mb-2 min-h-[3rem]">
             {product.product?.title}
           </h3>
 
-          {/* Current Price */}
-          <p className="text-lg font-bold text-red-600 mt-2">
-            {productService.formatPrice(product.currentPrice)}
-          </p>
-
-          {/* Bid Count */}
-          <div className="flex items-center gap-1 text-xs text-gray-600 mt-1">
-            <Gavel size={14} />
-            <span>{product.bidCount} lượt</span>
+          <div className="flex items-end justify-between mt-2">
+            <div>
+                 {/* Current Price */}
+                <p className="text-xs text-gray-400 mb-0.5">Hiện tại</p>
+                <p className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                    {productService.formatPrice(product.currentPrice)}
+                </p>
+            </div>
           </div>
 
-          {/* Time Remaining */}
-          <div className="flex items-center gap-1 text-xs text-orange-600 mt-2 font-medium">
-            <Clock size={14} />
-            <span>
-              {time.isEnded ? (
-                <span className="text-red-600">Đã kết thúc</span>
-              ) : (
-                <>
-                  {time.days}d {time.hours}h {time.minutes}m
-                </>
-              )}
-            </span>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+             {/* Bid Count */}
+            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                <Gavel size={14} className="text-primary" />
+                <span>{product.bidCount} lượt</span>
+            </div>
+
+            {/* Time Remaining */}
+            <div className="flex items-center gap-1.5 text-xs font-medium">
+                <Clock size={14} className={time.isEnded ? "text-red-500" : "text-orange-400"} />
+                <span className={time.isEnded ? "text-red-500" : "text-orange-400"}>
+                {time.isEnded ? (
+                    "Kết thúc"
+                ) : (
+                    <>
+                    {time.days}d {time.hours}h {time.minutes}m
+                    </>
+                )}
+                </span>
+            </div>
           </div>
         </Link>
       </div>

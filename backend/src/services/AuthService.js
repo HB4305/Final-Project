@@ -252,6 +252,10 @@ export class AuthService {
       if (!isPasswordValid) {
         throw new AppError("Mật khẩu cũ không chính xác", 401);
       }
+
+      if (oldPassword === newPassword) {
+        throw new AppError("Mật khẩu mới phải khác mật khẩu hiện tại", 400);
+      }
     }
 
     // Hash mật khẩu mới
@@ -630,6 +634,12 @@ export class AuthService {
 
     if (new Date() > new Date(user.otp.expiresAt)) {
       throw new AppError("Mã OTP đã hết hạn", 400, ERROR_CODES.OTP_EXPIRED);
+    }
+
+    // Check if new password is same as old password
+    const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash);
+    if (isSamePassword) {
+      throw new AppError("Mật khẩu mới phải khác mật khẩu hiện tại", 400);
     }
 
     // Hash new password

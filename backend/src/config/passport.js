@@ -24,33 +24,24 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        // Kiểm tra user đã tồn tại chưa (qua googleId hoặc email)
-        let user = await User.findOne({
-          $or: [
-            { "socialIds.googleId": profile.id },
-            { email: profile.emails[0].value },
-          ],
-        });
+        // 1. Check by Google ID first
+        let user = await User.findOne({ "socialIds.googleId": profile.id });
 
         if (user) {
-          // User đã tồn tại
-          // Nếu tìm thấy qua email nhưng chưa có googleId -> Link account
-          if (!user.socialIds?.googleId) {
-            user.socialIds = user.socialIds || {};
-            user.socialIds.googleId = profile.id;
-
-            // Nếu user chưa verify email, đánh dấu là đã verify vì Google đã xác thực
-            if (!user.emailVerified) {
-              user.emailVerified = true;
-              user.emailVerifiedAt = new Date();
-            }
-
-            await user.save();
-          }
           return done(null, user);
         }
 
-        // Tạo user mới từ Google profile
+        // 2. Check by Email
+        const email = profile.emails[0].value;
+        user = await User.findOne({ email: email });
+
+        if (user) {
+          // User exists with this email but NO googleId
+          // This means they registered with password. Block login.
+          return done(new Error("email_exists_use_password"), null);
+        }
+
+        // 3. Create new user from Google profile
         const username =
           profile.emails[0].value.split("@")[0] + "_" + Date.now();
 

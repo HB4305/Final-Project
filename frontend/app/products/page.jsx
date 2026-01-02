@@ -19,6 +19,7 @@ import {
 } from './_components';
 import CategoryBreadcrumb from './_components/CategoryBreadcrumb';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; 
 
 // ============================================
 // CUSTOM HOOKS
@@ -64,8 +65,6 @@ const useProducts = () => {
       
       if (response.success) {
         const transformedProducts = response.data.map(transformProductData);
-        // Debug: log first 5 transformed products to verify rating/source
-        console.debug('[ProductsPage] Transformed products (first 5):', transformedProducts.slice(0,5).map(p => ({ id: p.id, rating: p.rating, seller: p.seller })));
         setProducts(transformedProducts);
       } else {
         setError(response.error || 'Failed to load products');
@@ -107,7 +106,6 @@ const useWatchlist = () => {
   }, []);
 
   const toggleWatchlist = useCallback(async (productId) => {
-    // Optimistic update
     setWatchlist(prev => {
       const newWatchlist = new Set(prev);
       if (newWatchlist.has(productId)) {
@@ -122,7 +120,6 @@ const useWatchlist = () => {
       await watchlistService.toggleWatchlist(productId);
     } catch (error) {
       console.error("Error toggling watchlist:", error);
-      // Revert on error
       setWatchlist(prev => {
         const newWatchlist = new Set(prev);
         if (newWatchlist.has(productId)) {
@@ -159,7 +156,6 @@ const useFilters = () => {
     setShowFilters(prev => !prev);
   }, []);
 
-  // Reset page khi filter thay đổi
   const handleCategoryChange = useCallback((category) => {
     setSelectedCategory(category);
     setCurrentPage(1);
@@ -206,9 +202,8 @@ const useFilters = () => {
 
 
 export default function ProductsPage() {
-  // Auth state (có thể chuyển sang context sau)
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { currentUser } = useAuth();
+  const location = useLocation();
 
   // Custom hooks
   const { categories, categoryMap, error: categoryError } = useCategories();
@@ -232,18 +227,13 @@ export default function ProductsPage() {
     setItemsPerPage
   } = useFilters();
 
-  // Combine errors
   const error = categoryError || productError;
 
-  const location = useLocation();
-
-  // subcategory local state (kept here để không phải thay đổi hook hiện tại)
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
 
-   // Sync URL query -> filters - CẬP NHẬT LOGIC
+   // Sync URL query -> filters
   useEffect(() => {
     if (!location || !location.search) {
-      // Reset về mặc định khi không có query
       setSelectedCategory('All');
       setSelectedSubcategory(null);
       return;
@@ -254,27 +244,24 @@ export default function ProductsPage() {
     const categoryParam = params.get('category') || params.get('categoryId');
 
     if (subcategoryParam) {
-      // Nếu có subcategory, set nó trực tiếp
       const subName = decodeURIComponent(subcategoryParam);
       setSelectedSubcategory(subName);
       
-      // Tìm parent category của subcategory này
       const parentCat = categoryMap[subName];
       if (parentCat) {
         setSelectedCategory(parentCat);
       }
     } else if (categoryParam) {
-      // Nếu chỉ có category (không có subcategory)
       const catName = decodeURIComponent(categoryParam);
       setSelectedCategory(catName);
-      setSelectedSubcategory(null); // Clear subcategory
+      setSelectedSubcategory(null);
     } else {
       setSelectedCategory('All');
       setSelectedSubcategory(null);
     }
   }, [location.search, categoryMap]);
 
-  // Filter products với tất cả tiêu chí
+  // Filter products
   const filteredProducts = useMemo(() => {
     const filtered = filterProducts(products, {
       searchQuery,
@@ -284,7 +271,6 @@ export default function ProductsPage() {
       categoryMap
     });
     
-    // Sort sau khi filter
     return sortProducts(filtered, sortBy);
   }, [products, searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap, sortBy]);
 
@@ -295,7 +281,6 @@ export default function ProductsPage() {
     return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredProducts, currentPage, itemsPerPage]);
 
-  // Render content based on state
   const renderContent = () => {
     if (loading) {
       return <LoadingSpinner message="Đang tải sản phẩm..." />;
@@ -306,7 +291,7 @@ export default function ProductsPage() {
     }
 
     return (
-      <>
+      <div className="animate-fade-in">
         <ProductGrid
           products={paginatedProducts}
           watchlist={watchlist}
@@ -314,28 +299,27 @@ export default function ProductsPage() {
         />
         
         {/* Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          itemsPerPage={itemsPerPage}
-          totalItems={filteredProducts.length}
-          onItemsPerPageChange={setItemsPerPage}
-        />
+        <div className="mt-12">
+            <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredProducts.length}
+            onItemsPerPageChange={setItemsPerPage}
+            />
+        </div>
 
-        <CategoryBreadcrumb selectedCategory={selectedCategory} selectedSubcategory={selectedSubcategory} />
-      </>
+        <div className="mt-8 border-t border-gray-100 pt-6">
+             <CategoryBreadcrumb selectedCategory={selectedCategory} selectedSubcategory={selectedSubcategory} />
+        </div>
+      </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation 
-        isLoggedIn={isLoggedIn} 
-        setIsLoggedIn={setIsLoggedIn} 
-        currentUser={currentUser} 
-        setCurrentUser={setCurrentUser} 
-      />
+    <div className="min-h-screen bg-background text-foreground">
+      <Navigation />
 
       <SearchHeader
         searchQuery={searchQuery}
@@ -344,8 +328,8 @@ export default function ProductsPage() {
         onToggleFilters={toggleFilters}
       />
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <FilterSidebar
             categories={categories}
             selectedCategory={selectedCategory}
@@ -360,13 +344,13 @@ export default function ProductsPage() {
 
           <div className="lg:col-span-3">
             {/* Results Count */}
-            <div className="mb-6 flex justify-between items-center">
-              <p className="text-muted-foreground text-sm">
-                Hiển thị <span className="font-semibold">{paginatedProducts.length}</span> / {' '}
-                <span className="font-semibold">{filteredProducts.length}</span> sản phẩm
+            <div className="mb-6 flex justify-between items-center bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
+              <p className="text-gray-400 text-sm">
+                Hiển thị <span className="font-bold text-gray-200">{paginatedProducts.length}</span> / {' '}
+                <span className="font-bold text-gray-200">{filteredProducts.length}</span> sản phẩm
                 {selectedCategory !== 'All' && (
-                  <span className="ml-2 text-primary">
-                    trong danh mục "{selectedCategory}"
+                  <span className="ml-2">
+                    trong <span className="text-primary font-medium">"{selectedCategory}"</span>
                   </span>
                 )}
               </p>

@@ -86,16 +86,16 @@ export default function CategoryNav() {
   const activeCategory = categories.find((c) => c._id === openDropdown);
 
   return (
-    <div className="bg-white border-b border-border sticky top-16 z-40">
-      <div className="max-w-7xl mx-auto px-4 py-4" ref={dropdownRef}>
+    <>
+      <div className="max-w-7xl mx-auto px-4 py-2" ref={dropdownRef}>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {/* Link tất cả sản phẩm */}
           <Link
             to="/products"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition whitespace-nowrap shrink-0 group border border-border"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all duration-300 whitespace-nowrap shrink-0 group border border-white/10 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]"
           >
-            <Grid3X3 className="w-5 h-5 text-primary" />
-            <span className="text-sm font-medium text-foreground">Tất cả</span>
+            <Grid3X3 className="w-5 h-5 text-blue-400 group-hover:text-blue-300 transition-colors" />
+            <span className="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">Tất cả</span>
           </Link>
 
           {/* Categories với dropdown */}
@@ -103,13 +103,13 @@ export default function CategoryNav() {
             <div key={cat._id} className="relative">
               <button
                 onClick={(e) => handleToggleDropdown(e, cat._id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition whitespace-nowrap shrink-0 border ${
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all duration-300 whitespace-nowrap shrink-0 border group ${
                   openDropdown === cat._id
-                    ? "bg-primary text-white border-primary"
-                    : "hover:bg-muted border-border"
+                    ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-105"
+                    : "bg-white/5 border-white/10 text-gray-300 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-white hover:shadow-[0_0_15px_rgba(59,130,246,0.15)]"
                 }`}
               >
-                <Tag className="w-5 h-5" />
+                <Tag className="w-4 h-4" />
                 <span className="text-sm font-medium">{cat.name}</span>
                 {cat.children && cat.children.length > 0 && (
                   <ChevronDown
@@ -131,7 +131,7 @@ export default function CategoryNav() {
         activeCategory.children.length > 0 &&
         createPortal(
           <div
-            className="category-dropdown fixed bg-white border border-border rounded-lg shadow-lg z-[9999] min-w-[200px] py-2 animate-in fade-in zoom-in-95 duration-100"
+            className="category-dropdown fixed bg-[#0f172a]/90 border border-blue-500/20 rounded-2xl shadow-2xl z-[9999] min-w-[200px] py-2 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-xl"
             style={{
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
@@ -143,7 +143,7 @@ export default function CategoryNav() {
                 activeCategory.name
               )}`}
               onClick={() => setOpenDropdown(null)}
-              className="block px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition border-b border-border"
+              className="block px-4 py-3 text-sm font-bold text-blue-400 hover:bg-blue-500/10 transition border-b border-white/5"
             >
               Tất cả {activeCategory.name}
             </Link>
@@ -154,7 +154,7 @@ export default function CategoryNav() {
                 key={subCat._id || subCat.name}
                 to={`/products?subcategory=${encodeURIComponent(subCat.name)}`}
                 onClick={() => setOpenDropdown(null)}
-                className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition"
+                className="block px-4 py-2.5 text-sm text-gray-400 hover:bg-white/5 hover:text-blue-300 transition font-medium"
               >
                 {subCat.name}
               </Link>
@@ -162,6 +162,6 @@ export default function CategoryNav() {
           </div>,
           document.body
         )}
-    </div>
+    </>
   );
 }
