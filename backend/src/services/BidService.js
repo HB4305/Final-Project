@@ -7,6 +7,7 @@ import {
   RejectedBidder,
   SystemSetting,
   User,
+  Product
 } from "../models/index.js";
 import { AppError } from "../utils/errors.js";
 import { AUCTION_STATUS, ERROR_CODES } from "../lib/constants.js";
@@ -83,21 +84,13 @@ export class BidService {
       throw new AppError("User not found", 404);
     }
 
-    const ratingSummary = bidder.ratingSummary || { totalCount: 0, score: 0 };
-
-    // Chỉ kiểm tra nếu user đã có đánh giá
-    if (ratingSummary.totalCount > 0) {
-      // Yêu cầu 80% positive => Score >= 4.0 (trên thang 5)
-      if (ratingSummary.score < 4.0) {
-        const percentage = (ratingSummary.score / 5) * 100;
-        throw new AppError(
-          `Điểm đánh giá của bạn (${percentage.toFixed(
-            1
-          )}%) thấp hơn mức yêu cầu (80%) để tham gia đấu giá.`,
-          403,
-          ERROR_CODES.RATING_TOO_LOW
-        );
-      }
+    const ratingPercentage = bidder.ratingSummary?.score * 100 || 0;
+    if (ratingPercentage < 80) {
+      throw new AppError(
+        `Your rating (${ratingPercentage}%) must be >= 80% to bid`,
+        403,
+        ERROR_CODES.RATING_TOO_LOW
+      );
     }
 
     // 5. Validate Max Amount
@@ -136,13 +129,10 @@ export class BidService {
 
     try {
       // Check existing bid to preserve priority
-      const existingBid = await AutoBid.findOne({
-        auctionId,
-        bidderId,
-      }).session(session);
+      const existingBid = await AutoBid.findOne({ auctionId, bidderId }).session(session);
       let updateFields = {
         maxAmount,
-        active: true,
+        active: true
       };
 
       // Only update timestamp if amount is DIFFERENT.
@@ -162,9 +152,66 @@ export class BidService {
       );
 
       // 7. Resolve Auction (Tính toán người thắng mới)
-      const resolveResult = await this._resolveAuction(auction, session);
+      const resolveResult = await this._resolveAuction(auction, session, bidderId);
 
       await session.commitTransaction();
+
+      // --- Send Notifications ---
+      try {
+        const product = await Product.findById(auction.productId);
+        const seller = await User.findById(product.sellerId);
+        const bidder = await User.findById(bidderId);
+
+        // 1. Send Bid Success to the current bidder
+        const isHighest = resolveResult.currentHighestBidderId?.toString() === bidderId.toString();
+        await sendBidSuccessNotification({
+          bidderEmail: bidder.email,
+          bidderName: bidder.fullName,
+          productTitle: product.title,
+          bidAmount: maxAmount,
+          currentPrice: resolveResult.currentPrice,
+          isHighestBidder: isHighest
+        });
+
+        // 2. Send Price Updated to Seller
+        if (resolveResult.currentPrice !== auction.currentPrice) {
+          await sendPriceUpdatedNotification({
+            sellerEmail: seller.email,
+            sellerName: seller.fullName,
+            productTitle: product.title,
+            previousPrice: auction.currentPrice,
+            newPrice: resolveResult.currentPrice,
+            bidderName: bidder.fullName,
+            totalBids: resolveResult.bidCount,
+            auctionUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
+            auctionEndTime: resolveResult.endAt || auction.endAt
+          });
+        }
+
+        // 3. Send Outbid Notification to previous winner
+        const previousWinnerId = auction.currentHighestBidderId;
+        if (previousWinnerId && previousWinnerId.toString() !== resolveResult.currentHighestBidderId?.toString()) {
+          if (previousWinnerId.toString() !== bidderId.toString()) {
+            const previousWinner = await User.findById(previousWinnerId);
+            const prevBid = await AutoBid.findOne({ auctionId: auction._id, bidderId: previousWinnerId });
+            const yourBidAmount = prevBid ? prevBid.maxAmount : auction.currentPrice;
+
+            if (previousWinner) {
+              await sendOutbidNotification({
+                previousBidderEmail: previousWinner.email,
+                previousBidderName: previousWinner.fullName,
+                productTitle: product.title,
+                yourBidAmount: yourBidAmount,
+                currentPrice: resolveResult.currentPrice,
+                productUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
+                auctionEndTime: resolveResult.endAt || auction.endAt
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[BID SERVICE] Error sending notifications:", err);
+      }
 
       return resolveResult;
     } catch (error) {
@@ -179,8 +226,9 @@ export class BidService {
    * Logic cốt lõi: Tính toán lại giá và người thắng dựa trên danh sách AutoBid
    * @param {Object} auction - Auction document
    * @param {Object} session - Mongoose session
+   * @param {string} triggeringBidderId - ID của bidder vừa thực hiện hành động (để ghi log nếu thua)
    */
-  async _resolveAuction(auction, session) {
+  async _resolveAuction(auction, session, triggeringBidderId = null) {
     const auctionId = auction._id;
 
     // 1. Lấy tất cả AutoBid active, sort giảm dần theo maxAmount, sau đó tăng dần theo time (ưu tiên người đến trước)
@@ -196,72 +244,155 @@ export class BidService {
     const secondBidder = autoBids[1]; // Có thể undefined nếu chỉ có 1 người
 
     // 2. Tính giá trần mới (New Price)
-    // Nguyên tắc: Giá thắng = (Giá Max của người thứ 2) + Bước giá.
-    // Nếu không có người thứ 2 => Giá = Giá khởi điểm (hoặc giá sàn hiện tại).
-
     let newPrice = auction.startPrice;
 
-    if (secondBidder) {
-      newPrice = secondBidder.maxAmount + auction.priceStep;
+    // Biến để tracking xem người thắng có thay đổi không
+    const isWinnerChanged =
+      !auction.currentHighestBidderId ||
+      auction.currentHighestBidderId.toString() !==
+      highestBidder.bidderId.toString();
 
-      // Nếu giá tính toán > Max của người nhất (do cộng step) -> Lấy đúng bằng Max của người nhất
+    if (secondBidder) {
+      // Logic "Giá vừa đủ thắng":
+      // 1. Nếu người nhất thay đổi (Người mới vào beat người cũ):
+      //    Cần beat người thứ 2 một bước giá (hoặc khớp Max nếu không đủ bước).
+      // 2. Nếu người nhất không đổi (Người cũ Defend):
+      //    Chỉ cần Match giá của người thứ 2 là thắng (do Time ưu tiên).
+
+      if (isWinnerChanged) {
+        // Trường hợp người mới vượt lên -> Phải cộng step để thắng
+        newPrice = secondBidder.maxAmount + auction.priceStep;
+      } else {
+        // Trường hợp người cũ giữ vững -> Chỉ cần match giá người thứ 2
+        newPrice = secondBidder.maxAmount;
+      }
+
+      // Cap giá không vượt quá Max của người thắng
       if (newPrice > highestBidder.maxAmount) {
         newPrice = highestBidder.maxAmount;
       }
     } else {
       // Chỉ có 1 người duy nhất
-      // Nếu trước đó đã có giá (ví dụ 10M), và người này vào set Max=15M.
-      // Giá vẫn giữ 10M hay tăng?
-      // Theo yêu cầu: "Sản phẩm đang 10tr... nhập 15tr... Hệ thống sẽ không nhảy lên 15tr ngay."
-      // Nghĩa là nếu chưa ai cạnh tranh, giá giữ nguyên mức thấp nhất có thể thắng.
-      // Mức thấp nhất có thể thắng = Min(CurrentPrice, StartPrice).
-      // Nhưng nếu CurrentPrice đang là giá của người cũ?
-      // Trường hợp: A đang thắng 10M. A update Max lên 15M. Giá vẫn là 10M.
-      // Trường hợp: Chưa ai bid. A bid Max 15M. Giá là StartPrice.
-
-      // Nếu auction đang có currentPrice hợp lệ và người giữ đang là chính user này?
-      // Ta cần đảm bảo giá không giảm xuống dưới startPrice.
-      newPrice = Math.max(auction.currentPrice, auction.startPrice);
-
-      // Tuy nhiên, nếu đấu giá mới bắt đầu (bidCount=0), newPrice = startPrice.
+      // Nếu là bid đầu tiên -> StartPrice
       if (auction.bidCount === 0) {
         newPrice = auction.startPrice;
+      } else {
+        // Nếu đã có giá rồi -> Giá phải ít nhất là giá hiện tại (không giảm giá).
+        newPrice = Math.max(auction.currentPrice, auction.startPrice);
       }
     }
 
-    // 3. Kiểm tra xem có thay đổi gì không (Người thắng thay đổi HOẶC Giá thay đổi)
-    // Lưu ý: Nếu A thắng với 10M, B vào bid max 9M. A vẫn thắng nhưng giá có thể tăng nếu 9M > giá cũ của A.
-    // Nhưng logic AutoBid lấy Top 1 vs Top 2 đã xử lý việc này.
+    // 3. Chuẩn bị danh sách Bids để tạo (Lịch sử đấu giá)
+    // Chúng ta muốn trong lịch sử hiện:
+    // User B (Thua) - 10.8M
+    // User A (Thắng) - 10.8M (Defend)
+    const bidsToCreate = [];
+    const now = new Date();
 
-    // Nếu highestBidder hiện tại khác currentHighestBidder HOẶC giá mới khác giá hiện tại
-    const isWinnerChanged =
-      auction.currentHighestBidderId?.toString() !==
-      highestBidder.bidderId.toString();
-    const isPriceChanged = auction.currentPrice !== newPrice;
+    // 3.1 Ghi nhận bid của người thua (Người vừa vào bid nhưng ko thắng)
+    // Chỉ ghi nhận nếu triggeringBidderId tồn tại VÀ không phải là người thắng
+    if (
+      triggeringBidderId &&
+      triggeringBidderId.toString() !== highestBidder.bidderId.toString()
+    ) {
+      // Tìm thông tin bid của người này trong autoBids (hoặc query lại nếu cần)
+      // Trong logic này, người này chắc chắn nằm trong list autoBids (vì vừa placeBid/update)
+      // Nhưng họ có thể là secondBidder, hoặc thứ 3, 4...
+      const triggeringAutoBid = autoBids.find(
+        (b) => b.bidderId.toString() === triggeringBidderId.toString()
+      );
 
-    if (!isWinnerChanged && !isPriceChanged) {
-      // Không có gì thay đổi (ví dụ user update max amount nhưng vẫn đang thắng và giá ko đổi)
-      return {
-        success: true,
-        currentPrice: auction.currentPrice,
-        currentHighestBidderId: auction.currentHighestBidderId,
-        bidCount: auction.bidCount,
-      };
+      if (triggeringAutoBid) {
+        // Ghi nhận mức giá họ đã bid (Max Amount của họ)
+        // Tuy nhiên, để lịch sử đẹp, ta nên ghi nhận mức giá họ "đẩy" lên.
+        // Nhưng đơn giản nhất là ghi Max Amount của họ (như User yêu cầu: #2 10.8M)
+        bidsToCreate.push({
+          auctionId,
+          productId: auction.productId,
+          bidderId: triggeringBidderId,
+          amount: triggeringAutoBid.maxAmount,
+          isAuto: true,
+          isValid: true,
+          createdAt: new Date(now.getTime() - 100), // Trick: create earlier than winner
+        });
+      }
     }
 
-    // 3.1 Xử lý Auto Extend (Tự động gia hạn) -> Chỉ khi có bid mới thành công làm thay đổi cục diện?
-    // Thông thường auto-extend xảy ra khi có "Valid Bid" near end time.
-    // Việc hệ thống tự nhảy giá có tính là bid mới không? Có.
+    // 3.2 Ghi nhận bid của người thắng (Nếu giá thay đổi HOẶC người thắng thay đổi HOẶC có người vừa challenge)
+    // Luôn ghi nhận bid mới của người thắng nếu có sự kiện xảy ra để cập nhật Price
+    // Tuy nhiên, tránh spam history nếu không có gì thay đổi thực sự
+    // Nhưng ở đây, nếu có triggeringBidderId (có người tác động), ta nên log lại phản ứng của winner.
 
-    let updateData = {
-      currentPrice: newPrice,
-      currentHighestBidderId: highestBidder.bidderId,
-      $inc: { bidCount: 1 }, // Tăng bid count cho mỗi lần nhảy giá? Hay chỉ khi user action?
-      // User yêu cầu: "Hệ thống tự động nhảy giá". Mỗi lần nhảy coi như 1 bid.
-      updatedAt: new Date(),
-    };
+    const shouldLogWinnerBid =
+      isWinnerChanged ||
+      auction.currentPrice !== newPrice ||
+      (triggeringBidderId &&
+        triggeringBidderId.toString() !== highestBidder.bidderId.toString());
 
-    // Check Auto Extend
+    let winnerBidId = null;
+
+    if (shouldLogWinnerBid) {
+      const winnerBid = {
+        auctionId,
+        productId: auction.productId,
+        bidderId: highestBidder.bidderId,
+        amount: newPrice,
+        isAuto: true,
+        isValid: true,
+        createdAt: now,
+      };
+      bidsToCreate.push(winnerBid);
+    }
+
+    // Insert Bids
+    if (bidsToCreate.length > 0) {
+      // Fix: Khi create nhiều docs với session, Mongoose yêu cầu ordered: true
+      const createdBids = await Bid.create(bidsToCreate, {
+        session,
+        ordered: true,
+      });
+      // Lấy ID của bid thắng (là bid cuối cùng trong mảng do ta push sau)
+      const lastBid = createdBids[createdBids.length - 1];
+      if (lastBid.bidderId.toString() === highestBidder.bidderId.toString()) {
+        winnerBidId = lastBid._id;
+      }
+    }
+
+    // 4. Update Auction Data
+    // Nếu không có gì thay đổi về giá/người thắng và không có bid mới, có thể skip update?
+    // Nhưng bidCount cần tăng.
+    // Nếu có bidsToCreate -> có bid mới -> tăng bidCount.
+
+    let updateData = {};
+    let shouldUpdate = false;
+
+    if (auction.currentPrice !== newPrice) {
+      updateData.currentPrice = newPrice;
+      shouldUpdate = true;
+    }
+    if (
+      auction.currentHighestBidderId?.toString() !==
+      highestBidder.bidderId.toString()
+    ) {
+      updateData.currentHighestBidderId = highestBidder.bidderId;
+      shouldUpdate = true;
+    }
+    if (winnerBidId) {
+      updateData.currentHighestBidId = winnerBidId;
+      shouldUpdate = true;
+    }
+
+    if (bidsToCreate.length > 0) {
+      // Tăng bid count theo số lượng bid records tạo ra
+      // Hoặc chỉ tính mỗi lần user action là 1 bid?
+      // Hệ thống đấu giá thường tính số lần giá thay đổi hoặc số lần đặt.
+      // Ở đây ta cộng số record tạo ra.
+      updateData.$inc = { bidCount: bidsToCreate.length };
+      updateData.updatedAt = new Date();
+      shouldUpdate = true;
+    }
+
+    // 4.1 Auto Extend Logic
     const autoExtendEnabled = await SystemSetting.getSetting(
       "autoExtendEnabled",
       true
@@ -269,7 +400,7 @@ export class BidService {
     let autoExtended = false;
     let newEndTime = auction.endAt;
 
-    if (autoExtendEnabled) {
+    if (autoExtendEnabled && bidsToCreate.length > 0) {
       const thresholdMinutes = await SystemSetting.getSetting(
         "autoExtendThreshold",
         5
@@ -279,7 +410,6 @@ export class BidService {
         10
       );
 
-      const now = new Date();
       const timeLeft = new Date(auction.endAt).getTime() - now.getTime();
 
       if (timeLeft > 0 && timeLeft <= thresholdMinutes * 60 * 1000) {
@@ -287,48 +417,33 @@ export class BidService {
           new Date(auction.endAt).getTime() + extendMinutes * 60 * 1000
         );
         autoExtended = true;
-      }
-    }
 
-    // 4. Tạo Bid record mới (Lịch sử nhảy giá)
-    // Để hiển thị trong lịch sử đấu giá
-    const newBidRecord = await Bid.create(
-      [
-        {
-          auctionId,
-          productId: auction.productId,
-          bidderId: highestBidder.bidderId,
-          amount: newPrice,
-          createdAt: new Date(),
-        },
-      ],
-      { session }
-    );
+        updateData.endAt = newEndTime;
+        if (!updateData.$inc) updateData.$inc = {};
+        updateData.$inc.autoExtendCount = 1;
 
-    updateData.currentHighestBidId = newBidRecord[0]._id;
-
-    if (autoExtended) {
-      updateData.endAt = newEndTime;
-      updateData.$inc.autoExtendCount = 1;
-      updateData.$push = {
-        autoExtendHistory: {
+        if (!updateData.$push) updateData.$push = {};
+        updateData.$push.autoExtendHistory = {
           extendedAt: new Date(),
           oldEndTime: auction.endAt,
           newEndTime: newEndTime,
-          triggeredByBidId: newBidRecord[0]._id,
-        },
-      };
+          triggeredByBidId: winnerBidId, // Gắn với bid chiến thắng
+        };
+        shouldUpdate = true;
+      }
     }
 
-    // 5. Update Auction
-    const updatedAuction = await Auction.findByIdAndUpdate(
-      auctionId,
-      updateData,
-      { new: true, session }
-    );
+    // Perform Update
+    let updatedAuction = auction;
+    if (shouldUpdate) {
+      updatedAuction = await Auction.findByIdAndUpdate(auctionId, updateData, {
+        new: true,
+        session,
+      });
+    }
 
     console.log(
-      `[BID SERVICE] Auction Resolved. Winner: ${highestBidder.bidderId}, Price: ${newPrice}`
+      `[BID SERVICE] Auction Resolved. Winner: ${highestBidder.bidderId}, Price: ${newPrice}, BidsCreated: ${bidsToCreate.length}`
     );
 
     return {
@@ -336,6 +451,7 @@ export class BidService {
       currentPrice: updatedAuction.currentPrice,
       currentHighestBidderId: updatedAuction.currentHighestBidderId,
       bidCount: updatedAuction.bidCount,
+      endAt: updatedAuction.endAt,
     };
   }
 
