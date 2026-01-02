@@ -251,62 +251,65 @@ export class BidService {
 
       await session.commitTransaction();
 
-      // --- Send Notifications ---
-      try {
-        const product = await Product.findById(auction.productId);
-        const seller = await User.findById(product.sellerId);
-        const bidder = await User.findById(bidderId);
+      // --- Send Notifications (Background) ---
+      // Don't await these to improve response time
+      (async () => {
+        try {
+          const product = await Product.findById(auction.productId);
+          const seller = await User.findById(product.sellerId);
+          const bidder = await User.findById(bidderId);
 
-        // 1. Send Bid Success to the current bidder
-        const isHighest = resolveResult.currentHighestBidderId?.toString() === bidderId.toString();
-        await sendBidSuccessNotification({
-          bidderEmail: bidder.email,
-          bidderName: bidder.fullName,
-          productTitle: product.title,
-          bidAmount: maxAmount,
-          currentPrice: resolveResult.currentPrice,
-          isHighestBidder: isHighest
-        });
-
-        // 2. Send Price Updated to Seller
-        if (resolveResult.currentPrice !== auction.currentPrice) {
-          await sendPriceUpdatedNotification({
-            sellerEmail: seller.email,
-            sellerName: seller.fullName,
-            productTitle: product.title,
-            previousPrice: auction.currentPrice,
-            newPrice: resolveResult.currentPrice,
+          // 1. Send Bid Success to the current bidder
+          const isHighest = resolveResult.currentHighestBidderId?.toString() === bidderId.toString();
+          await sendBidSuccessNotification({
+            bidderEmail: bidder.email,
             bidderName: bidder.fullName,
-            totalBids: resolveResult.bidCount,
-            auctionUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
-            auctionEndTime: resolveResult.endAt || auction.endAt
+            productTitle: product.title,
+            bidAmount: maxAmount,
+            currentPrice: resolveResult.currentPrice,
+            isHighestBidder: isHighest
           });
-        }
 
-        // 3. Send Outbid Notification to previous winner
-        const previousWinnerId = auction.currentHighestBidderId;
-        if (previousWinnerId && previousWinnerId.toString() !== resolveResult.currentHighestBidderId?.toString()) {
-          if (previousWinnerId.toString() !== bidderId.toString()) {
-            const previousWinner = await User.findById(previousWinnerId);
-            const prevBid = await AutoBid.findOne({ auctionId: auction._id, bidderId: previousWinnerId });
-            const yourBidAmount = prevBid ? prevBid.maxAmount : auction.currentPrice;
+          // 2. Send Price Updated to Seller
+          if (resolveResult.currentPrice !== auction.currentPrice) {
+            await sendPriceUpdatedNotification({
+              sellerEmail: seller.email,
+              sellerName: seller.fullName,
+              productTitle: product.title,
+              previousPrice: auction.currentPrice,
+              newPrice: resolveResult.currentPrice,
+              bidderName: bidder.fullName,
+              totalBids: resolveResult.bidCount,
+              auctionUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
+              auctionEndTime: resolveResult.endAt || auction.endAt
+            });
+          }
 
-            if (previousWinner) {
-              await sendOutbidNotification({
-                previousBidderEmail: previousWinner.email,
-                previousBidderName: previousWinner.fullName,
-                productTitle: product.title,
-                yourBidAmount: yourBidAmount,
-                currentPrice: resolveResult.currentPrice,
-                productUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
-                auctionEndTime: resolveResult.endAt || auction.endAt
-              });
+          // 3. Send Outbid Notification to previous winner
+          const previousWinnerId = auction.currentHighestBidderId;
+          if (previousWinnerId && previousWinnerId.toString() !== resolveResult.currentHighestBidderId?.toString()) {
+            if (previousWinnerId.toString() !== bidderId.toString()) {
+              const previousWinner = await User.findById(previousWinnerId);
+              const prevBid = await AutoBid.findOne({ auctionId: auction._id, bidderId: previousWinnerId });
+              const yourBidAmount = prevBid ? prevBid.maxAmount : auction.currentPrice;
+
+              if (previousWinner) {
+                await sendOutbidNotification({
+                  previousBidderEmail: previousWinner.email,
+                  previousBidderName: previousWinner.fullName,
+                  productTitle: product.title,
+                  yourBidAmount: yourBidAmount,
+                  currentPrice: resolveResult.currentPrice,
+                  productUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
+                  auctionEndTime: resolveResult.endAt || auction.endAt
+                });
+              }
             }
           }
+        } catch (err) {
+          console.error("[BID SERVICE] Error sending background notifications:", err);
         }
-      } catch (err) {
-        console.error("[BID SERVICE] Error sending notifications:", err);
-      }
+      })();
 
       return resolveResult;
     } catch (error) {
