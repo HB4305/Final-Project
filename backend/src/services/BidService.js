@@ -15,7 +15,9 @@ import {
   sendBidSuccessNotification,
   sendPriceUpdatedNotification,
   sendOutbidNotification,
-  sendBidRejectedNotification
+  sendBidRejectedNotification,
+  sendAuctionWinnerNotification,
+  sendAuctionEndedSellerNotification
 } from '../utils/email.js';
 
 export class BidService {
@@ -118,8 +120,101 @@ export class BidService {
           "vi-VN"
         )}đ`,
         400,
-        ERROR_CODES.BID_TOO_LOW
       );
+    }
+
+    // --- CHECK BUY NOW PRICE ---
+    // API 6.3 - Nếu giá đặt >= Giá mua ngay -> Thắng ngay lập tức
+    if (auction.buyNowPrice && maxAmount >= auction.buyNowPrice) {
+      console.log(`[BID SERVICE] Buy Now Triggered! Bidder: ${bidderId}, Amount: ${auction.buyNowPrice}`);
+
+      const session = await Auction.startSession();
+      session.startTransaction();
+
+      try {
+        // 1. Tạo Bid chiến thắng với giá Buy Now
+        const winBid = await Bid.create([{
+          auctionId: auction._id,
+          productId: auction.productId,
+          bidderId: bidderId,
+          amount: auction.buyNowPrice,
+          isAuto: false, // Đây là manual action trigger buy now
+          isValid: true,
+          createdAt: new Date()
+        }], { session });
+
+        // 2. Chốt Auction ngay lập tức
+        const now = new Date();
+        const updatedAuction = await Auction.findByIdAndUpdate(
+          auction._id,
+          {
+            status: AUCTION_STATUS.ENDED,
+            currentPrice: auction.buyNowPrice,
+            currentHighestBidderId: bidderId,
+            currentHighestBidId: winBid[0]._id,
+            endAt: now, // Kết thúc ngay
+            bidCount: auction.bidCount + 1,
+            updatedAt: now
+          },
+          { new: true, session }
+        );
+
+        await session.commitTransaction();
+
+        // 3. Gửi thông báo chiến thắng & kết thúc
+        try {
+          const product = await Product.findById(auction.productId);
+          const seller = await User.findById(product.sellerId);
+
+          // Gửi cho người thắng
+          await sendAuctionWinnerNotification({
+            winnerEmail: bidder.email,
+            winnerName: bidder.fullName,
+            productTitle: product.title,
+            finalPrice: auction.buyNowPrice,
+            sellerName: seller.fullName,
+            sellerEmail: seller.email,
+            sellerPhone: seller.phoneNumber || "N/A",
+            totalBids: updatedAuction.bidCount,
+            endTime: now,
+            orderUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`
+          });
+
+          // Gửi cho người bán
+          await sendAuctionEndedSellerNotification({
+            sellerEmail: seller.email,
+            sellerName: seller.fullName,
+            productTitle: product.title,
+            winnerName: bidder.fullName,
+            winnerEmail: bidder.email,
+            winnerPhone: bidder.phoneNumber || "N/A",
+            finalPrice: auction.buyNowPrice,
+            startPrice: auction.startPrice,
+            totalBids: updatedAuction.bidCount,
+            endTime: now,
+            orderUrl: `${process.env.FRONTEND_URL}/orders` // Link tới quản lý đơn hàng
+          });
+
+        } catch (mailErr) {
+          console.error("[BID SERVICE] Error sending Buy Now notifications:", mailErr);
+        }
+
+        return {
+          success: true,
+          buyNowSuccess: true,
+          currentPrice: auction.buyNowPrice,
+          currentHighestBidderId: bidderId,
+          bidCount: updatedAuction.bidCount,
+          endAt: now,
+          message: "Chúc mừng! Bạn đã thắng phiên đấu giá với giá Mua Ngay."
+        };
+
+      } catch (err) {
+        await session.abortTransaction();
+        throw err;
+      } finally {
+        session.endSession();
+      }
     }
 
     // 6. Lưu AutoBid (Update nếu đã tồn tại, Create nếu chưa)
