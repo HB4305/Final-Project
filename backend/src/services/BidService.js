@@ -445,14 +445,14 @@ export class BidService {
     const seller = await User.findById(product.sellerId);
 
     if (rejectedUser && product) {
-        const productUrl = `${process.env.FRONTEND_BASE_URL}/products/${productId}`;
+        const productUrl = `${process.env.FRONTEND_URL}/product/${productId}`;
         await sendBidRejectedNotification({
             bidderEmail: rejectedUser.email,
             bidderName: rejectedUser.fullName,
             productTitle: product.title,
             sellerName: seller ? seller.fullName : 'Seller',
             reason: reason,
-            homeUrl: process.env.FRONTEND_BASE_URL
+            homeUrl: process.env.FRONTEND_URL
         });
     }
 
