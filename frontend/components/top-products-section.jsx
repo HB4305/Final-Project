@@ -254,7 +254,7 @@ function ProductCard({
       {/* Product Image */}
       <div className="relative h-48 overflow-hidden">
         <Link
-          to={`/product/${product.product?.productId || product.auctionId}`}
+          to={`/product/${product.product?.productId}`}
           className="block w-full h-full"
         >
           <img
@@ -285,7 +285,7 @@ function ProductCard({
       {/* Product Info */}
       <div className="p-4">
         <Link
-          to={`/product/${product.product?.productId || product.auctionId}`}
+          to={`/product/${product.product?.productId}`}
         >
           {/* Title */}
           <h3 className="font-bold text-gray-100 line-clamp-2 group-hover:text-primary transition mb-2 min-h-[3rem]">

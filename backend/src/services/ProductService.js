@@ -26,80 +26,118 @@ export class ProductService {
     try {
       const skip = (page - 1) * limit;
 
-      // Xác định sort order cho Auction query
-      let sortOptions = { createdAt: -1 }; // Default newest (auction creation)
-      if (sortBy === "price_asc") sortOptions = { currentPrice: 1 };
-      if (sortBy === "price_desc") sortOptions = { currentPrice: -1 };
-      if (sortBy === "ending_soon") sortOptions = { endAt: 1 };
-      if (sortBy === "most_bids") sortOptions = { bidCount: -1 };
+      // Xác định sort order cho aggregation stage
+      let sortStage = { createdAt: -1 };
+      if (sortBy === "price_asc") sortStage = { currentPrice: 1 };
+      if (sortBy === "price_desc") sortStage = { currentPrice: -1 };
+      if (sortBy === "ending_soon") sortStage = { endAt: 1 };
+      if (sortBy === "most_bids") sortStage = { bidCount: -1 };
 
       console.log(
-        `[PRODUCT SERVICE] getAllProducts (Optimized) - Sort: ${JSON.stringify(
-          sortOptions
+        `[PRODUCT SERVICE] getAllProducts (Aggregation) - Sort: ${JSON.stringify(
+          sortStage
         )}`
       );
 
-      // 1. Query Auction collection directly (Fast with indexes)
-      const auctions = await Auction.find({ status: status })
-        .sort(sortOptions)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .populate({
-          path: "productId",
-          select: "title slug primaryImageUrl createdAt categoryId isActive",
-          populate: { path: "categoryId", select: "name" },
-        })
-        .populate("sellerId", "username ratingSummary")
-        .populate("currentHighestBidderId", "username")
-        .lean();
+      const pipeline = [
+        // 1. Match active auctions
+        { $match: { status: status } },
+        
+        // 2. Lookup existing product
+        {
+          $lookup: {
+            from: "products",
+            localField: "productId",
+            foreignField: "_id",
+            as: "product",
+          },
+        },
+        
+        // 3. Unwind product and filter only active products
+        { $unwind: "$product" },
+        { $match: { "product.isActive": true } },
+        
+        // 4. Sort
+        { $sort: sortStage },
+        
+        // 5. Facet for data and total count
+        {
+          $facet: {
+            data: [
+              { $skip: skip },
+              { $limit: parseInt(limit) },
+              // 6. Project and lookup additional fields
+              {
+                $lookup: {
+                  from: "users",
+                  localField: "sellerId",
+                  foreignField: "_id",
+                  as: "seller",
+                },
+              },
+              { $unwind: { path: "$seller", preserveNullAndEmptyArrays: true } },
+              {
+                $lookup: {
+                  from: "users",
+                  localField: "currentHighestBidderId",
+                  foreignField: "_id",
+                  as: "bidder",
+                },
+              },
+              { $unwind: { path: "$bidder", preserveNullAndEmptyArrays: true } },
+              {
+                $lookup: {
+                  from: "categories",
+                  localField: "product.categoryId",
+                  foreignField: "_id",
+                  as: "category",
+                },
+              },
+              { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+              {
+                $project: {
+                  _id: "$product._id",
+                  title: "$product.title",
+                  slug: "$product.slug",
+                  primaryImageUrl: "$product.primaryImageUrl",
+                  createdAt: "$product.createdAt",
+                  auction: {
+                    _id: "$_id",
+                    currentPrice: "$currentPrice",
+                    bidCount: "$bidCount",
+                    endAt: "$endAt",
+                    startPrice: "$startPrice",
+                    buyNowPrice: "$buyNowPrice",
+                    currentHighestBidder: "$bidder.username",
+                    status: "$status",
+                  },
+                  seller: {
+                    _id: "$seller._id",
+                    username: "$seller.username",
+                    ratingSummary: "$seller.ratingSummary",
+                    rating: {
+                      $cond: [
+                        { $ifNull: ["$seller.ratingSummary.score", false] },
+                        { $multiply: ["$seller.ratingSummary.score", 5] },
+                        null
+                      ]
+                    }
+                  },
+                  category: {
+                    _id: "$category._id",
+                    name: "$category.name",
+                  },
+                },
+              },
+            ],
+            total: [{ $count: "count" }],
+          },
+        },
+      ];
 
-      // 2. Map results to expected format
-      const products = auctions
-        .filter((auction) => auction.productId && auction.productId.isActive) // Filter out inactive products/nulls
-        .map((auction) => {
-          const product = auction.productId;
-          const seller = auction.sellerId;
-          const bidder = auction.currentHighestBidderId;
-          const category = product.categoryId;
-
-          return {
-            _id: product._id,
-            title: product.title,
-            slug: product.slug,
-            primaryImageUrl: product.primaryImageUrl,
-            // imageUrls removed for optimization
-            createdAt: product.createdAt,
-            auction: {
-              _id: auction._id,
-              currentPrice: auction.currentPrice,
-              bidCount: auction.bidCount,
-              endAt: auction.endAt,
-              startPrice: auction.startPrice,
-              buyNowPrice: auction.buyNowPrice,
-              currentHighestBidder: bidder ? bidder.username : null,
-              status: auction.status,
-            },
-            seller: seller
-              ? {
-                  _id: seller._id,
-                  username: seller.username,
-                  ratingSummary: seller.ratingSummary,
-                  rating: seller.ratingSummary?.score
-                    ? Math.round(seller.ratingSummary.score * 5 * 10) / 10
-                    : null,
-                }
-              : null,
-            category: category
-              ? {
-                  _id: category._id,
-                  name: category.name,
-                }
-              : null,
-          };
-        });
-
-      // 3. Count total (Fast with index)
-      const total = await Auction.countDocuments({ status: status });
+      const result = await Auction.aggregate(pipeline);
+      const products = result[0].data;
+      const total = result[0].total[0]?.count || 0;
       const totalPages = Math.ceil(total / limit);
 
       return {
@@ -129,10 +167,10 @@ export class ProductService {
 
       // Execute queries in parallel
       const [endingSoon, mostBids, highestPrice] = await Promise.all([
-        // Top 5 gần kết thúc
+        // Top 10 gần kết thúc (To ensure 5 valid ones after filtering)
         Auction.find({ status: "active" })
           .sort({ endAt: 1 })
-          .limit(5)
+          .limit(10)
           .populate({
             path: "productId",
             select: "title primaryImageUrl",
@@ -144,10 +182,10 @@ export class ProductService {
           .select("_id currentPrice bidCount endAt")
           .lean(),
 
-        // Top 5 nhiều bids nhất
+        // Top 10 nhiều bids nhất
         Auction.find({ status: "active" })
           .sort({ bidCount: -1 })
-          .limit(5)
+          .limit(10)
           .populate({
             path: "productId",
             select: "title primaryImageUrl",
@@ -159,10 +197,10 @@ export class ProductService {
           .select("_id currentPrice bidCount endAt")
           .lean(),
 
-        // Top 5 giá cao nhất
+        // Top 10 giá cao nhất
         Auction.find({ status: "active" })
           .sort({ currentPrice: -1 })
-          .limit(5)
+          .limit(10)
           .populate({
             path: "productId",
             select: "title primaryImageUrl",
@@ -764,20 +802,23 @@ export class ProductService {
    * Helper: Format danh sách top products để hiển thị
    */
   _formatTopProducts(auctions) {
-    return auctions.map((auction) => ({
-      auctionId: auction._id,
-      product: {
-        productId: auction.productId?._id,
-        title: auction.productId?.title,
-        image: auction.productId?.primaryImageUrl,
-      },
-      currentPrice: auction.currentPrice,
-      bidCount: auction.bidCount,
-      endAt: auction.endAt,
-      timeRemaining: new Date(auction.endAt) - new Date(),
-      currentHighestBidder:
-        auction.currentHighestBidderId?.username || "Chưa có bidder",
-    }));
+    return auctions
+      .filter((auction) => auction.productId) // Only include auctions with valid products
+      .slice(0, 5) // Always return exactly 5 (or less if not enough)
+      .map((auction) => ({
+        auctionId: auction._id,
+        product: {
+          productId: auction.productId?._id || auction.productId,
+          title: auction.productId?.title,
+          image: auction.productId?.primaryImageUrl,
+        },
+        currentPrice: auction.currentPrice,
+        bidCount: auction.bidCount,
+        endAt: auction.endAt,
+        timeRemaining: new Date(auction.endAt) - new Date(),
+        currentHighestBidder:
+          auction.currentHighestBidderId?.username || "Chưa có bidder",
+      }));
   }
 }
 
