@@ -5,25 +5,24 @@
  * ============================================
  */
 
-import { productService } from '../services/ProductService.js';
-import { AppError } from '../utils/errors.js';
-import { isValidObjectId } from '../utils/validators.js';
-import Product from '../models/Product.js';
-import Category from '../models/Category.js';
-import Auction from '../models/Auction.js';
-import Bid from '../models/Bid.js';
-import AutoBid from '../models/AutoBid.js';
-import Watchlist from '../models/Watchlist.js';
-import Question from '../models/Question.js';
+import { productService } from "../services/ProductService.js";
+import { AppError } from "../utils/errors.js";
+import { isValidObjectId } from "../utils/validators.js";
+import Product from "../models/Product.js";
+import Category from "../models/Category.js";
+import Auction from "../models/Auction.js";
+import Bid from "../models/Bid.js";
+import AutoBid from "../models/AutoBid.js";
+import Watchlist from "../models/Watchlist.js";
+import Question from "../models/Question.js";
 import {
   PRODUCT_VALIDATION,
   AUCTION_VALIDATION,
   SORT_OPTIONS,
   PAGINATION,
   PLACEHOLDER_IMAGES,
-  AUCTION_STATUS
-} from '../lib/constants.js';
-
+  AUCTION_STATUS,
+} from "../lib/constants.js";
 
 /**
  * API 1.1: Lấy tất cả sản phẩm (phân trang, không lọc)
@@ -44,46 +43,57 @@ import {
  */
 export const getAllProducts = async (req, res, next) => {
   try {
-    const { 
-      page = PAGINATION.DEFAULT_PAGE, 
-      limit = PAGINATION.DEFAULT_LIMIT, 
-      sortBy = 'newest', 
-      status = AUCTION_STATUS.ACTIVE 
+    const {
+      page = PAGINATION.DEFAULT_PAGE,
+      limit = PAGINATION.DEFAULT_LIMIT,
+      sortBy = "newest",
+      status = AUCTION_STATUS.ACTIVE,
     } = req.query;
 
     // Validate sort options
     if (!SORT_OPTIONS.PRODUCTS.includes(sortBy)) {
-      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${SORT_OPTIONS.PRODUCTS.join(', ')}`, 400, 'INVALID_SORT_OPTION');
+      throw new AppError(
+        `Tùy chọn sắp xếp không hợp lệ. Chọn: ${SORT_OPTIONS.PRODUCTS.join(
+          ", "
+        )}`,
+        400,
+        "INVALID_SORT_OPTION"
+      );
     }
 
     // Validate status options
     const validStatusOptions = Object.values(AUCTION_STATUS);
     if (!validStatusOptions.includes(status)) {
-      throw new AppError(`Trạng thái không hợp lệ. Chọn: ${validStatusOptions.join(', ')}`, 400, 'INVALID_STATUS');
+      throw new AppError(
+        `Trạng thái không hợp lệ. Chọn: ${validStatusOptions.join(", ")}`,
+        400,
+        "INVALID_STATUS"
+      );
     }
 
-    console.log(`[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}, status=${status}`);
+    console.log(
+      `[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}, status=${status}`
+    );
 
     const result = await productService.getAllProducts(
-      parseInt(page), 
-      parseInt(limit), 
-      sortBy, 
+      parseInt(page),
+      parseInt(limit),
+      sortBy,
       status
     );
 
     res.status(200).json({
-      status: 'success',
-      message: 'Lấy danh sách sản phẩm thành công',
+      status: "success",
+      message: "Lấy danh sách sản phẩm thành công",
       data: result.products,
       pagination: result.pagination,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Lỗi trong getAllProducts:', error);
+    console.error("[PRODUCT CONTROLLER] Lỗi trong getAllProducts:", error);
     next(error);
   }
 };
-
 
 /**
  * API: Xóa sản phẩm (Admin only)
@@ -102,33 +112,37 @@ export const deleteProduct = async (req, res, next) => {
 
     // Validate productId
     if (!isValidObjectId(productId)) {
-      throw new AppError('ID sản phẩm không hợp lệ', 400, 'INVALID_PRODUCT_ID');
+      throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
     }
 
-    console.log(`[PRODUCT CONTROLLER] DELETE /api/products/${productId} - Admin: ${userId}`);
+    console.log(
+      `[PRODUCT CONTROLLER] DELETE /api/products/${productId} - Admin: ${userId}`
+    );
 
     // Find product
     const product = await Product.findById(productId);
     if (!product) {
-      throw new AppError('Không tìm thấy sản phẩm', 404, 'PRODUCT_NOT_FOUND');
+      throw new AppError("Không tìm thấy sản phẩm", 404, "PRODUCT_NOT_FOUND");
     }
 
     // Only admin or superadmin can delete products
-    if (!['admin', 'superadmin'].some(role => req.user.roles.includes(role))) {
-      throw new AppError('Bạn không có quyền xóa sản phẩm', 403, 'FORBIDDEN');
+    if (
+      !["admin", "superadmin"].some((role) => req.user.roles.includes(role))
+    ) {
+      throw new AppError("Bạn không có quyền xóa sản phẩm", 403, "FORBIDDEN");
     }
 
     // Find associated auction
     const auction = await Auction.findOne({ productId: productId });
-    
+
     // Check if auction exists and has active bids
     if (auction) {
       // Cannot delete if auction is active
-      if (auction.status === 'active') {
+      if (auction.status === "active") {
         throw new AppError(
-          'Không thể xóa sản phẩm có phiên đấu giá đang hoạt động. Vui lòng chờ đấu giá kết thúc.',
+          "Không thể xóa sản phẩm có phiên đấu giá đang hoạt động. Vui lòng chờ đấu giá kết thúc.",
           400,
-          'AUCTION_ACTIVE'
+          "AUCTION_ACTIVE"
         );
       }
 
@@ -137,11 +151,11 @@ export const deleteProduct = async (req, res, next) => {
         throw new AppError(
           `Không thể xóa sản phẩm có ${auction.bidCount} lượt đặt cược. Vui lòng chờ đấu giá kết thúc.`,
           400,
-          'AUCTION_HAS_BIDS'
+          "AUCTION_HAS_BIDS"
         );
       }
     }
-    
+
     // Delete all related data
     const deletePromises = [];
 
@@ -150,40 +164,43 @@ export const deleteProduct = async (req, res, next) => {
       deletePromises.push(Auction.findByIdAndDelete(auction._id));
       // Delete all auto bids for this auction
       deletePromises.push(AutoBid.deleteMany({ auctionId: auction._id }));
-      console.log(`[PRODUCT CONTROLLER] Xóa auction và auto bids: ${auction._id}`);
+      console.log(
+        `[PRODUCT CONTROLLER] Xóa auction và auto bids: ${auction._id}`
+      );
     }
 
     // Delete all bids for this product
     deletePromises.push(Bid.deleteMany({ productId: productId }));
-    
+
     // Delete all watchlist entries for this product
     deletePromises.push(Watchlist.deleteMany({ productId: productId }));
-    
+
     // Delete all questions for this product
     deletePromises.push(Question.deleteMany({ productId: productId }));
-    
+
     // Delete the product itself
     deletePromises.push(Product.findByIdAndDelete(productId));
 
     // Execute all deletions
     await Promise.all(deletePromises);
-    
-    console.log(`[PRODUCT CONTROLLER] Đã xóa sản phẩm và tất cả dữ liệu liên quan: ${productId}`);
+
+    console.log(
+      `[PRODUCT CONTROLLER] Đã xóa sản phẩm và tất cả dữ liệu liên quan: ${productId}`
+    );
 
     res.status(200).json({
       success: true,
-      message: 'Xóa sản phẩm thành công',
+      message: "Xóa sản phẩm thành công",
       data: {
         productId: product._id,
-        title: product.title
-      }
+        title: product.title,
+      },
     });
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Error in deleteProduct:', error);
+    console.error("[PRODUCT CONTROLLER] Error in deleteProduct:", error);
     next(error);
   }
 };
-
 
 /**
  * API 1.2: Lấy Top 5 sản phẩm cho Trang Chủ
@@ -196,18 +213,20 @@ export const deleteProduct = async (req, res, next) => {
  */
 export const getTopProducts = async (req, res, next) => {
   try {
-    console.log('[PRODUCT CONTROLLER] GET /api/products/home/top - Lấy top products');
+    console.log(
+      "[PRODUCT CONTROLLER] GET /api/products/home/top - Lấy top products"
+    );
 
     const topProducts = await productService.getTopProducts();
 
     res.status(200).json({
-      status: 'success',
-      message: 'Lấy top products thành công',
+      status: "success",
+      message: "Lấy top products thành công",
       data: topProducts,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Lỗi trong getTopProducts:', error);
+    console.error("[PRODUCT CONTROLLER] Lỗi trong getTopProducts:", error);
     next(error);
   }
 };
@@ -226,23 +245,37 @@ export const getTopProducts = async (req, res, next) => {
 export const getProductsByCategory = async (req, res, next) => {
   try {
     const { categoryId } = req.params;
-    const { 
-      page = PAGINATION.DEFAULT_PAGE, 
-      limit = PAGINATION.DEFAULT_LIMIT, 
-      sortBy = 'newest' 
+    const {
+      page = PAGINATION.DEFAULT_PAGE,
+      limit = PAGINATION.DEFAULT_LIMIT,
+      sortBy = "newest",
     } = req.query;
 
-    console.log(`[PRODUCT CONTROLLER] GET /api/products/category/${categoryId}`);
-    console.log(`[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}`);
+    console.log(
+      `[PRODUCT CONTROLLER] GET /api/products/category/${categoryId}`
+    );
+    console.log(
+      `[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}`
+    );
 
     // Validate categoryId
     if (!isValidObjectId(categoryId)) {
-      throw new AppError('ID danh mục không hợp lệ', 400, 'INVALID_CATEGORY_ID');
+      throw new AppError(
+        "ID danh mục không hợp lệ",
+        400,
+        "INVALID_CATEGORY_ID"
+      );
     }
 
     // Validate sort options
     if (!SORT_OPTIONS.PRODUCTS.includes(sortBy)) {
-      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${SORT_OPTIONS.PRODUCTS.join(', ')}`, 400, 'INVALID_SORT_OPTION');
+      throw new AppError(
+        `Tùy chọn sắp xếp không hợp lệ. Chọn: ${SORT_OPTIONS.PRODUCTS.join(
+          ", "
+        )}`,
+        400,
+        "INVALID_SORT_OPTION"
+      );
     }
 
     const result = await productService.getProductsByCategory(
@@ -253,14 +286,17 @@ export const getProductsByCategory = async (req, res, next) => {
     );
 
     res.status(200).json({
-      status: 'success',
-      message: 'Lấy danh sách sản phẩm thành công',
+      status: "success",
+      message: "Lấy danh sách sản phẩm thành công",
       data: result.data,
       pagination: result.pagination,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Lỗi trong getProductsByCategory:', error);
+    console.error(
+      "[PRODUCT CONTROLLER] Lỗi trong getProductsByCategory:",
+      error
+    );
     next(error);
   }
 };
@@ -286,27 +322,39 @@ export const getProductsByCategory = async (req, res, next) => {
  */
 export const searchProducts = async (req, res, next) => {
   try {
-    const { 
-      q = '', 
-      categoryId, 
-      minPrice, 
-      maxPrice, 
-      sortBy = 'relevance', 
-      page = PAGINATION.DEFAULT_PAGE, 
-      limit = PAGINATION.DEFAULT_LIMIT 
+    const {
+      q = "",
+      categoryId,
+      minPrice,
+      maxPrice,
+      sortBy = "relevance",
+      page = PAGINATION.DEFAULT_PAGE,
+      limit = PAGINATION.DEFAULT_LIMIT,
     } = req.query;
 
     console.log(`[PRODUCT CONTROLLER] GET /api/products/search?q="${q}"`);
-    console.log(`[PRODUCT CONTROLLER] Tham số lọc: categoryId=${categoryId}, minPrice=${minPrice}, maxPrice=${maxPrice}, sortBy=${sortBy}`);
+    console.log(
+      `[PRODUCT CONTROLLER] Tham số lọc: categoryId=${categoryId}, minPrice=${minPrice}, maxPrice=${maxPrice}, sortBy=${sortBy}`
+    );
 
     // Validate search query
     if (!q || q.trim().length < 2) {
-      throw new AppError('Vui lòng nhập từ khóa tìm kiếm (ít nhất 2 ký tự)', 400, 'INVALID_SEARCH_QUERY');
+      throw new AppError(
+        "Vui lòng nhập từ khóa tìm kiếm (ít nhất 2 ký tự)",
+        400,
+        "INVALID_SEARCH_QUERY"
+      );
     }
 
     // Validate sort options
     if (!SORT_OPTIONS.SEARCH.includes(sortBy)) {
-      throw new AppError(`Tùy chọn sắp xếp không hợp lệ. Chọn: ${SORT_OPTIONS.SEARCH.join(', ')}`, 400, 'INVALID_SORT_OPTION');
+      throw new AppError(
+        `Tùy chọn sắp xếp không hợp lệ. Chọn: ${SORT_OPTIONS.SEARCH.join(
+          ", "
+        )}`,
+        400,
+        "INVALID_SORT_OPTION"
+      );
     }
 
     // Prepare filters
@@ -314,7 +362,7 @@ export const searchProducts = async (req, res, next) => {
       categoryId: categoryId || null,
       minPrice: minPrice ? parseInt(minPrice) : null,
       maxPrice: maxPrice ? parseInt(maxPrice) : null,
-      sortBy
+      sortBy,
     };
 
     const result = await productService.searchProducts(
@@ -325,15 +373,15 @@ export const searchProducts = async (req, res, next) => {
     );
 
     res.status(200).json({
-      status: 'success',
-      message: 'Tìm kiếm sản phẩm thành công',
+      status: "success",
+      message: "Tìm kiếm sản phẩm thành công",
       data: result.data,
       pagination: result.pagination,
       query: result.query,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Lỗi trong searchProducts:', error);
+    console.error("[PRODUCT CONTROLLER] Lỗi trong searchProducts:", error);
     next(error);
   }
 };
@@ -357,19 +405,19 @@ export const getProductDetail = async (req, res, next) => {
 
     // Validate productId
     if (!isValidObjectId(productId)) {
-      throw new AppError('ID sản phẩm không hợp lệ', 400, 'INVALID_PRODUCT_ID');
+      throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
     }
 
     const result = await productService.getProductDetail(productId);
 
     res.status(200).json({
-      status: 'success',
-      message: 'Lấy chi tiết sản phẩm thành công',
+      status: "success",
+      message: "Lấy chi tiết sản phẩm thành công",
       data: result,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Lỗi trong getProductDetail:', error);
+    console.error("[PRODUCT CONTROLLER] Lỗi trong getProductDetail:", error);
     next(error);
   }
 };
@@ -381,7 +429,7 @@ export const getProductDetail = async (req, res, next) => {
  */
 export const postProduct = async (req, res) => {
   try {
-    console.log('[PRODUCT CONTROLLER] POST /api/products - Đăng sản phẩm mới');
+    console.log("[PRODUCT CONTROLLER] POST /api/products - Đăng sản phẩm mới");
 
     // 1. Lấy dữ liệu từ request
     const {
@@ -393,13 +441,15 @@ export const postProduct = async (req, res) => {
       buyNowPrice,
       startTime,
       endTime,
-      metadata
+      metadata,
     } = req.body;
 
     // 2. Lấy files đã upload (từ multer middleware)
     const uploadedFiles = req.files;
 
-    console.log(`[PRODUCT CONTROLLER] Số ảnh đã upload: ${uploadedFiles?.length || 0}`);
+    console.log(
+      `[PRODUCT CONTROLLER] Số ảnh đã upload: ${uploadedFiles?.length || 0}`
+    );
 
     // ========================================
     // 3. VALIDATE CÁC TRƯỜNG TEXT
@@ -409,14 +459,14 @@ export const postProduct = async (req, res) => {
     if (!title || title.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Tên sản phẩm không được để trống'
+        message: "Tên sản phẩm không được để trống",
       });
     }
 
     if (title.length > PRODUCT_VALIDATION.TITLE_MAX_LENGTH) {
       return res.status(400).json({
         success: false,
-        message: `Tên sản phẩm không được vượt quá ${PRODUCT_VALIDATION.TITLE_MAX_LENGTH} ký tự`
+        message: `Tên sản phẩm không được vượt quá ${PRODUCT_VALIDATION.TITLE_MAX_LENGTH} ký tự`,
       });
     }
 
@@ -424,14 +474,14 @@ export const postProduct = async (req, res) => {
     if (!description || description.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Mô tả sản phẩm không được để trống'
+        message: "Mô tả sản phẩm không được để trống",
       });
     }
 
     if (description.length < PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH) {
       return res.status(400).json({
         success: false,
-        message: `Mô tả sản phẩm phải có ít nhất ${PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH} ký tự`
+        message: `Mô tả sản phẩm phải có ít nhất ${PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH} ký tự`,
       });
     }
 
@@ -439,7 +489,7 @@ export const postProduct = async (req, res) => {
     if (!categoryId) {
       return res.status(400).json({
         success: false,
-        message: 'Danh mục sản phẩm là bắt buộc'
+        message: "Danh mục sản phẩm là bắt buộc",
       });
     }
 
@@ -448,7 +498,7 @@ export const postProduct = async (req, res) => {
     if (!categoryExists) {
       return res.status(404).json({
         success: false,
-        message: 'Danh mục không tồn tại'
+        message: "Danh mục không tồn tại",
       });
     }
 
@@ -460,7 +510,7 @@ export const postProduct = async (req, res) => {
     if (!startPrice) {
       return res.status(400).json({
         success: false,
-        message: 'Giá khởi điểm là bắt buộc'
+        message: "Giá khởi điểm là bắt buộc",
       });
     }
 
@@ -469,28 +519,28 @@ export const postProduct = async (req, res) => {
     if (isNaN(numStartPrice)) {
       return res.status(400).json({
         success: false,
-        message: 'Giá khởi điểm phải là số hợp lệ'
+        message: "Giá khởi điểm phải là số hợp lệ",
       });
     }
 
     if (!Number.isInteger(numStartPrice)) {
       return res.status(400).json({
         success: false,
-        message: 'Giá khởi điểm phải là số nguyên'
+        message: "Giá khởi điểm phải là số nguyên",
       });
     }
 
     if (numStartPrice <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Giá khởi điểm phải lớn hơn 0'
+        message: "Giá khởi điểm phải lớn hơn 0",
       });
     }
 
     if (numStartPrice < AUCTION_VALIDATION.MIN_START_PRICE) {
       return res.status(400).json({
         success: false,
-        message: `Giá khởi điểm tối thiểu là ${AUCTION_VALIDATION.MIN_START_PRICE.toLocaleString()} VND`
+        message: `Giá khởi điểm tối thiểu là ${AUCTION_VALIDATION.MIN_START_PRICE.toLocaleString()} VND`,
       });
     }
 
@@ -498,7 +548,7 @@ export const postProduct = async (req, res) => {
     if (!priceStep) {
       return res.status(400).json({
         success: false,
-        message: 'Bước giá là bắt buộc'
+        message: "Bước giá là bắt buộc",
       });
     }
 
@@ -507,28 +557,28 @@ export const postProduct = async (req, res) => {
     if (isNaN(numPriceStep)) {
       return res.status(400).json({
         success: false,
-        message: 'Bước giá phải là số hợp lệ'
+        message: "Bước giá phải là số hợp lệ",
       });
     }
 
     if (!Number.isInteger(numPriceStep)) {
       return res.status(400).json({
         success: false,
-        message: 'Bước giá phải là số nguyên'
+        message: "Bước giá phải là số nguyên",
       });
     }
 
     if (numPriceStep <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Bước giá phải lớn hơn 0'
+        message: "Bước giá phải lớn hơn 0",
       });
     }
 
     if (numPriceStep < AUCTION_VALIDATION.MIN_PRICE_STEP) {
       return res.status(400).json({
         success: false,
-        message: `Bước giá tối thiểu là ${AUCTION_VALIDATION.MIN_PRICE_STEP.toLocaleString()} VND`
+        message: `Bước giá tối thiểu là ${AUCTION_VALIDATION.MIN_PRICE_STEP.toLocaleString()} VND`,
       });
     }
 
@@ -536,7 +586,7 @@ export const postProduct = async (req, res) => {
     if (numPriceStep >= numStartPrice) {
       return res.status(400).json({
         success: false,
-        message: `Bước giá (${numPriceStep.toLocaleString()} VND) phải nhỏ hơn giá khởi điểm (${numStartPrice.toLocaleString()} VND)`
+        message: `Bước giá (${numPriceStep.toLocaleString()} VND) phải nhỏ hơn giá khởi điểm (${numStartPrice.toLocaleString()} VND)`,
       });
     }
 
@@ -544,28 +594,33 @@ export const postProduct = async (req, res) => {
     // Validate buyNowPrice (optional)
     // ========================================
     let numBuyNowPrice = null;
-    
-    if (buyNowPrice !== undefined && buyNowPrice !== null && buyNowPrice !== '' && buyNowPrice !== '0') {
+
+    if (
+      buyNowPrice !== undefined &&
+      buyNowPrice !== null &&
+      buyNowPrice !== "" &&
+      buyNowPrice !== "0"
+    ) {
       numBuyNowPrice = Number(buyNowPrice);
 
       if (isNaN(numBuyNowPrice)) {
         return res.status(400).json({
           success: false,
-          message: 'Giá mua ngay phải là số hợp lệ'
+          message: "Giá mua ngay phải là số hợp lệ",
         });
       }
 
       if (!Number.isInteger(numBuyNowPrice)) {
         return res.status(400).json({
           success: false,
-          message: 'Giá mua ngay phải là số nguyên'
+          message: "Giá mua ngay phải là số nguyên",
         });
       }
 
       if (numBuyNowPrice <= 0) {
         return res.status(400).json({
           success: false,
-          message: 'Giá mua ngay phải lớn hơn 0'
+          message: "Giá mua ngay phải lớn hơn 0",
         });
       }
 
@@ -573,7 +628,7 @@ export const postProduct = async (req, res) => {
       if (numBuyNowPrice <= numStartPrice) {
         return res.status(400).json({
           success: false,
-          message: `Giá mua ngay (${numBuyNowPrice.toLocaleString()} VND) phải lớn hơn giá khởi điểm (${numStartPrice.toLocaleString()} VND)`
+          message: `Giá mua ngay (${numBuyNowPrice.toLocaleString()} VND) phải lớn hơn giá khởi điểm (${numStartPrice.toLocaleString()} VND)`,
         });
       }
     }
@@ -584,7 +639,7 @@ export const postProduct = async (req, res) => {
     if (!startTime || !endTime) {
       return res.status(400).json({
         success: false,
-        message: 'Thời gian bắt đầu và kết thúc là bắt buộc'
+        message: "Thời gian bắt đầu và kết thúc là bắt buộc",
       });
     }
 
@@ -595,28 +650,28 @@ export const postProduct = async (req, res) => {
     if (isNaN(startDate.getTime())) {
       return res.status(400).json({
         success: false,
-        message: 'Thời gian bắt đầu không hợp lệ'
+        message: "Thời gian bắt đầu không hợp lệ",
       });
     }
 
     if (isNaN(endDate.getTime())) {
       return res.status(400).json({
         success: false,
-        message: 'Thời gian kết thúc không hợp lệ'
+        message: "Thời gian kết thúc không hợp lệ",
       });
     }
 
     if (startDate <= now) {
       return res.status(400).json({
         success: false,
-        message: 'Thời gian bắt đầu phải sau thời điểm hiện tại'
+        message: "Thời gian bắt đầu phải sau thời điểm hiện tại",
       });
     }
 
     if (endDate <= startDate) {
       return res.status(400).json({
         success: false,
-        message: 'Thời gian kết thúc phải sau thời gian bắt đầu'
+        message: "Thời gian kết thúc phải sau thời gian bắt đầu",
       });
     }
 
@@ -624,7 +679,7 @@ export const postProduct = async (req, res) => {
     if (endDate - startDate < minDuration) {
       return res.status(400).json({
         success: false,
-        message: `Thời gian đấu giá phải ít nhất ${AUCTION_VALIDATION.MIN_DURATION_HOURS} giờ`
+        message: `Thời gian đấu giá phải ít nhất ${AUCTION_VALIDATION.MIN_DURATION_HOURS} giờ`,
       });
     }
 
@@ -637,21 +692,27 @@ export const postProduct = async (req, res) => {
 
     // Nếu có middleware upload
     if (uploadedFiles && uploadedFiles.length > 0) {
-      console.log(`[PRODUCT CONTROLLER] Converting ${uploadedFiles.length} ảnh sang base64...`);
+      console.log(
+        `[PRODUCT CONTROLLER] Converting ${uploadedFiles.length} ảnh sang base64...`
+      );
 
       // Convert mỗi file buffer sang base64 data URI
-      imageUrls = uploadedFiles.map(file => {
-        const b64 = Buffer.from(file.buffer).toString('base64');
+      imageUrls = uploadedFiles.map((file) => {
+        const b64 = Buffer.from(file.buffer).toString("base64");
         return `data:${file.mimetype};base64,${b64}`;
       });
 
       primaryImageUrl = imageUrls[0];
 
-      console.log(`[PRODUCT CONTROLLER] ✓ Đã chuyển đổi ${imageUrls.length} ảnh sang base64`);
+      console.log(
+        `[PRODUCT CONTROLLER] ✓ Đã chuyển đổi ${imageUrls.length} ảnh sang base64`
+      );
     }
     // Nếu không có middleware (test mode)
     else {
-      console.log('[PRODUCT CONTROLLER] ⚠️ TEST MODE: Sử dụng placeholder image URLs');
+      console.log(
+        "[PRODUCT CONTROLLER] ⚠️ TEST MODE: Sử dụng placeholder image URLs"
+      );
 
       imageUrls = PLACEHOLDER_IMAGES.PRODUCT;
       primaryImageUrl = imageUrls[0];
@@ -663,25 +724,25 @@ export const postProduct = async (req, res) => {
     const slug = title
       .toLowerCase()
       .trim()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/(^-|-$)/g, '');
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/(^-|-$)/g, "");
 
     // ========================================
     // 8. TẠO PRODUCT
     // ========================================
-    
+
     // Lấy sellerId từ authenticated user
     const sellerId = req.user?._id || req.user?.id;
-    
+
     if (!sellerId) {
       return res.status(401).json({
         success: false,
-        message: 'Vui lòng đăng nhập để đăng sản phẩm'
+        message: "Vui lòng đăng nhập để đăng sản phẩm",
       });
     }
 
@@ -694,21 +755,24 @@ export const postProduct = async (req, res) => {
         {
           text: description.trim(),
           createdAt: new Date(),
-          authorId: sellerId
-        }
+          authorId: sellerId,
+        },
       ],
       primaryImageUrl,
       imageUrls,
       // Nếu gửi JSON: metadata đã là object
       // Nếu gửi form-data: metadata là string, cần parse
-      metadata: typeof metadata === 'string' ? JSON.parse(metadata) : (metadata || {}),
-      baseCurrency: 'VND',
+      metadata:
+        typeof metadata === "string" ? JSON.parse(metadata) : metadata || {},
+      baseCurrency: "VND",
       isActive: true,
       flags: {
         featured: false,
         highlightedUntil: null,
-        isNewUntil: new Date(Date.now() + AUCTION_VALIDATION.NEW_PRODUCT_DAYS * 24 * 60 * 60 * 1000)
-      }
+        isNewUntil: new Date(
+          Date.now() + AUCTION_VALIDATION.NEW_PRODUCT_DAYS * 24 * 60 * 60 * 1000
+        ),
+      },
     });
 
     const savedProduct = await newProduct.save();
@@ -725,9 +789,10 @@ export const postProduct = async (req, res) => {
       currentPrice: numStartPrice,
       startAt: startDate,
       endAt: endDate,
-      status: startDate > now ? AUCTION_STATUS.SCHEDULED : AUCTION_STATUS.ACTIVE,
+      status:
+        startDate > now ? AUCTION_STATUS.SCHEDULED : AUCTION_STATUS.ACTIVE,
       bidCount: 0,
-      autoExtendEnabled: true
+      autoExtendEnabled: true,
     };
 
     // Thêm buyNowPrice nếu có
@@ -743,15 +808,15 @@ export const postProduct = async (req, res) => {
     // ========================================
     // 10. TRẢ VỀ RESPONSE
     // ========================================
-    await savedProduct.populate('categoryId', 'name slug');
+    await savedProduct.populate("categoryId", "name slug");
 
     const isTestMode = !uploadedFiles || uploadedFiles.length === 0;
 
     return res.status(201).json({
       success: true,
       message: isTestMode
-        ? '✅ TEST MODE: Đăng sản phẩm thành công (fake images)'
-        : 'Đăng sản phẩm đấu giá thành công',
+        ? "✅ TEST MODE: Đăng sản phẩm thành công (fake images)"
+        : "Đăng sản phẩm đấu giá thành công",
       data: {
         product: {
           _id: savedProduct._id,
@@ -762,7 +827,7 @@ export const postProduct = async (req, res) => {
           imageUrls: savedProduct.imageUrls,
           description: savedProduct.descriptionHistory[0].text,
           metadata: savedProduct.metadata,
-          createdAt: savedProduct.createdAt
+          createdAt: savedProduct.createdAt,
         },
         auction: {
           _id: savedAuction._id,
@@ -770,32 +835,31 @@ export const postProduct = async (req, res) => {
           priceStep: savedAuction.priceStep,
           buyNowPrice: savedAuction.buyNowPrice || null,
           currentPrice: savedAuction.currentPrice,
-          startTime: savedAuction.startAt,  // ← Map từ startAt
-          endTime: savedAuction.endAt,      // ← Map từ endAt
+          startTime: savedAuction.startAt, // ← Map từ startAt
+          endTime: savedAuction.endAt, // ← Map từ endAt
           status: savedAuction.status,
-          bidCount: savedAuction.bidCount
-        }
-      }
+          bidCount: savedAuction.bidCount,
+        },
+      },
     });
-
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Error in postProduct:', error);
+    console.error("[PRODUCT CONTROLLER] Error in postProduct:", error);
 
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
-        message: 'Dữ liệu không hợp lệ',
-        errors: Object.keys(error.errors).map(key => ({
+        message: "Dữ liệu không hợp lệ",
+        errors: Object.keys(error.errors).map((key) => ({
           field: key,
-          message: error.errors[key].message
-        }))
+          message: error.errors[key].message,
+        })),
       });
     }
 
     return res.status(500).json({
       success: false,
-      message: 'Lỗi server khi đăng sản phẩm',
-      error: error.message
+      message: "Lỗi server khi đăng sản phẩm",
+      error: error.message,
     });
   }
 };
@@ -815,15 +879,15 @@ export const toggleAutoExtend = async (req, res, next) => {
     if (!isValidObjectId(productId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid product ID'
+        message: "Invalid product ID",
       });
     }
 
     // Validate autoExtendEnabled
-    if (typeof autoExtendEnabled !== 'boolean') {
+    if (typeof autoExtendEnabled !== "boolean") {
       return res.status(400).json({
         success: false,
-        message: 'autoExtendEnabled must be a boolean'
+        message: "autoExtendEnabled must be a boolean",
       });
     }
 
@@ -832,18 +896,19 @@ export const toggleAutoExtend = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found'
+        message: "Product not found",
       });
     }
 
     // Check ownership: seller hoặc admin
-    const isAdmin = userRoles.includes('admin') || userRoles.includes('superadmin');
+    const isAdmin =
+      userRoles.includes("admin") || userRoles.includes("superadmin");
     const isSeller = userId && product.seller.toString() === userId.toString();
-    
+
     if (userId && !isAdmin && !isSeller) {
       return res.status(403).json({
         success: false,
-        message: 'You are not authorized to modify this product'
+        message: "You are not authorized to modify this product",
       });
     }
 
@@ -852,15 +917,15 @@ export const toggleAutoExtend = async (req, res, next) => {
     if (!auction) {
       return res.status(404).json({
         success: false,
-        message: 'Auction not found for this product'
+        message: "Auction not found for this product",
       });
     }
 
     // Check if auction is still active
-    if (auction.status !== 'active') {
+    if (auction.status !== "active") {
       return res.status(400).json({
         success: false,
-        message: 'Can only modify auto-extend for active auctions'
+        message: "Can only modify auto-extend for active auctions",
       });
     }
 
@@ -870,13 +935,15 @@ export const toggleAutoExtend = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: `Auto-extend ${autoExtendEnabled ? 'enabled' : 'disabled'} successfully`,
+      message: `Auto-extend ${
+        autoExtendEnabled ? "enabled" : "disabled"
+      } successfully`,
       data: {
         productId,
         auctionId: auction._id,
         autoExtendEnabled: auction.autoExtendEnabled,
-        autoExtendCount: auction.autoExtendCount || 0
-      }
+        autoExtendCount: auction.autoExtendCount || 0,
+      },
     });
   } catch (error) {
     next(error);
@@ -898,13 +965,15 @@ export const updateProductDescription = async (req, res, next) => {
     const userId = req.user?._id;
     const userRoles = req.user?.roles || [];
 
-    console.log(`[PRODUCT CONTROLLER] PUT /api/products/${productId}/description`);
+    console.log(
+      `[PRODUCT CONTROLLER] PUT /api/products/${productId}/description`
+    );
 
     // Validate productId
     if (!isValidObjectId(productId)) {
       return res.status(400).json({
         success: false,
-        message: 'ID sản phẩm không hợp lệ'
+        message: "ID sản phẩm không hợp lệ",
       });
     }
 
@@ -913,18 +982,20 @@ export const updateProductDescription = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: 'Sản phẩm không tồn tại'
+        message: "Sản phẩm không tồn tại",
       });
     }
 
     // Check ownership: seller hoặc admin
-    const isAdmin = userRoles.includes('admin') || userRoles.includes('superadmin');
-    const isSeller = userId && product.sellerId.toString() === userId.toString();
-    
+    const isAdmin =
+      userRoles.includes("admin") || userRoles.includes("superadmin");
+    const isSeller =
+      userId && product.sellerId.toString() === userId.toString();
+
     if (!isAdmin && !isSeller) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền chỉnh sửa sản phẩm này'
+        message: "Bạn không có quyền chỉnh sửa sản phẩm này",
       });
     }
 
@@ -933,15 +1004,16 @@ export const updateProductDescription = async (req, res, next) => {
     if (!auction) {
       return res.status(404).json({
         success: false,
-        message: 'Phiên đấu giá không tồn tại'
+        message: "Phiên đấu giá không tồn tại",
       });
     }
 
     // Check auction status - không cho phép edit khi ended/cancelled
-    if (['ended', 'cancelled'].includes(auction.status)) {
+    if (["ended", "cancelled"].includes(auction.status)) {
       return res.status(400).json({
         success: false,
-        message: 'Không thể cập nhật mô tả cho phiên đấu giá đã kết thúc hoặc bị hủy'
+        message:
+          "Không thể cập nhật mô tả cho phiên đấu giá đã kết thúc hoặc bị hủy",
       });
     }
 
@@ -950,14 +1022,14 @@ export const updateProductDescription = async (req, res, next) => {
       if (!description || description.trim().length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Mô tả sản phẩm không được để trống'
+          message: "Mô tả sản phẩm không được để trống",
         });
       }
 
       if (description.length < PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH) {
         return res.status(400).json({
           success: false,
-          message: `Mô tả sản phẩm phải có ít nhất ${PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH} ký tự`
+          message: `Mô tả sản phẩm phải có ít nhất ${PRODUCT_VALIDATION.DESCRIPTION_MIN_LENGTH} ký tự`,
         });
       }
 
@@ -965,32 +1037,33 @@ export const updateProductDescription = async (req, res, next) => {
       product.descriptionHistory.push({
         text: description.trim(),
         createdAt: new Date(),
-        authorId: userId
+        authorId: userId,
       });
 
-      console.log('[PRODUCT CONTROLLER] Added new description to history');
+      console.log("[PRODUCT CONTROLLER] Added new description to history");
     }
-    
+
     // Update metadata nếu có
     if (metadata !== undefined) {
       product.metadata = { ...product.metadata, ...metadata };
-      console.log('[PRODUCT CONTROLLER] Updated metadata');
+      console.log("[PRODUCT CONTROLLER] Updated metadata");
     }
-    
+
     product.updatedAt = new Date();
     await product.save();
 
     // Populate để trả về đầy đủ
-    await product.populate('categoryId', 'name slug');
+    await product.populate("categoryId", "name slug");
 
     // Get latest description
-    const latestDescription = product.descriptionHistory.length > 0 
-      ? product.descriptionHistory[product.descriptionHistory.length - 1].text 
-      : '';
+    const latestDescription =
+      product.descriptionHistory.length > 0
+        ? product.descriptionHistory[product.descriptionHistory.length - 1].text
+        : "";
 
     res.json({
       success: true,
-      message: 'Cập nhật mô tả sản phẩm thành công',
+      message: "Cập nhật mô tả sản phẩm thành công",
       data: {
         product: {
           _id: product._id,
@@ -1000,12 +1073,15 @@ export const updateProductDescription = async (req, res, next) => {
           metadata: product.metadata,
           primaryImageUrl: product.primaryImageUrl,
           category: product.categoryId,
-          updatedAt: product.updatedAt
-        }
-      }
+          updatedAt: product.updatedAt,
+        },
+      },
     });
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Error in updateProductDescription:', error);
+    console.error(
+      "[PRODUCT CONTROLLER] Error in updateProductDescription:",
+      error
+    );
     next(error);
   }
 };
@@ -1025,28 +1101,30 @@ export const rejectBidder = async (req, res, next) => {
     const userId = req.user?._id;
     const userRoles = req.user?.roles || [];
 
-    console.log(`[PRODUCT CONTROLLER] POST /api/products/${productId}/reject-bidder`);
+    console.log(
+      `[PRODUCT CONTROLLER] POST /api/products/${productId}/reject-bidder`
+    );
     console.log(`[PRODUCT CONTROLLER] Rejecting bidder: ${bidderId}`);
 
     // Validate input
     if (!isValidObjectId(productId)) {
       return res.status(400).json({
         success: false,
-        message: 'ID sản phẩm không hợp lệ'
+        message: "ID sản phẩm không hợp lệ",
       });
     }
 
     if (!isValidObjectId(bidderId)) {
       return res.status(400).json({
         success: false,
-        message: 'ID bidder không hợp lệ'
+        message: "ID bidder không hợp lệ",
       });
     }
 
     if (!reason || reason.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Lý do từ chối là bắt buộc'
+        message: "Lý do từ chối là bắt buộc",
       });
     }
 
@@ -1054,7 +1132,7 @@ export const rejectBidder = async (req, res, next) => {
     if (userId && userId.toString() === bidderId.toString()) {
       return res.status(400).json({
         success: false,
-        message: 'Bạn không thể từ chối chính mình'
+        message: "Bạn không thể từ chối chính mình",
       });
     }
 
@@ -1063,42 +1141,51 @@ export const rejectBidder = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: 'Sản phẩm không tồn tại'
+        message: "Sản phẩm không tồn tại",
       });
     }
 
     // Check ownership: seller hoặc admin
-    const isAdmin = userRoles.includes('admin') || userRoles.includes('superadmin');
-    const isSeller = userId && product.sellerId.toString() === userId.toString();
-    
+    const isAdmin =
+      userRoles.includes("admin") || userRoles.includes("superadmin");
+    const isSeller =
+      userId && product.sellerId.toString() === userId.toString();
+
     if (!isAdmin && !isSeller) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền từ chối bidder cho sản phẩm này'
+        message: "Bạn không có quyền từ chối bidder cho sản phẩm này",
       });
     }
 
     // Call BidService to handle rejection logic
-    const { BidService: BidServiceClass } = await import('../services/BidService.js');
+    const { BidService: BidServiceClass } = await import(
+      "../services/BidService.js"
+    );
     const bidService = new BidServiceClass();
-    
-    const result = await bidService.rejectBidder(productId, bidderId, userId, reason);
+
+    const result = await bidService.rejectBidder(
+      productId,
+      bidderId,
+      userId,
+      reason
+    );
 
     res.json({
       success: true,
-      message: 'Từ chối bidder thành công',
-      data: result
+      message: "Từ chối bidder thành công",
+      data: result,
     });
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Error in rejectBidder:', error);
-    
-    if (error.message === 'Auction not found') {
+    console.error("[PRODUCT CONTROLLER] Error in rejectBidder:", error);
+
+    if (error.message === "Auction not found") {
       return res.status(404).json({
         success: false,
-        message: 'Phiên đấu giá không tồn tại'
+        message: "Phiên đấu giá không tồn tại",
       });
     }
-    
+
     next(error);
   }
 };
@@ -1116,57 +1203,63 @@ export const withdrawBid = async (req, res, next) => {
     const { reason } = req.body;
     const userId = req.user?._id;
 
-    console.log(`[PRODUCT CONTROLLER] POST /api/products/${productId}/withdraw-bid`);
+    console.log(
+      `[PRODUCT CONTROLLER] POST /api/products/${productId}/withdraw-bid`
+    );
     console.log(`[PRODUCT CONTROLLER] User ${userId} withdrawing bid`);
 
     // Validate input
     if (!isValidObjectId(productId)) {
       return res.status(400).json({
         success: false,
-        message: 'ID sản phẩm không hợp lệ'
+        message: "ID sản phẩm không hợp lệ",
       });
     }
 
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: 'Vui lòng đăng nhập'
+        message: "Vui lòng đăng nhập",
       });
     }
 
     // Call BidService to handle withdrawal logic
-    const { BidService: BidServiceClass } = await import('../services/BidService.js');
+    const { BidService: BidServiceClass } = await import(
+      "../services/BidService.js"
+    );
     const bidService = new BidServiceClass();
-    
+
     const result = await bidService.withdrawBid(
-      productId, 
-      userId.toString(), 
-      reason || 'Bidder tự rút lại giá'
+      productId,
+      userId.toString(),
+      reason || "Bidder tự rút lại giá"
     );
 
     res.json({
       success: true,
-      message: 'Rút giá thành công',
-      data: result
+      message: "Rút giá thành công",
+      data: result,
     });
   } catch (error) {
-    console.error('[PRODUCT CONTROLLER] Error in withdrawBid:', error);
-    
-    if (error.message.includes('not found')) {
+    console.error("[PRODUCT CONTROLLER] Error in withdrawBid:", error);
+
+    if (error.message.includes("not found")) {
       return res.status(404).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
-    
-    if (error.message.includes('no active bids') || error.message.includes('only withdraw')) {
+
+    if (
+      error.message.includes("no active bids") ||
+      error.message.includes("only withdraw")
+    ) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
-    
+
     next(error);
   }
 };
-

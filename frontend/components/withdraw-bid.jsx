@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { LogOut, AlertCircle, Info } from 'lucide-react';
-import * as productService from '../app/services/productService';
+import React, { useState } from "react";
+import { LogOut, AlertCircle, Info } from "lucide-react";
+import * as productService from "../app/services/productService";
+import Toast from "./Toast";
 
 /**
  * WithdrawBid Component
@@ -9,32 +10,38 @@ import * as productService from '../app/services/productService';
  */
 export default function WithdrawBid({ productId, currentBid, onWithdraw }) {
   const [showModal, setShowModal] = useState(false);
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState(null);
 
   const handleWithdraw = async () => {
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const response = await productService.withdrawBid(
         productId,
-        reason.trim() || 'Bidder tự rút lại giá'
+        reason.trim() || "Bidder tự rút lại giá"
       );
 
       if (response.success) {
-        alert('✅ Đã rút giá thành công!');
-        setShowModal(false);
-        if (onWithdraw) {
-          onWithdraw(response.data);
-        }
+        setToast({
+          type: "success",
+          message: "✅ Đã rút giá thành công!",
+          onClose: () => {
+            setShowModal(false);
+            if (onWithdraw) {
+              onWithdraw(response.data);
+            }
+          },
+        });
       } else {
-        setError(response.message || 'Không thể rút giá');
+        setError(response.message || "Không thể rút giá");
       }
     } catch (err) {
-      console.error('Error withdrawing bids:', err);
-      setError(err.response?.data?.message || 'Đã xảy ra lỗi khi rút giá');
+      console.error("Error withdrawing bids:", err);
+      setError(err.response?.data?.message || "Đã xảy ra lỗi khi rút giá");
     } finally {
       setLoading(false);
     }
@@ -42,6 +49,16 @@ export default function WithdrawBid({ productId, currentBid, onWithdraw }) {
 
   return (
     <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => {
+            setToast(null);
+            if (toast.onClose) toast.onClose();
+          }}
+        />
+      )}
       <button
         onClick={() => setShowModal(true)}
         className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition shadow-sm"
@@ -58,7 +75,9 @@ export default function WithdrawBid({ productId, currentBid, onWithdraw }) {
                 <AlertCircle className="w-6 h-6 text-orange-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Rút lại giá đặt</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Rút lại giá đặt
+                </h3>
                 <p className="text-sm text-gray-600">
                   Bạn có chắc muốn rút tất cả giá đã đặt?
                 </p>
@@ -70,10 +89,12 @@ export default function WithdrawBid({ productId, currentBid, onWithdraw }) {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Info className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-900">Giá hiện tại của bạn</span>
+                  <span className="text-sm font-medium text-blue-900">
+                    Giá hiện tại của bạn
+                  </span>
                 </div>
                 <p className="text-xl font-bold text-blue-900 ml-6">
-                  {currentBid.toLocaleString('vi-VN')} VND
+                  {currentBid.toLocaleString("vi-VN")} VND
                 </p>
               </div>
             )}
@@ -86,8 +107,13 @@ export default function WithdrawBid({ productId, currentBid, onWithdraw }) {
               <ul className="list-disc list-inside text-sm text-orange-800 space-y-1">
                 <li>Vô hiệu hóa tất cả giá đặt của bạn cho sản phẩm này</li>
                 <li>Xóa các auto-bids đã thiết lập</li>
-                <li>Chuyển người thắng cho người đặt giá thứ 2 (nếu bạn đang thắng)</li>
-                <li><strong>Không thể hoàn tác</strong></li>
+                <li>
+                  Chuyển người thắng cho người đặt giá thứ 2 (nếu bạn đang
+                  thắng)
+                </li>
+                <li>
+                  <strong>Không thể hoàn tác</strong>
+                </li>
               </ul>
             </div>
 
@@ -100,13 +126,14 @@ export default function WithdrawBid({ productId, currentBid, onWithdraw }) {
             {/* Reason Input */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lý do rút giá <span className="text-gray-400">(Không bắt buộc)</span>
+                Lý do rút giá{" "}
+                <span className="text-gray-400">(Không bắt buộc)</span>
               </label>
               <textarea
                 value={reason}
                 onChange={(e) => {
                   setReason(e.target.value);
-                  setError('');
+                  setError("");
                 }}
                 placeholder="Ví dụ: Không còn nhu cầu mua sản phẩm này, đã tìm được sản phẩm khác..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none"
@@ -122,13 +149,13 @@ export default function WithdrawBid({ productId, currentBid, onWithdraw }) {
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-orange-400 disabled:cursor-not-allowed transition font-medium"
               >
                 <LogOut className="w-4 h-4" />
-                {loading ? 'Đang xử lý...' : 'Xác nhận rút giá'}
+                {loading ? "Đang xử lý..." : "Xác nhận rút giá"}
               </button>
               <button
                 onClick={() => {
                   setShowModal(false);
-                  setReason('');
-                  setError('');
+                  setReason("");
+                  setError("");
                 }}
                 disabled={loading}
                 className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 transition font-medium"

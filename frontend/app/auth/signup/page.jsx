@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
@@ -23,6 +23,7 @@ export default function SignupPage() {
 
   // State cho reCaptcha
   const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const recaptchaRef = useRef(null);
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -75,7 +76,14 @@ export default function SignupPage() {
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      // Reset reCAPTCHA if validation fails
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+        setRecaptchaToken(null);
+      }
+      return;
+    }
 
     setIsLoading(true);
     setErrors({});
@@ -112,6 +120,13 @@ export default function SignupPage() {
       }, 2000);
     } catch (err) {
       setIsLoading(false);
+
+      // Reset reCAPTCHA on error
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+        setRecaptchaToken(null);
+      }
+
       console.error("[SIGNUP] Error:", err.response?.data || err.message);
 
       if (err.response && err.response.data) {
@@ -209,7 +224,7 @@ export default function SignupPage() {
               {/* Username */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Username
+                  Tên đăng nhập
                 </label>
                 <input
                   type="text"
@@ -287,7 +302,7 @@ export default function SignupPage() {
               {/* Password */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Password
+                  Mật khẩu
                 </label>
                 <div className="relative">
                   <input
@@ -320,7 +335,7 @@ export default function SignupPage() {
               {/* Confirm Password */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Confirm Password
+                  Xác nhận mật khẩu
                 </label>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -349,19 +364,19 @@ export default function SignupPage() {
                   className="w-4 h-4 mt-1 rounded border-border focus:ring-2 focus:ring-primary"
                 />
                 <label className="text-sm text-muted-foreground">
-                  I agree to the{" "}
+                  Tôi đồng ý với{" "}
                   <button
                     type="button"
                     className="text-primary hover:underline"
                   >
-                    Terms of Service
+                    Điều khoản sử dụng
                   </button>{" "}
-                  and{" "}
+                  và{" "}
                   <button
                     type="button"
                     className="text-primary hover:underline"
                   >
-                    Privacy Policy
+                    Chính sách bảo mật
                   </button>
                 </label>
               </div>
@@ -372,6 +387,7 @@ export default function SignupPage() {
               {/* ReCAPTCHA */}
               <div className="flex justify-center my-4">
                 <ReCAPTCHA
+                  ref={recaptchaRef}
                   sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY} // Nhớ cấu hình trong .env frontend
                   onChange={onRecaptchaChange}
                 />
@@ -388,7 +404,7 @@ export default function SignupPage() {
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition font-medium flex justify-center items-center"
               >
                 {isLoading ? <Loader2 className="animate-spin mr-2" /> : null}
-                {isLoading ? "Processing..." : "Sign Up"}
+                {isLoading ? "Đang xử lý..." : "Đăng ký"}
               </button>
             </form>
           )}
@@ -397,7 +413,7 @@ export default function SignupPage() {
           {step === 2 && (
             <form onSubmit={handleVerifyOtp} className="space-y-6">
               <div className="text-center text-sm text-muted-foreground mb-4">
-                We have sent a verification code to <br />
+                Chúng tôi đã gửi mã xác thực đến <br />
                 <span className="font-semibold text-foreground">
                   {formData.email}
                 </span>
@@ -405,7 +421,7 @@ export default function SignupPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Enter OTP
+                  Nhập mã OTP
                 </label>
                 <input
                   type="text"
@@ -430,7 +446,7 @@ export default function SignupPage() {
                 className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition font-medium flex justify-center items-center"
               >
                 {isLoading ? <Loader2 className="animate-spin mr-2" /> : null}
-                {isLoading ? "Verifying..." : "Verify Account"}
+                {isLoading ? "Đang xác thực..." : "Xác thực tài khoản"}
               </button>
 
               <div className="text-center mt-4">
@@ -439,7 +455,7 @@ export default function SignupPage() {
                   onClick={() => setStep(1)}
                   className="text-sm text-primary hover:underline flex items-center justify-center gap-1 mx-auto"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Wrong email? Go back
+                  <ArrowLeft className="w-4 h-4" /> Sai email? Quay lại
                 </button>
               </div>
             </form>
@@ -449,12 +465,12 @@ export default function SignupPage() {
           {step === 1 && (
             <div className="mt-6 pt-6 border-t border-border">
               <p className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
+                Đã có tài khoản?{" "}
                 <Link
                   to="/auth/login"
                   className="text-primary hover:underline font-medium"
                 >
-                  Sign in
+                  Đăng nhập
                 </Link>
               </p>
             </div>

@@ -281,3 +281,41 @@ export const verifyEmailOtp = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Controller yêu cầu đổi mật khẩu (Gửi OTP)
+ */
+export const requestChangePassword = async (req, res, next) => {
+  try {
+    const { oldPassword } = req.body;
+    const result = await authService.requestChangePassword(
+      req.user._id,
+      oldPassword
+    );
+    res.status(200).json({
+      status: "success",
+      message: result.message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Controller xác nhận đổi mật khẩu (Verify OTP)
+ */
+export const confirmChangePassword = async (req, res, next) => {
+  try {
+    const { otp, newPassword } = req.body;
+    const result = await authService.confirmChangePassword(req.user._id, {
+      otp,
+      newPassword,
+    });
+    res.status(200).json({
+      status: "success",
+      message: result.message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

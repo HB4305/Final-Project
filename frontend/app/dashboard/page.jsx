@@ -217,7 +217,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-10">
-            <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent pb-2">
               Bảng điều khiển
             </h1>
             <p className="text-muted-foreground text-lg">
@@ -297,10 +297,11 @@ export default function DashboardPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${activeTab === tab.key
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
+                  className={`flex items-center gap-2 px-4 py-2 font-medium whitespace-nowrap border-b-2 transition ${
+                    activeTab === tab.key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
@@ -490,8 +491,9 @@ export default function DashboardPage() {
                               </button>
                             )}
                             <Link
-                              to={`/product/${auction.productId?._id || auction.productId
-                                }`}
+                              to={`/product/${
+                                auction.productId?._id || auction.productId
+                              }`}
                               className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
                             >
                               Xem Chi Tiết
@@ -523,7 +525,7 @@ export default function DashboardPage() {
                             key={auction._id}
                             className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition"
                           >
-                            <Link 
+                            <Link
                               to={`/product/${auction.productId?._id}`}
                               className="flex items-center gap-4 flex-1"
                             >
@@ -558,8 +560,12 @@ export default function DashboardPage() {
                                 onClick={() => {
                                   setSelectedProductForEdit({
                                     id: auction.productId?._id,
-                                    description: auction.productId?.descriptionHistory?.[auction.productId.descriptionHistory.length - 1]?.text || '',
-                                    metadata: auction.productId?.metadata || {}
+                                    description:
+                                      auction.productId?.descriptionHistory?.[
+                                        auction.productId.descriptionHistory
+                                          .length - 1
+                                      ]?.text || "",
+                                    metadata: auction.productId?.metadata || {},
                                   });
                                   setShowEditDescModal(true);
                                 }}
@@ -629,8 +635,9 @@ export default function DashboardPage() {
                               </button>
                             )}
                             <Link
-                              to={`/product/${auction.productId?._id || auction.productId
-                                }`}
+                              to={`/product/${
+                                auction.productId?._id || auction.productId
+                              }`}
                               className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"
                             >
                               Chi Tiết
@@ -703,8 +710,8 @@ export default function DashboardPage() {
                   setShowEditDescModal(false);
                   setSelectedProductForEdit(null);
                   setToast({
-                    type: 'success',
-                    message: 'Cập nhật mô tả sản phẩm thành công!'
+                    type: "success",
+                    message: "Cập nhật mô tả sản phẩm thành công!",
                   });
                 }}
               />

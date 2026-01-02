@@ -40,19 +40,24 @@ export default function RatingsPage() {
       setError("");
 
       // Determine type based on filter
-      const type = filter === 'given' ? 'given' : 'received';
+      const type = filter === "given" ? "given" : "received";
 
       // Fetch user summary using ratingService (stats) and ratings
       const [statsRes, ratingsRes] = await Promise.all([
         ratingService.getUserRatingStats(userId),
-        ratingService.getUserRatings(userId, pagination.page, pagination.limit, type)
+        ratingService.getUserRatings(
+          userId,
+          pagination.page,
+          pagination.limit,
+          type
+        ),
       ]);
 
       // Handle stats response (direct data)
       if (statsRes.data?.status === "success") {
         setUserInfo({
           ...currentUser, // Fallback if we are viewing own profile
-          ratingSummary: statsRes.data.data
+          ratingSummary: statsRes.data.data,
         });
       }
 
@@ -63,7 +68,7 @@ export default function RatingsPage() {
           page: ratingsRes.data.data.page,
           totalPages: ratingsRes.data.data.pages,
           total: ratingsRes.data.data.total,
-          limit: 10
+          limit: 10,
         });
       }
     } catch (err) {
@@ -115,17 +120,17 @@ export default function RatingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <p className="text-4xl font-bold text-primary">
-                  {((userInfo?.ratingSummary?.score || 0) * 5).toFixed(1)}
+                  {(userInfo?.ratingSummary?.score || 0).toFixed(1)}
                 </p>
                 <div className="flex items-center justify-center gap-1 my-2">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-5 h-5 ${i <
-                        Math.floor((userInfo?.ratingSummary?.score || 0) * 5)
-                        ? "fill-yellow-500 text-yellow-500"
-                        : "text-gray-300"
-                        }`}
+                      className={`w-5 h-5 ${
+                        i < Math.floor(userInfo?.ratingSummary?.score || 0)
+                          ? "fill-yellow-500 text-yellow-500"
+                          : "text-gray-300"
+                      }`}
                     />
                   ))}
                 </div>
@@ -171,37 +176,41 @@ export default function RatingsPage() {
           <div className="flex gap-2 mb-6 border-b border-border overflow-x-auto">
             <button
               onClick={() => handleFilterChange("all")}
-              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${filter === "all"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${
+                filter === "all"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
             >
               All Received
             </button>
             <button
               onClick={() => handleFilterChange("given")}
-              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${filter === "given"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${
+                filter === "given"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
             >
               Sent
             </button>
             <button
               onClick={() => handleFilterChange("buyer_to_seller")}
-              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${filter === "buyer_to_seller"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${
+                filter === "buyer_to_seller"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
             >
               As Seller
             </button>
             <button
               onClick={() => handleFilterChange("seller_to_buyer")}
-              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${filter === "seller_to_buyer"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+              className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${
+                filter === "seller_to_buyer"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
             >
               As Buyer
             </button>
@@ -219,8 +228,9 @@ export default function RatingsPage() {
             {ratings.length > 0 ? (
               ratings.map((rating) => {
                 // Determine who to show: rater (if received) or ratee (if given)
-                const displayedUser = filter === 'given' ? rating.rateeId : rating.raterId;
-                const actionText = filter === 'given' ? 'Rated to' : 'Rated by';
+                const displayedUser =
+                  filter === "given" ? rating.rateeId : rating.raterId;
+                const actionText = filter === "given" ? "Rated to" : "Rated by";
 
                 return (
                   <div
@@ -269,13 +279,21 @@ export default function RatingsPage() {
                     {rating.orderId?.productId && (
                       <div className="mb-3 p-3 bg-muted/50 rounded-lg flex items-center gap-3">
                         <img
-                          src={rating.orderId.productId.primaryImageUrl || "/placeholder.svg"}
+                          src={
+                            rating.orderId.productId.primaryImageUrl ||
+                            "/placeholder.svg"
+                          }
                           alt={rating.orderId.productId.title}
                           className="w-10 h-10 rounded object-cover"
                         />
                         <div>
-                          <p className="text-xs text-muted-foreground">Product:</p>
-                          <a href={`/product/${rating.orderId.productId._id}`} className="text-sm font-medium hover:underline text-primary">
+                          <p className="text-xs text-muted-foreground">
+                            Product:
+                          </p>
+                          <a
+                            href={`/product/${rating.orderId.productId._id}`}
+                            className="text-sm font-medium hover:underline text-primary"
+                          >
                             {rating.orderId.productId.title}
                           </a>
                         </div>
@@ -288,7 +306,7 @@ export default function RatingsPage() {
                       </p>
                     )}
                   </div>
-                )
+                );
               })
             ) : (
               <div className="bg-background border border-border rounded-lg p-12 text-center">

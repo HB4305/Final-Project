@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import Navigation from '../../components/navigation';
 import productService from '../services/productService.js';
 import categoryService from '../services/categoryService.js';
+import watchlistService from '../services/watchlistService.js';
 
 import {
   ProductGrid,
@@ -86,7 +87,27 @@ const useProducts = () => {
 const useWatchlist = () => {
   const [watchlist, setWatchlist] = useState(new Set());
 
-  const toggleWatchlist = useCallback((productId) => {
+  useEffect(() => {
+    const loadWatchlist = async () => {
+      try {
+        const response = await watchlistService.getWatchlist({ page: 1, limit: 100 });
+        if (response.success) {
+          const watchedIds = new Set(
+            response.data.watchlist
+              .map(item => item.productId?._id || item.productId)
+              .filter(Boolean)
+          );
+          setWatchlist(watchedIds);
+        }
+      } catch (error) {
+        console.error("Failed to load watchlist", error);
+      }
+    };
+    loadWatchlist();
+  }, []);
+
+  const toggleWatchlist = useCallback(async (productId) => {
+    // Optimistic update
     setWatchlist(prev => {
       const newWatchlist = new Set(prev);
       if (newWatchlist.has(productId)) {
@@ -96,6 +117,22 @@ const useWatchlist = () => {
       }
       return newWatchlist;
     });
+
+    try {
+      await watchlistService.toggleWatchlist(productId);
+    } catch (error) {
+      console.error("Error toggling watchlist:", error);
+      // Revert on error
+      setWatchlist(prev => {
+        const newWatchlist = new Set(prev);
+        if (newWatchlist.has(productId)) {
+          newWatchlist.delete(productId);
+        } else {
+          newWatchlist.add(productId);
+        }
+        return newWatchlist;
+      });
+    }
   }, []);
 
   return { watchlist, toggleWatchlist };

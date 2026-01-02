@@ -75,6 +75,7 @@ export default function AuctionSection({ auction, onPlaceBid }) {
               >
                 🔨 Đặt giá tự động
               </button>
+              {/* Always show Buy Now button if price exists */}
               {auction?.buyNowPrice && (
                 <button className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold">
                   ⚡ Mua ngay - {formatPrice(auction.buyNowPrice)}

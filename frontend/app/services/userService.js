@@ -24,6 +24,23 @@ const changePassword = (passwordData) => {
 };
 
 /**
+ * Yêu cầu đổi mật khẩu (Gửi OTP)
+ * @param {string} oldPassword
+ */
+const requestChangePassword = (oldPassword) => {
+  return api.post("/auth/change-password-request", { oldPassword });
+};
+
+/**
+ * Xác nhận đổi mật khẩu (Verify OTP)
+ * @param {string} otp
+ * @param {string} newPassword
+ */
+const confirmChangePassword = (otp, newPassword) => {
+  return api.post("/auth/change-password-confirm", { otp, newPassword });
+};
+
+/**
  * Cập nhật email (cần verify OTP)
  * @param {Object} emailData - { newEmail }
  */
@@ -69,7 +86,6 @@ const getUserRatings = (userId, params = {}) => {
   return api.get(endpoint, { params });
 };
 
-
 const submitUpgradeRequest = (request) => {
   return api.post("/users/upgrade-requests", request);
 };
@@ -86,12 +102,12 @@ const uploadAvatar = (formData) => {
   });
 };
 
-
-
 export default {
   getMe,
   updateMe,
   changePassword,
+  requestChangePassword,
+  confirmChangePassword,
   updateEmail,
   verifyEmailOtp,
   getUserProfile,

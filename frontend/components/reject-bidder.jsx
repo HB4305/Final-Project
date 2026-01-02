@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { UserX, AlertTriangle, User, TrendingUp } from 'lucide-react';
-import * as productService from '../app/services/productService';
+import React, { useState } from "react";
+import { UserX, AlertTriangle, User, TrendingUp } from "lucide-react";
+import * as productService from "../app/services/productService";
+import Toast from "./Toast";
 
 /**
  * RejectBidder Component
@@ -9,39 +10,53 @@ import * as productService from '../app/services/productService';
  */
 export default function RejectBidder({ productId, bidder, onReject }) {
   const [showModal, setShowModal] = useState(false);
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState(null);
 
   const handleReject = async () => {
     if (!reason.trim()) {
-      setError('Vui lòng nhập lý do từ chối');
+      setError("Vui lòng nhập lý do từ chối");
       return;
     }
 
     if (reason.trim().length < 10) {
-      setError('Lý do phải có ít nhất 10 ký tự');
+      setError("Lý do phải có ít nhất 10 ký tự");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await productService.rejectBidder(productId, bidder._id || bidder.id, reason);
-      
+      const response = await productService.rejectBidder(
+        productId,
+        bidder._id || bidder.id,
+        reason
+      );
+
       if (response.success) {
-        alert(`✅ Đã từ chối bidder ${bidder.username || bidder.name} thành công!`);
-        setShowModal(false);
-        if (onReject) {
-          onReject(response.data);
-        }
+        setToast({
+          type: "success",
+          message: `✅ Đã từ chối bidder ${
+            bidder.username || bidder.name
+          } thành công!`,
+          onClose: () => {
+            setShowModal(false);
+            if (onReject) {
+              onReject(response.data);
+            }
+          },
+        });
       } else {
-        setError(response.message || 'Không thể từ chối bidder');
+        setError(response.message || "Không thể từ chối bidder");
       }
     } catch (err) {
-      console.error('Error rejecting bidder:', err);
-      setError(err.response?.data?.message || 'Đã xảy ra lỗi khi từ chối bidder');
+      console.error("Error rejecting bidder:", err);
+      setError(
+        err.response?.data?.message || "Đã xảy ra lỗi khi từ chối bidder"
+      );
     } finally {
       setLoading(false);
     }
@@ -49,6 +64,16 @@ export default function RejectBidder({ productId, bidder, onReject }) {
 
   return (
     <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => {
+            setToast(null);
+            if (toast.onClose) toast.onClose();
+          }}
+        />
+      )}
       <button
         onClick={() => setShowModal(true)}
         className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm shadow-sm"
@@ -67,9 +92,15 @@ export default function RejectBidder({ productId, bidder, onReject }) {
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Từ chối Bidder</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Từ chối Bidder
+                </h3>
                 <p className="text-sm text-gray-600">
-                  Bạn có chắc muốn từ chối <strong className="text-gray-900">{bidder.username || bidder.name}</strong>?
+                  Bạn có chắc muốn từ chối{" "}
+                  <strong className="text-gray-900">
+                    {bidder.username || bidder.name}
+                  </strong>
+                  ?
                 </p>
               </div>
             </div>
@@ -87,7 +118,7 @@ export default function RejectBidder({ productId, bidder, onReject }) {
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-semibold text-blue-900">
-                      {bidder.currentBid?.toLocaleString('vi-VN')} VND
+                      {bidder.currentBid?.toLocaleString("vi-VN")} VND
                     </span>
                   </div>
                 </div>
@@ -104,7 +135,9 @@ export default function RejectBidder({ productId, bidder, onReject }) {
                 <li>Xóa các auto-bids đã đặt</li>
                 <li>Chuyển người thắng sang bidder thứ 2 (nếu đang thắng)</li>
                 <li>Chặn không cho bidder này đặt giá lại</li>
-                <li><strong>Không thể hoàn tác</strong></li>
+                <li>
+                  <strong>Không thể hoàn tác</strong>
+                </li>
               </ul>
             </div>
 
@@ -123,7 +156,7 @@ export default function RejectBidder({ productId, bidder, onReject }) {
                 value={reason}
                 onChange={(e) => {
                   setReason(e.target.value);
-                  setError('');
+                  setError("");
                 }}
                 placeholder="Ví dụ: Lịch sử giao dịch không tốt, nhiều lần không thanh toán sau khi thắng đấu giá..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition resize-none"
@@ -143,13 +176,13 @@ export default function RejectBidder({ productId, bidder, onReject }) {
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed transition font-medium"
               >
                 <UserX className="w-4 h-4" />
-                {loading ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+                {loading ? "Đang xử lý..." : "Xác nhận từ chối"}
               </button>
               <button
                 onClick={() => {
                   setShowModal(false);
-                  setReason('');
-                  setError('');
+                  setReason("");
+                  setError("");
                 }}
                 disabled={loading}
                 className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 transition font-medium"

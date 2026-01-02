@@ -55,7 +55,7 @@ const userSchema = new mongoose.Schema({
   },
   // API 2.6: Seller role expiration (7 days)
   sellerExpiresAt: {
-    type: Date
+    type: Date,
   },
   ratingSummary: {
     countPositive: {
@@ -74,7 +74,7 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 0,
       min: 0,
-      max: 1,
+      max: 5,
     },
     _id: false,
   },

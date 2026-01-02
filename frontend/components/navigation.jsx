@@ -63,24 +63,56 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 bg-white rounded flex items-center justify-center font-bold text-primary text-lg">
+            <div className="w-8 h-8 bg-white rounded flex items-center justify-center font-bold text-primary text-xl">
               ⚡
             </div>
-            <span className="font-bold text-lg hidden sm:inline">
+            <span className="font-extrabold text-xl hidden sm:inline">
               Online Auction
             </span>
           </Link>
 
+          {/* Navigation Links - Desktop */}
+          <div className="hidden md:flex items-center gap-6">
+            <Link
+              to="/"
+              className={`text-base font-bold transition ${
+                isActive("/") ? "text-white" : "text-white hover:text-white/90"
+              }`}
+            >
+              Trang chủ
+            </Link>
+            <Link
+              to="/products"
+              className={`text-base font-bold transition ${
+                isActive("/products")
+                  ? "text-white"
+                  : "text-white hover:text-white/90"
+              }`}
+            >
+              Đấu giá
+            </Link>
+            <Link
+              to="/categories"
+              className={`text-base font-bold transition ${
+                isActive("/categories")
+                  ? "text-white"
+                  : "text-white hover:text-white/90"
+              }`}
+            >
+              Danh mục
+            </Link>
+          </div>
+
           {/* Search Bar - Full-text search */}
           <form
             onSubmit={handleSearch}
-            className="hidden xl:flex items-center flex-1 max-w-xl bg-white rounded-sm ml-4"
+            className="hidden lg:flex items-center flex-1 max-w-sm bg-white rounded-sm ml-4"
           >
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm sản phẩm... (ít nhất 2 ký tự)"
+              placeholder="Tìm kiếm..."
               className="flex-1 px-4 py-2 text-foreground placeholder-muted-foreground outline-none text-sm"
             />
             <button
@@ -107,8 +139,8 @@ export default function Navigation() {
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/20 transition cursor-pointer"
                 >
-                  <User className="w-4 h-4" />
-                  <span className="text-sm font-medium hidden sm:inline">
+                  <User className="w-5 h-5" />
+                  <span className="text-base font-bold hidden sm:inline">
                     {currentUser?.fullName || currentUser?.username || "User"}
                   </span>
                 </button>
@@ -121,28 +153,28 @@ export default function Navigation() {
                       onClick={() => setIsUserMenuOpen(false)}
                       className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
                     >
-                      Profile
+                      Hồ sơ
                     </Link>
                     <Link
                       to="/dashboard"
                       onClick={() => setIsUserMenuOpen(false)}
                       className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
                     >
-                      Dashboard
+                      Bảng điều khiển
                     </Link>
                     <Link
                       to="/profile/settings"
                       onClick={() => setIsUserMenuOpen(false)}
                       className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
                     >
-                      Settings
+                      Cài đặt
                     </Link>
                     <Link
                       to={`/profile/ratings/${currentUser?._id}`}
                       onClick={() => setIsUserMenuOpen(false)}
                       className="block px-4 py-3 text-sm text-foreground hover:bg-muted transition"
                     >
-                      My Ratings
+                      Đánh giá của tôi
                     </Link>
                     {isAdmin && (
                       <>
@@ -152,7 +184,7 @@ export default function Navigation() {
                           onClick={() => setIsUserMenuOpen(false)}
                           className="block px-4 py-3 text-sm text-orange-600 hover:bg-orange-50 transition font-semibold"
                         >
-                          🛡️ Admin Dashboard
+                          🛡️ Bảng quản trị
                         </Link>
                       </>
                     )}
@@ -164,7 +196,7 @@ export default function Navigation() {
                       }}
                       className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition"
                     >
-                      Logout
+                      Đăng xuất
                     </button>
                   </div>
                 )}
@@ -174,7 +206,7 @@ export default function Navigation() {
                 onClick={handleLogin}
                 className="px-3 py-2 text-sm font-medium hover:bg-white/20 rounded transition"
               >
-                Sign in
+                Đăng nhập
               </button>
             )}
 
@@ -193,51 +225,6 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Secondary Nav */}
-      <div className="hidden md:block bg-white border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between text-sm">
-          <div className="flex gap-6">
-            <Link
-              to="/"
-              className={`hover:text-primary transition font-medium ${isActive("/") ? "text-primary font-bold" : "text-foreground"
-                }`}
-            >
-              Home
-            </Link>
-            <Link
-              to="/products"
-              className={`hover:text-primary transition font-medium ${isActive("/products") ? "text-primary font-bold" : "text-foreground"
-                }`}
-            >
-              Auctions
-            </Link>
-            <Link
-              to="/categories"
-              className={`hover:text-primary transition font-medium ${isActive("/categories") ? "text-primary font-bold" : "text-foreground"
-                }`}
-            >
-              Categories
-            </Link>
-            {isAdmin && (
-              <>
-                <Link
-                  to="/admin/categories"
-                  className="text-orange-600 hover:text-orange-700 transition font-medium"
-                >
-                  Admin: Categories
-                </Link>
-                <Link
-                  to="/admin/products"
-                  className="text-orange-600 hover:text-orange-700 transition font-medium"
-                >
-                  Admin: Products
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-border">
@@ -250,7 +237,7 @@ export default function Navigation() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
+                placeholder="Tìm kiếm..."
                 className="flex-1 px-3 py-2 bg-muted text-foreground placeholder-muted-foreground outline-none text-sm"
               />
               <button className="px-3 text-primary">
@@ -259,24 +246,31 @@ export default function Navigation() {
             </form>
             <Link
               to="/"
-              className={`hover:text-primary transition font-medium ${isActive("/") ? "text-primary font-bold" : "text-foreground"
-                }`}
+              className={`hover:text-primary transition font-medium ${
+                isActive("/") ? "text-primary font-bold" : "text-foreground"
+              }`}
             >
-              Home
+              Trang chủ
             </Link>
             <Link
               to="/products"
-              className={`hover:text-primary transition font-medium ${isActive("/products") ? "text-primary font-bold" : "text-foreground"
-                }`}
+              className={`hover:text-primary transition font-medium ${
+                isActive("/products")
+                  ? "text-primary font-bold"
+                  : "text-foreground"
+              }`}
             >
-              Auctions
+              Đấu giá
             </Link>
             <Link
               to="/categories"
-              className={`hover:text-primary transition font-medium ${isActive("/categories") ? "text-primary font-bold" : "text-foreground"
-                }`}
+              className={`hover:text-primary transition font-medium ${
+                isActive("/categories")
+                  ? "text-primary font-bold"
+                  : "text-foreground"
+              }`}
             >
-              Categories
+              Danh mục
             </Link>
             {isLoggedIn && (
               <>
@@ -284,19 +278,19 @@ export default function Navigation() {
                   to="/watchlist"
                   className="text-foreground hover:text-primary transition font-medium flex items-center gap-2"
                 >
-                  <Heart className="w-4 h-4" /> Wishlist
+                  <Heart className="w-4 h-4" /> Danh sách theo dõi
                 </Link>
                 <Link
                   to="/dashboard"
                   className="text-foreground hover:text-primary transition font-medium"
                 >
-                  My Purchases
+                  Đơn hàng của tôi
                 </Link>
                 <button
                   onClick={handleLogout}
                   className="mt-2 px-4 py-2 rounded bg-primary text-white hover:bg-primary/90 transition font-medium text-sm"
                 >
-                  Logout
+                  Đăng xuất
                 </button>
               </>
             )}

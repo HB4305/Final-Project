@@ -9,14 +9,15 @@ import {
   Save,
   X,
   Loader2,
-  Lock,
   Trophy,
+  Settings,
+  Bell,
+  Shield,
 } from "lucide-react";
 import Navigation from "../../components/navigation";
 import UpgradeRequest from "../../components/upgrade-request";
 import userService from "../services/userService";
-
-
+import Toast from "../../components/Toast";
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -24,14 +25,15 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [toast, setToast] = useState(null);
 
   // Email update states
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [emailUpdating, setEmailUpdating] = useState(false);
-  const [showOtpInput, setShowOtpInput] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [showEmailOtpInput, setShowEmailOtpInput] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [emailOtpVerifying, setEmailOtpVerifying] = useState(false);
 
   // Password update states
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -41,12 +43,18 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
   const [passwordUpdating, setPasswordUpdating] = useState(false);
+  const [showPasswordOtpInput, setShowPasswordOtpInput] = useState(false);
+  const [passwordOtp, setPasswordOtp] = useState("");
 
-  // Tabs state
-
-
-  // Lists data
-
+  // Settings states
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState({
+    emailNotifications: true,
+    bidNotifications: true,
+    marketingEmails: false,
+    twoFactorAuth: false,
+    privateProfile: false,
+  });
 
   const [profile, setProfile] = useState(null);
 
@@ -71,9 +79,7 @@ export default function ProfilePage() {
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      const [profileRes] = await Promise.all([
-        userService.getUserProfile(),
-      ]);
+      const [profileRes] = await Promise.all([userService.getUserProfile()]);
 
       if (profileRes.data?.status === "success") {
         const userData = profileRes.data.data.user;
@@ -93,8 +99,6 @@ export default function ProfilePage() {
           },
         });
       }
-
-
     } catch (err) {
       console.error("Error fetching profile:", err);
       setError("Failed to load profile data");
@@ -103,55 +107,84 @@ export default function ProfilePage() {
     }
   };
 
-  // Fetch data based on active tab
+  // --- PASSWORD CHANGE FLOW ---
 
-
-
-
-
-
-  const handleChangePassword = async () => {
+  const handleRequestChangePassword = async () => {
     try {
       setPasswordUpdating(true);
       setError("");
       setSuccess("");
 
       if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-        setError("New passwords do not match");
+        setError("Mật khẩu mới không khớp");
         return;
       }
 
       if (passwordForm.newPassword.length < 6) {
-        setError("Password must be at least 6 characters");
+        setError("Mật khẩu phải có ít nhất 6 ký tự");
         return;
       }
 
-      await userService.changePassword({
-        oldPassword: passwordForm.oldPassword,
-        newPassword: passwordForm.newPassword,
-      });
+      // Step 1: Request OTP
+      await userService.requestChangePassword(passwordForm.oldPassword);
 
-      setSuccess("Password changed successfully");
+      setSuccess("Mã OTP đã được gửi đến email của bạn.");
+      setShowPasswordOtpInput(true);
+    } catch (err) {
+      console.error("Error requesting password change:", err);
+      setError(
+        err.response?.data?.message || "Không thể gửi yêu cầu đổi mật khẩu"
+      );
+    } finally {
+      setPasswordUpdating(false);
+    }
+  };
+
+  const handleConfirmChangePassword = async () => {
+    try {
+      setPasswordUpdating(true);
+      setError("");
+      setSuccess("");
+
+      if (passwordOtp.length !== 6) {
+        setError("Vui lòng nhập mã OTP 6 chữ số");
+        return;
+      }
+
+      // Step 2: Confirm with OTP
+      await userService.confirmChangePassword(
+        passwordOtp,
+        passwordForm.newPassword
+      );
+
+      setSuccess("Đổi mật khẩu thành công!");
+      setToast({ message: "Đổi mật khẩu thành công!", type: "success" });
+
+      // Reset states
       setIsChangingPassword(false);
+      setShowPasswordOtpInput(false);
+      setPasswordOtp("");
       setPasswordForm({
         oldPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
     } catch (err) {
-      console.error("Error changing password:", err);
-      setError(err.response?.data?.message || "Failed to change password");
+      console.error("Error confirming password change:", err);
+      setError(err.response?.data?.message || "Đổi mật khẩu thất bại");
     } finally {
       setPasswordUpdating(false);
     }
   };
+
+  // --- AVATAR & PROFILE UPDATE ---
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
+      setError("Vui lòng chọn file ảnh");
       return;
     }
 
@@ -167,12 +200,12 @@ export default function ProfilePage() {
           ...profile,
           profileImageUrl: res.data.data.profileImageUrl,
         });
-        setSuccess("Avatar updated successfully");
+        setSuccess("Cập nhật ảnh đại diện thành công");
         setTimeout(() => setSuccess(""), 3000);
       }
     } catch (err) {
       console.error("Error uploading avatar:", err);
-      setError(err.response?.data?.message || "Failed to upload avatar");
+      setError(err.response?.data?.message || "Lỗi khi upload ảnh");
     } finally {
       setSaving(false);
     }
@@ -195,10 +228,12 @@ export default function ProfilePage() {
       if (res.data?.status === "success") {
         setProfile(res.data.data.user);
         setIsEditing(false);
+        setSuccess("Cập nhật thông tin thành công");
+        setTimeout(() => setSuccess(""), 3000);
       }
     } catch (err) {
       console.error("Error updating profile:", err);
-      setError(err.response?.data?.message || "Failed to update profile");
+      setError(err.response?.data?.message || "Lỗi khi cập nhật thông tin");
     } finally {
       setSaving(false);
     }
@@ -225,6 +260,8 @@ export default function ProfilePage() {
     setError("");
   };
 
+  // --- EMAIL UPDATE ---
+
   const handleUpdateEmail = async () => {
     try {
       setEmailUpdating(true);
@@ -232,22 +269,20 @@ export default function ProfilePage() {
       setSuccess("");
 
       if (!newEmail || !newEmail.includes("@")) {
-        setError("Please enter a valid email address");
+        setError("Vui lòng nhập email hợp lệ");
         return;
       }
 
       const res = await userService.updateEmail({ newEmail });
 
       if (res.data?.status === "success") {
-        setSuccess(
-          "OTP has been sent to your new email. Please check and verify."
-        );
-        setShowOtpInput(true);
+        setSuccess("Mã OTP đã được gửi đến email mới. Vui lòng kiểm tra.");
+        setShowEmailOtpInput(true);
         setIsEditingEmail(false);
       }
     } catch (err) {
       console.error("Error updating email:", err);
-      setError(err.response?.data?.message || "Failed to update email");
+      setError(err.response?.data?.message || "Lỗi khi cập nhật email");
     } finally {
       setEmailUpdating(false);
     }
@@ -255,33 +290,37 @@ export default function ProfilePage() {
 
   const handleVerifyEmailOtp = async () => {
     try {
-      setOtpVerifying(true);
+      setEmailOtpVerifying(true);
       setError("");
       setSuccess("");
 
-      if (!otp || otp.length !== 6) {
-        setError("Please enter a valid 6-digit OTP");
+      if (!emailOtp || emailOtp.length !== 6) {
+        setError("Vui lòng nhập mã OTP 6 chữ số");
         return;
       }
 
-      const res = await userService.verifyEmailOtp({ otp });
+      const res = await userService.verifyEmailOtp({ otp: emailOtp });
 
       if (res.data?.status === "success") {
-        setSuccess("Email verified successfully!");
-        setShowOtpInput(false);
-        setOtp("");
+        setSuccess("Xác thực email thành công!");
+        setShowEmailOtpInput(false);
+        setEmailOtp("");
         setNewEmail("");
-        // Refresh profile to show new email
         fetchProfileData();
-        // Auto-hide success message after 5 seconds
         setTimeout(() => setSuccess(""), 5000);
       }
     } catch (err) {
       console.error("Error verifying OTP:", err);
-      setError(err.response?.data?.message || "Failed to verify OTP");
+      setError(err.response?.data?.message || "Xác thực OTP thất bại");
     } finally {
-      setOtpVerifying(false);
+      setEmailOtpVerifying(false);
     }
+  };
+
+  // --- SETTINGS ---
+  const handleToggleSetting = (key) => {
+    setSettings({ ...settings, [key]: !settings[key] });
+    // In a real app, you would save this to backend
   };
 
   if (loading) {
@@ -295,6 +334,14 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <div className="pt-24">
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Error Message */}
@@ -312,59 +359,54 @@ export default function ProfilePage() {
           )}
 
           {/* OTP Verification for Email */}
-          {showOtpInput && (
+          {showEmailOtpInput && (
             <div className="mb-4 p-6 bg-blue-50 border border-blue-200 rounded-lg">
               <h3 className="text-lg font-semibold mb-2 text-blue-900">
-                Verify Your New Email
+                Xác thực Email mới
               </h3>
               <p className="text-sm text-blue-700 mb-4">
-                We've sent a 6-digit OTP to <strong>{newEmail}</strong>. Please
-                enter it below.
+                Chúng tôi đã gửi mã OTP đến <strong>{newEmail}</strong>.
               </p>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  value={otp}
+                  value={emailOtp}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, "");
                     if (value.length <= 6) {
-                      setOtp(value);
+                      setEmailOtp(value);
                     }
                   }}
-                  placeholder="Enter 6-digit OTP"
+                  placeholder="Nhập mã OTP"
                   maxLength={6}
                   className="flex-1 px-4 py-3 border border-blue-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest font-mono"
                 />
                 <button
                   onClick={handleVerifyEmailOtp}
-                  disabled={otpVerifying || otp.length !== 6}
+                  disabled={emailOtpVerifying || emailOtp.length !== 6}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
                 >
-                  {otpVerifying ? (
+                  {emailOtpVerifying ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Verifying...
+                      Đang xác thực...
                     </>
                   ) : (
-                    "Verify OTP"
+                    "Xác thực"
                   )}
                 </button>
                 <button
                   onClick={() => {
-                    setShowOtpInput(false);
-                    setOtp("");
+                    setShowEmailOtpInput(false);
+                    setEmailOtp("");
                     setNewEmail("");
                   }}
-                  disabled={otpVerifying}
+                  disabled={emailOtpVerifying}
                   className="px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-xs text-blue-600 mt-2">
-                Didn't receive the code? Check your spam folder or click the
-                Change button again to resend.
-              </p>
             </div>
           )}
 
@@ -394,106 +436,25 @@ export default function ProfilePage() {
                     disabled={saving}
                   />
                 </div>
-                {!isEditing && (
+                {!isEditing && !showSettings && (
                   <div className="flex flex-col gap-2 w-full">
                     <button
                       onClick={() => setIsEditing(true)}
                       className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium w-full"
                     >
-                      <Edit2 className="w-4 h-4" /> Edit Profile
-                    </button>
-                    <button
-                      onClick={() => setIsChangingPassword(!isChangingPassword)}
-                      className="flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition font-medium w-full"
-                    >
-                      <Lock className="w-4 h-4" /> Change Password
+                      <Edit2 className="w-4 h-4" /> Chỉnh sửa hồ sơ
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Profile Info */}
-              <div className="flex-1">
-                {isChangingPassword ? (
-                  <div className="space-y-4 max-w-md">
-                    <h3 className="text-lg font-semibold">Change Password</h3>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Current Password
-                      </label>
-                      <input
-                        type="password"
-                        value={passwordForm.oldPassword}
-                        onChange={(e) =>
-                          setPasswordForm({
-                            ...passwordForm,
-                            oldPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        value={passwordForm.newPassword}
-                        onChange={(e) =>
-                          setPasswordForm({
-                            ...passwordForm,
-                            newPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Confirm New Password
-                      </label>
-                      <input
-                        type="password"
-                        value={passwordForm.confirmPassword}
-                        onChange={(e) =>
-                          setPasswordForm({
-                            ...passwordForm,
-                            confirmPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleChangePassword}
-                        disabled={passwordUpdating}
-                        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium disabled:opacity-50"
-                      >
-                        {passwordUpdating ? "Updating..." : "Update Password"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsChangingPassword(false);
-                          setPasswordForm({
-                            oldPassword: "",
-                            newPassword: "",
-                            confirmPassword: "",
-                          });
-                        }}
-                        disabled={passwordUpdating}
-                        className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition font-medium"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : isEditing ? (
+              {/* Profile Info / Forms */}
+              <div className="flex-1 w-full">
+                {isEditing ? (
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        Full Name
+                        Họ và tên
                       </label>
                       <input
                         type="text"
@@ -551,14 +512,14 @@ export default function ProfilePage() {
                             onClick={() => setIsEditingEmail(true)}
                             className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
                           >
-                            Change
+                            Thay đổi
                           </button>
                         </div>
                       )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        Date of Birth
+                        Ngày sinh
                       </label>
                       <input
                         type="date"
@@ -574,7 +535,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        Phone
+                        Số điện thoại
                       </label>
                       <input
                         type="tel"
@@ -590,7 +551,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">
-                        Address
+                        Địa chỉ
                       </label>
                       <input
                         type="text"
@@ -604,7 +565,7 @@ export default function ProfilePage() {
                             },
                           })
                         }
-                        placeholder="Street Address"
+                        placeholder="Số nhà, tên đường"
                         className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary mb-2"
                       />
                       <input
@@ -619,7 +580,7 @@ export default function ProfilePage() {
                             },
                           })
                         }
-                        placeholder="City"
+                        placeholder="Thành phố / Tỉnh"
                         className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -634,14 +595,14 @@ export default function ProfilePage() {
                         ) : (
                           <Save className="w-4 h-4" />
                         )}
-                        {saving ? "Saving..." : "Save"}
+                        {saving ? "Đang lưu..." : "Lưu thay đổi"}
                       </button>
                       <button
                         onClick={handleCancel}
                         disabled={saving}
                         className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition font-medium"
                       >
-                        <X className="w-4 h-4" /> Cancel
+                        <X className="w-4 h-4" /> Hủy
                       </button>
                     </div>
                   </div>
@@ -671,9 +632,9 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-muted-foreground" />
                         <span>
-                          Joined{" "}
+                          Tham gia{" "}
                           {new Date(profile?.createdAt).toLocaleDateString(
-                            "en-US",
+                            "vi-VN",
                             { month: "long", year: "numeric" }
                           )}
                         </span>
@@ -681,13 +642,15 @@ export default function ProfilePage() {
                     </div>
                     {profile?.contactPhone && (
                       <p className="text-sm text-muted-foreground">
-                        Phone: {profile.contactPhone}
+                        SĐT: {profile.contactPhone}
                       </p>
                     )}
                     {profile?.dateOfBirth && (
                       <p className="text-sm text-muted-foreground">
-                        Birthday:{" "}
-                        {new Date(profile.dateOfBirth).toLocaleDateString()}
+                        Ngày sinh:{" "}
+                        {new Date(profile.dateOfBirth).toLocaleDateString(
+                          "vi-VN"
+                        )}
                       </p>
                     )}
                   </>
@@ -700,19 +663,20 @@ export default function ProfilePage() {
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-5 h-5 ${i < Math.floor((profile?.ratingSummary?.score || 0) * 5)
-                        ? "fill-yellow-500 text-yellow-500"
-                        : "text-gray-300"
-                        }`}
+                      className={`w-5 h-5 ${
+                        i < Math.round(profile?.ratingSummary?.score || 0)
+                          ? "fill-yellow-500 text-yellow-500"
+                          : "text-gray-300"
+                      }`}
                     />
                   ))}
                 </div>
                 <p className="text-lg font-bold">
-                  {((profile?.ratingSummary?.score || 0) * 5).toFixed(1)}
+                  {(profile?.ratingSummary?.score || 0).toFixed(1)} / 5.0
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {profile?.ratingSummary?.countPositive || 0} positive,{" "}
-                  {profile?.ratingSummary?.countNegative || 0} negative
+                  {profile?.ratingSummary?.countPositive || 0} tích cực,{" "}
+                  {profile?.ratingSummary?.countNegative || 0} tiêu cực
                 </p>
               </div>
             </div>
@@ -724,35 +688,29 @@ export default function ProfilePage() {
               <p className="text-3xl font-bold text-primary mb-1">
                 {profile?.ratingSummary?.totalCount || 0}
               </p>
-              <p className="text-sm text-muted-foreground">Total Ratings</p>
+              <p className="text-sm text-muted-foreground">Tổng đánh giá</p>
             </div>
             <div className="bg-background border border-border rounded-lg p-6 text-center">
               <p className="text-3xl font-bold text-green-600 mb-1">
                 {profile?.ratingSummary?.countPositive || 0}
               </p>
-              <p className="text-sm text-muted-foreground">Positive</p>
+              <p className="text-sm text-muted-foreground">Tích cực</p>
             </div>
             <div className="bg-background border border-border rounded-lg p-6 text-center">
               <p className="text-3xl font-bold text-red-600 mb-1">
                 {profile?.ratingSummary?.countNegative || 0}
               </p>
-              <p className="text-sm text-muted-foreground">Negative</p>
+              <p className="text-sm text-muted-foreground">Tiêu cực</p>
             </div>
             <div className="bg-background border border-border rounded-lg p-6 text-center">
               <p className="text-3xl font-bold text-primary mb-1">
-                {profile?.emailVerified ? "Verified" : "Unverified"}
+                {profile?.emailVerified ? "Đã xác thực" : "Chưa xác thực"}
               </p>
-              <p className="text-sm text-muted-foreground">Email Status</p>
+              <p className="text-sm text-muted-foreground">Trạng thái Email</p>
             </div>
           </div>
 
-          {/* Tabs */}
-
-
           <UpgradeRequest currentUser={profile} />
-
-          {/* Tab Content */}
-
         </div>
       </div>
     </div>

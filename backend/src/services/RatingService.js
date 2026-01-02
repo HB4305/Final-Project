@@ -1,8 +1,8 @@
 // SERVICE: Rating Service
 
-import { Rating, User, Order } from '../models/index.js';
-import { AppError } from '../utils/errors.js';
-import { RATING_SCORE, RATING_CONTEXT } from '../lib/constants.js';
+import { Rating, User, Order } from "../models/index.js";
+import { AppError } from "../utils/errors.js";
+import { RATING_SCORE, RATING_CONTEXT } from "../lib/constants.js";
 
 export class RatingService {
   /**
@@ -13,11 +13,11 @@ export class RatingService {
    * @returns {Object} Bản ghi đánh giá mới
    */
   async createRating(raterId, rateeId, ratingData) {
-    const { score, comment = '', orderId, context } = ratingData;
+    const { score, comment = "", orderId, context } = ratingData;
 
     // 1. Validate score
     if (![RATING_SCORE.POSITIVE, RATING_SCORE.NEGATIVE].includes(score)) {
-      throw new AppError('Điểm đánh giá không hợp lệ', 400);
+      throw new AppError("Điểm đánh giá không hợp lệ", 400);
     }
 
     // 2. Kiểm tra xem rating đã tồn tại chưa (không cho phép đánh giá lại cho cùng order)
@@ -25,10 +25,10 @@ export class RatingService {
       const existingRating = await Rating.findOne({
         raterId,
         orderId,
-        context
+        context,
       });
       if (existingRating) {
-        throw new AppError('Bạn đã đánh giá cho đơn hàng này rồi', 400);
+        throw new AppError("Bạn đã đánh giá cho đơn hàng này rồi", 400);
       }
     }
 
@@ -39,7 +39,7 @@ export class RatingService {
       score,
       comment,
       orderId: orderId || null,
-      context: context || RATING_CONTEXT.POST_TRANSACTION
+      context: context || RATING_CONTEXT.POST_TRANSACTION,
     });
 
     await rating.save();
@@ -60,18 +60,22 @@ export class RatingService {
   async updateRating(ratingId, raterId, updateData) {
     const rating = await Rating.findById(ratingId);
     if (!rating) {
-      throw new AppError('Đánh giá không tồn tại', 404);
+      throw new AppError("Đánh giá không tồn tại", 404);
     }
 
     // Kiểm tra rater
     if (!rating.raterId.equals(raterId)) {
-      throw new AppError('Bạn không có quyền cập nhật đánh giá này', 403);
+      throw new AppError("Bạn không có quyền cập nhật đánh giá này", 403);
     }
 
     // Cập nhật
     if (updateData.score !== undefined) {
-      if (![RATING_SCORE.POSITIVE, RATING_SCORE.NEGATIVE].includes(updateData.score)) {
-        throw new AppError('Điểm đánh giá không hợp lệ', 400);
+      if (
+        ![RATING_SCORE.POSITIVE, RATING_SCORE.NEGATIVE].includes(
+          updateData.score
+        )
+      ) {
+        throw new AppError("Điểm đánh giá không hợp lệ", 400);
       }
       rating.score = updateData.score;
     }
@@ -96,31 +100,31 @@ export class RatingService {
    * @param {string} type - 'received' | 'given' (mặc định 'received')
    * @returns {Object} { ratings, total, page, pages }
    */
-  async getUserRatings(userId, page = 1, limit = 10, type = 'received') {
+  async getUserRatings(userId, page = 1, limit = 10, type = "received") {
     const skip = (page - 1) * limit;
 
-    const query = type === 'given' ? { raterId: userId } : { rateeId: userId };
-    const populateField = type === 'given' ? 'rateeId' : 'raterId';
+    const query = type === "given" ? { raterId: userId } : { rateeId: userId };
+    const populateField = type === "given" ? "rateeId" : "raterId";
 
     const [ratings, total] = await Promise.all([
       Rating.find(query)
-        .populate(populateField, 'username profileImageUrl fullName')
+        .populate(populateField, "username profileImageUrl fullName")
         .populate({
-          path: 'orderId',
-          select: 'productId',
-          populate: { path: 'productId', select: 'title slug primaryImageUrl' }
+          path: "orderId",
+          select: "productId",
+          populate: { path: "productId", select: "title slug primaryImageUrl" },
         })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Rating.countDocuments(query)
+      Rating.countDocuments(query),
     ]);
 
     return {
       ratings,
       total,
       page,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(total / limit),
     };
   }
 
@@ -132,11 +136,11 @@ export class RatingService {
   async deleteRating(ratingId, raterId) {
     const rating = await Rating.findById(ratingId);
     if (!rating) {
-      throw new AppError('Đánh giá không tồn tại', 404);
+      throw new AppError("Đánh giá không tồn tại", 404);
     }
 
     if (!rating.raterId.equals(raterId)) {
-      throw new AppError('Bạn không có quyền xoá đánh giá này', 403);
+      throw new AppError("Bạn không có quyền xoá đánh giá này", 403);
     }
 
     const rateeId = rating.rateeId;
@@ -145,7 +149,7 @@ export class RatingService {
     // Cập nhật ratingSummary sau khi xoá
     await this._updateUserRatingSummary(rateeId);
 
-    return { message: 'Xoá đánh giá thành công' };
+    return { message: "Xoá đánh giá thành công" };
   }
 
   /**
@@ -156,18 +160,23 @@ export class RatingService {
   async _updateUserRatingSummary(userId) {
     const ratings = await Rating.find({ rateeId: userId });
 
-    const countPositive = ratings.filter(r => r.score === RATING_SCORE.POSITIVE).length;
-    const countNegative = ratings.filter(r => r.score === RATING_SCORE.NEGATIVE).length;
+    const countPositive = ratings.filter(
+      (r) => r.score === RATING_SCORE.POSITIVE
+    ).length;
+    const countNegative = ratings.filter(
+      (r) => r.score === RATING_SCORE.NEGATIVE
+    ).length;
     const totalCount = ratings.length;
-    const score = totalCount === 0 ? 0 : countPositive / totalCount;
+    // Score calculation: (positive / total) * 5
+    const score = totalCount === 0 ? 0 : (countPositive / totalCount) * 5;
 
     await User.updateOne(
       { _id: userId },
       {
-        'ratingSummary.countPositive': countPositive,
-        'ratingSummary.countNegative': countNegative,
-        'ratingSummary.totalCount': totalCount,
-        'ratingSummary.score': score
+        "ratingSummary.countPositive": countPositive,
+        "ratingSummary.countNegative": countNegative,
+        "ratingSummary.totalCount": totalCount,
+        "ratingSummary.score": score,
       }
     );
   }
@@ -178,13 +187,15 @@ export class RatingService {
    * @returns {Object} { countPositive, countNegative, totalCount, score }
    */
   async getUserRatingStats(userId) {
-    const user = await User.findById(userId).select('ratingSummary');
-    return user?.ratingSummary || {
-      countPositive: 0,
-      countNegative: 0,
-      totalCount: 0,
-      score: 0
-    };
+    const user = await User.findById(userId).select("ratingSummary");
+    return (
+      user?.ratingSummary || {
+        countPositive: 0,
+        countNegative: 0,
+        totalCount: 0,
+        score: 0,
+      }
+    );
   }
 }
 

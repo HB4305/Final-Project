@@ -14,6 +14,8 @@ import {
   updateProfile,
   updateEmail,
   verifyEmailOtp,
+  requestChangePassword,
+  confirmChangePassword,
 } from "../controllers/auth.js";
 import { authenticate } from "../middlewares/auth.js";
 import {
@@ -59,6 +61,18 @@ router.get("/me", authenticate, getCurrentUser);
  * Đổi mật khẩu
  */
 router.post("/change-password", authenticate, changePassword);
+
+/**
+ * POST /api/auth/change-password-request
+ * Yêu cầu đổi mật khẩu (Gửi OTP)
+ */
+router.post("/change-password-request", authenticate, requestChangePassword);
+
+/**
+ * POST /api/auth/change-password-confirm
+ * Xác nhận đổi mật khẩu (Verify OTP)
+ */
+router.post("/change-password-confirm", authenticate, confirmChangePassword);
 
 /**
  * PUT /api/auth/profile

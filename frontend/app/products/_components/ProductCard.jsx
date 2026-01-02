@@ -42,6 +42,7 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
           <button
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               onToggleWatchlist(product.id);
             }}
             className="absolute top-2 right-2 p-2 bg-white rounded-full hover:bg-gray-100 transition shadow-sm"

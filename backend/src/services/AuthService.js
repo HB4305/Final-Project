@@ -539,6 +539,110 @@ export class AuthService {
       },
     };
   }
+
+  /**
+   * Yêu cầu đổi mật khẩu (Bước 1: Xác thực mật khẩu cũ và gửi OTP)
+   * @param {string} userId - ID của user
+   * @param {string} oldPassword - Mật khẩu cũ
+   */
+  async requestChangePassword(userId, oldPassword) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new AppError(
+        "Người dùng không tồn tại",
+        404,
+        ERROR_CODES.USER_NOT_FOUND
+      );
+    }
+
+    // Verify old password (skip if Google user setting password for first time)
+    const isGoogleUser = !!user.socialIds?.googleId;
+    const isSettingPassword = isGoogleUser && !user.passwordHash;
+
+    if (!isSettingPassword) {
+      if (!oldPassword) {
+        throw new AppError("Vui lòng nhập mật khẩu cũ", 400);
+      }
+      const isPasswordValid = await bcrypt.compare(
+        oldPassword,
+        user.passwordHash
+      );
+      if (!isPasswordValid) {
+        throw new AppError("Mật khẩu cũ không chính xác", 401);
+      }
+    }
+
+    // Generate OTP
+    const otp = otpGenerator.generate(6, {
+      digits: true,
+      lowerCaseAlphabets: false,
+      upperCaseAlphabets: false,
+      specialChars: false,
+    });
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save OTP
+    user.otp = { code: otp, expiresAt: otpExpiresAt };
+    await user.save();
+
+    // Send Email
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "Mã xác thực đổi mật khẩu",
+        html: `<p>Bạn đang yêu cầu đổi mật khẩu. Mã OTP của bạn là: <b>${otp}</b>. Mã này sẽ hết hạn trong 10 phút.</p>`,
+      });
+    } catch (error) {
+      console.error("Failed to send OTP email:", error);
+      throw new AppError(
+        "Không thể gửi email xác thực. Vui lòng thử lại.",
+        500
+      );
+    }
+
+    return { message: "Mã OTP đã được gửi đến email của bạn." };
+  }
+
+  /**
+   * Xác nhận đổi mật khẩu (Bước 2: Verify OTP và cập nhật mật khẩu)
+   * @param {string} userId - ID của user
+   * @param {Object} data - { otp, newPassword }
+   */
+  async confirmChangePassword(userId, data) {
+    const { otp, newPassword } = data;
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new AppError(
+        "Người dùng không tồn tại",
+        404,
+        ERROR_CODES.USER_NOT_FOUND
+      );
+    }
+
+    // Verify OTP
+    if (!user.otp || user.otp.code !== otp) {
+      throw new AppError(
+        "Mã OTP không chính xác",
+        400,
+        ERROR_CODES.INVALID_OTP
+      );
+    }
+
+    if (new Date() > new Date(user.otp.expiresAt)) {
+      throw new AppError("Mã OTP đã hết hạn", 400, ERROR_CODES.OTP_EXPIRED);
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update password and clear OTP
+    user.passwordHash = passwordHash;
+    user.otp = undefined;
+    await user.save();
+
+    return { message: "Đổi mật khẩu thành công." };
+  }
 }
 
 export const authService = new AuthService();

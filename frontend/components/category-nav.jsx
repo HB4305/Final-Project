@@ -75,7 +75,7 @@ export default function CategoryNav() {
 
   if (loading) {
     return (
-      <div className="bg-white border-b border-border sticky top-20 z-40 pt-6">
+      <div className="bg-white border-b border-border sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-center">
           <Loader className="w-6 h-6 animate-spin text-primary" />
         </div>
@@ -86,7 +86,7 @@ export default function CategoryNav() {
   const activeCategory = categories.find((c) => c._id === openDropdown);
 
   return (
-    <div className="bg-white border-b border-border sticky top-20 z-40 pt-6">
+    <div className="bg-white border-b border-border sticky top-16 z-40">
       <div className="max-w-7xl mx-auto px-4 py-4" ref={dropdownRef}>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {/* Link tất cả sản phẩm */}
@@ -95,9 +95,7 @@ export default function CategoryNav() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition whitespace-nowrap shrink-0 group border border-border"
           >
             <Grid3X3 className="w-5 h-5 text-primary" />
-            <span className="text-sm font-medium text-foreground">
-              Tất cả
-            </span>
+            <span className="text-sm font-medium text-foreground">Tất cả</span>
           </Link>
 
           {/* Categories với dropdown */}
@@ -105,17 +103,19 @@ export default function CategoryNav() {
             <div key={cat._id} className="relative">
               <button
                 onClick={(e) => handleToggleDropdown(e, cat._id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition whitespace-nowrap shrink-0 border ${openDropdown === cat._id
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition whitespace-nowrap shrink-0 border ${
+                  openDropdown === cat._id
                     ? "bg-primary text-white border-primary"
                     : "hover:bg-muted border-border"
-                  }`}
+                }`}
               >
                 <Tag className="w-5 h-5" />
                 <span className="text-sm font-medium">{cat.name}</span>
                 {cat.children && cat.children.length > 0 && (
                   <ChevronDown
-                    className={`w-4 h-4 transition-transform ${openDropdown === cat._id ? "rotate-180" : ""
-                      }`}
+                    className={`w-4 h-4 transition-transform ${
+                      openDropdown === cat._id ? "rotate-180" : ""
+                    }`}
                   />
                 )}
               </button>
@@ -125,7 +125,10 @@ export default function CategoryNav() {
       </div>
 
       {/* Render Dropdown via Portal */}
-      {openDropdown && activeCategory && activeCategory.children && activeCategory.children.length > 0 &&
+      {openDropdown &&
+        activeCategory &&
+        activeCategory.children &&
+        activeCategory.children.length > 0 &&
         createPortal(
           <div
             className="category-dropdown fixed bg-white border border-border rounded-lg shadow-lg z-[9999] min-w-[200px] py-2 animate-in fade-in zoom-in-95 duration-100"
@@ -136,7 +139,9 @@ export default function CategoryNav() {
           >
             {/* Link đến tất cả sản phẩm của category parent */}
             <Link
-              to={`/products?category=${encodeURIComponent(activeCategory.name)}`}
+              to={`/products?category=${encodeURIComponent(
+                activeCategory.name
+              )}`}
               onClick={() => setOpenDropdown(null)}
               className="block px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition border-b border-border"
             >

@@ -63,7 +63,9 @@ export default function AdminNavigation() {
 
   // Check if current path is active
   const isActive = (path) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    return (
+      location.pathname === path || location.pathname.startsWith(path + "/")
+    );
   };
 
   // Admin menu items
@@ -80,7 +82,10 @@ export default function AdminNavigation() {
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
           {/* Logo & Admin Badge */}
           <div className="flex items-center gap-4">
-            <Link to="/admin/dashboard" className="flex items-center gap-2 shrink-0">
+            <Link
+              to="/admin/dashboard"
+              className="flex items-center gap-2 shrink-0"
+            >
               <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
                 <Shield className="w-5 h-5 text-orange-600" />
               </div>
@@ -88,9 +93,7 @@ export default function AdminNavigation() {
                 <span className="font-bold text-lg block leading-tight">
                   Admin Panel
                 </span>
-                <span className="text-xs text-orange-100">
-                  Online Auction
-                </span>
+                <span className="text-xs text-orange-100">Online Auction</span>
               </div>
             </Link>
           </div>
@@ -146,7 +149,9 @@ export default function AdminNavigation() {
                     {currentUser?.username || "Admin"}
                   </div>
                   <div className="text-xs text-orange-100">
-                    {currentUser?.roles?.includes('superadmin') ? 'Siêu Quản trị viên' : 'Quản trị viên'}
+                    {currentUser?.roles?.includes("superadmin")
+                      ? "Siêu Quản trị viên"
+                      : "Quản trị viên"}
                   </div>
                 </div>
               </button>
@@ -162,7 +167,7 @@ export default function AdminNavigation() {
                       {currentUser?.email}
                     </p>
                   </div>
-                  
+
                   <Link
                     to="/profile"
                     onClick={() => setIsUserMenuOpen(false)}
@@ -179,9 +184,9 @@ export default function AdminNavigation() {
                     <Settings className="w-4 h-4 inline mr-2" />
                     Cài đặt
                   </Link>
-                  
+
                   <hr className="border-gray-200" />
-                  
+
                   <Link
                     to="/"
                     onClick={() => setIsUserMenuOpen(false)}
@@ -190,9 +195,9 @@ export default function AdminNavigation() {
                     <Home className="w-4 h-4 inline mr-2" />
                     Quay lại trang chính
                   </Link>
-                  
+
                   <hr className="border-gray-200" />
-                  
+
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
@@ -228,15 +233,15 @@ export default function AdminNavigation() {
             {adminMenuItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
-              
+
               return (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${
                     active
-                      ? 'bg-white text-orange-600 shadow-sm'
-                      : 'text-white hover:bg-white/10'
+                      ? "bg-white text-orange-600 shadow-sm"
+                      : "text-white hover:bg-white/10"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -261,7 +266,7 @@ export default function AdminNavigation() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
+                placeholder="Tìm kiếm..."
                 className="flex-1 px-3 py-2 bg-transparent text-gray-900 placeholder-gray-500 outline-none text-sm"
               />
               <button type="submit" className="px-3 text-orange-600">
@@ -273,7 +278,7 @@ export default function AdminNavigation() {
             {adminMenuItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
-              
+
               return (
                 <Link
                   key={item.path}
@@ -281,8 +286,8 @@ export default function AdminNavigation() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition font-medium ${
                     active
-                      ? 'bg-orange-50 text-orange-600'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? "bg-orange-50 text-orange-600"
+                      : "text-gray-700 hover:bg-gray-50"
                   }`}
                 >
                   <Icon className="w-5 h-5" />

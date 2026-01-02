@@ -33,7 +33,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
 
-      <main className="pt-32">
+      <main className="pt-16">
         {/* Category Navigation */}
         <CategoryNav />
         <section className="bg-gradient-to-r from-primary via-red-500 to-orange-500 text-white py-10 px-4">
@@ -43,32 +43,32 @@ export default function Home() {
               <div className="md:col-span-2 bg-black/20 rounded-lg p-8 flex flex-col justify-center">
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-5 h-5" />
-                  <span className="text-sm font-bold">FLASH DEALS TODAY</span>
+                  <span className="text-sm font-bold">DEAL HOT HÔM NAY</span>
                 </div>
-                <h2 className="text-4xl font-bold mb-2">Grab Hot Items</h2>
+                <h2 className="text-4xl font-bold mb-2">Săn Hàng Hot</h2>
                 <p className="text-white/90 mb-6 text-lg">
-                  Limited time offers on premium auctions
+                  Ưu đãi có hạn cho các phiên đấu giá cao cấp
                 </p>
                 <button className="w-fit px-6 py-2 bg-white text-primary rounded hover:bg-gray-100 transition font-bold">
-                  Shop Now →
+                  Mua Ngay →
                 </button>
               </div>
 
               {/* Side Promos */}
               <div className="flex flex-col gap-4">
                 <div className="bg-black/20 rounded-lg p-4 text-center">
-                  <div className="text-sm text-white/80 mb-1">Up to</div>
+                  <div className="text-sm text-white/80 mb-1">Lên đến</div>
                   <div className="text-3xl font-bold mb-1">70%</div>
                   <div className="text-xs text-white/80">
-                    Off Selected Items
+                    Cho các sản phẩm đã chọn
                   </div>
                 </div>
                 <div className="bg-black/20 rounded-lg p-4 text-center">
                   <div className="text-sm text-white/80 mb-1">
-                    Free Shipping
+                    Miễn Phí Vận Chuyển
                   </div>
-                  <div className="text-2xl font-bold mb-1">Today</div>
-                  <div className="text-xs text-white/80">All Orders</div>
+                  <div className="text-2xl font-bold mb-1">Hôm nay</div>
+                  <div className="text-xs text-white/80">Tất cả đơn hàng</div>
                 </div>
               </div>
             </div>
@@ -85,19 +85,21 @@ export default function Home() {
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary mb-2">5,234</div>
-              <p className="text-sm text-muted-foreground">Active Auctions</p>
+              <p className="text-sm text-muted-foreground">Phiên đấu giá</p>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-primary mb-2">48.2K</div>
-              <p className="text-sm text-muted-foreground">Happy Buyers</p>
+              <p className="text-sm text-muted-foreground">
+                Người mua hài lòng
+              </p>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-primary mb-2">$2.3M</div>
-              <p className="text-sm text-muted-foreground">Total Value</p>
+              <p className="text-sm text-muted-foreground">Tổng giá trị</p>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-primary mb-2">99.8%</div>
-              <p className="text-sm text-muted-foreground">Positive Rating</p>
+              <p className="text-sm text-muted-foreground">Đánh giá tích cực</p>
             </div>
           </div>
         </section>
@@ -105,42 +107,48 @@ export default function Home() {
         {/* CTA Section */}
         <section className="bg-gradient-to-r from-primary to-red-500 text-white py-12 px-4 mt-8">
           <div className="max-w-7xl mx-auto text-center">
-            <h3 className="text-3xl font-bold mb-4">Ready to Start Bidding?</h3>
+            <h3 className="text-3xl font-bold mb-4">
+              Sẵn sàng để bắt đầu đấu giá?
+            </h3>
             <p className="text-white/90 mb-6 text-lg">
-              Join thousands of smart shoppers finding amazing deals
+              Tham gia cùng hàng ngàn người mua sắm thông minh tìm kiếm những ưu
+              đãi tuyệt vời
             </p>
-            <button className="px-8 py-3 bg-white text-primary rounded font-bold hover:bg-gray-100 transition">
-              Create Account
+            <button
+              onClick={() => navigate("/auth/signup")}
+              className="px-8 py-3 bg-white text-primary rounded font-bold hover:bg-gray-100 transition"
+            >
+              Tạo tài khoản
             </button>
           </div>
         </section>
       </main>
 
       <footer className="bg-foreground text-white py-12 px-4 mt-16">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-center gap-16 md:gap-32 mb-8">
           <div>
-            <h4 className="font-bold mb-4">About Us</h4>
+            <h4 className="font-bold mb-4">Về chúng tôi</h4>
             <ul className="space-y-2 text-sm text-gray-300">
               <li>
                 <a href="#" className="hover:text-white transition">
-                  About AuctionHub
+                  Về AuctionHub
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-white transition">
-                  Careers
+                  Tuyển dụng
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-white transition">
-                  Blog
+                  Tin tức
                 </a>
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold mb-4">Follow Us</h4>
+            <h4 className="font-bold mb-4">Theo dõi chúng tôi</h4>
             <ul className="space-y-2 text-sm text-gray-300">
               <li>
                 <a href="#" className="hover:text-white transition">
@@ -161,7 +169,7 @@ export default function Home() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto text-center text-sm text-gray-400 border-t border-gray-700 pt-8">
-          <p>&copy; 2025 AuctionHub. All rights reserved.</p>
+          <p>&copy; 2025 AuctionHub. Bảo lưu mọi quyền.</p>
         </div>
       </footer>
     </div>

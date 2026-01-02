@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Lock,
-  Bell,
-  Binary as Privacy,
-  Loader2,
-  Eye,
-  EyeOff,
-  CheckCircle,
-} from "lucide-react";
+import { Lock, Loader2, Eye, EyeOff, CheckCircle } from "lucide-react";
 import Navigation from "../../../components/navigation";
 import userService from "../../services/userService";
 import { useAuth } from "../../context/AuthContext";
@@ -93,17 +85,17 @@ export default function SettingsPage() {
     // For Google users setting password for first time
     if (isGoogleUser && isSettingPassword) {
       if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
-        setError("Please enter and confirm your new password");
+        setError("Vui lòng nhập và xác nhận mật khẩu mới");
         return;
       }
 
       if (passwordForm.newPassword.length < 6) {
-        setError("Password must be at least 6 characters");
+        setError("Mật khẩu phải có ít nhất 6 ký tự");
         return;
       }
 
       if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-        setError("Passwords do not match");
+        setError("Mật khẩu không khớp");
         return;
       }
 
@@ -117,7 +109,7 @@ export default function SettingsPage() {
 
         if (res.data?.status === "success") {
           setMessage(
-            "Password set successfully! You can now login with email and password."
+            "Thiết lập mật khẩu thành công! Bạn có thể đăng nhập bằng email và mật khẩu."
           );
           setIsGoogleUser(false);
           setIsSettingPassword(false);
@@ -130,7 +122,7 @@ export default function SettingsPage() {
         }
       } catch (err) {
         console.error("Error setting password:", err);
-        setError(err.response?.data?.message || "Failed to set password");
+        setError(err.response?.data?.message || "Thiết lập mật khẩu thất bại");
       } finally {
         setLoading(false);
       }
@@ -143,17 +135,17 @@ export default function SettingsPage() {
       !passwordForm.newPassword ||
       !passwordForm.confirmPassword
     ) {
-      setError("All password fields are required");
+      setError("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
     if (passwordForm.newPassword.length < 6) {
-      setError("New password must be at least 6 characters");
+      setError("Mật khẩu mới phải có ít nhất 6 ký tự");
       return;
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setError("New passwords do not match");
+      setError("Mật khẩu mới không khớp");
       return;
     }
 
@@ -165,7 +157,7 @@ export default function SettingsPage() {
       });
 
       if (res.data?.status === "success") {
-        setMessage("Password updated successfully!");
+        setMessage("Cập nhật mật khẩu thành công!");
         setPasswordForm({
           oldPassword: "",
           newPassword: "",
@@ -176,7 +168,7 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error("Error changing password:", err);
-      setError(err.response?.data?.message || "Failed to update password");
+      setError(err.response?.data?.message || "Cập nhật mật khẩu thất bại");
     } finally {
       setLoading(false);
     }
@@ -187,9 +179,9 @@ export default function SettingsPage() {
       <Navigation />
       <div className="pt-24">
         <div className="max-w-2xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-2">Account Settings</h1>
+          <h1 className="text-3xl font-bold mb-2">Cài đặt tài khoản</h1>
           <p className="text-muted-foreground mb-8">
-            Manage your security and preferences
+            Quản lý bảo mật và tùy chọn của bạn
           </p>
 
           {/* Success/Error Messages */}
@@ -215,8 +207,8 @@ export default function SettingsPage() {
                 </div>
                 <h2 className="text-xl font-bold">
                   {isGoogleUser && !isSettingPassword
-                    ? "Set Password"
-                    : "Change Password"}
+                    ? "Thiết lập mật khẩu"
+                    : "Đổi mật khẩu"}
                 </h2>
               </div>
 
@@ -225,12 +217,11 @@ export default function SettingsPage() {
                 <div className="mb-6">
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
                     <p className="text-sm text-blue-800 mb-2">
-                      🔐 You're logged in with Google. You don't have a password
-                      yet.
+                      🔐 Bạn đang đăng nhập bằng Google. Bạn chưa có mật khẩu.
                     </p>
                     <p className="text-xs text-blue-600">
-                      Set a password to enable email/password login as an
-                      alternative to Google Sign-In.
+                      Thiết lập mật khẩu để đăng nhập bằng email/mật khẩu thay
+                      vì Google.
                     </p>
                   </div>
                   <button
@@ -238,21 +229,21 @@ export default function SettingsPage() {
                     onClick={() => setIsSettingPassword(true)}
                     className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium"
                   >
-                    Set Password
+                    Thiết lập mật khẩu
                   </button>
                 </div>
               ) : (
                 <>
                   <p className="text-sm text-muted-foreground mb-6">
                     {isGoogleUser
-                      ? "Create a password for your account"
-                      : "Update your password to keep your account secure"}
+                      ? "Tạo mật khẩu cho tài khoản của bạn"
+                      : "Cập nhật mật khẩu để bảo vệ tài khoản của bạn"}
                   </p>
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
                     {!isGoogleUser && (
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Current Password *
+                          Mật khẩu hiện tại *
                         </label>
                         <div className="relative">
                           <input
@@ -260,7 +251,7 @@ export default function SettingsPage() {
                             name="oldPassword"
                             value={passwordForm.oldPassword}
                             onChange={handlePasswordChange}
-                            placeholder="Enter your current password"
+                            placeholder="Nhập mật khẩu hiện tại"
                             className="w-full px-4 py-3 pr-12 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary transition"
                           />
                           <button
@@ -284,7 +275,7 @@ export default function SettingsPage() {
                     )}
                     <div>
                       <label className="block text-sm font-medium mb-2">
-                        New Password *
+                        Mật khẩu mới *
                       </label>
                       <div className="relative">
                         <input
@@ -292,7 +283,7 @@ export default function SettingsPage() {
                           name="newPassword"
                           value={passwordForm.newPassword}
                           onChange={handlePasswordChange}
-                          placeholder="Enter new password (min. 6 characters)"
+                          placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
                           className="w-full px-4 py-3 pr-12 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary transition"
                         />
                         <button
@@ -315,13 +306,13 @@ export default function SettingsPage() {
                       {passwordForm.newPassword &&
                         passwordForm.newPassword.length < 6 && (
                           <p className="text-xs text-red-500 mt-1">
-                            Password must be at least 6 characters
+                            Mật khẩu phải có ít nhất 6 ký tự
                           </p>
                         )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">
-                        Confirm New Password *
+                        Xác nhận mật khẩu mới *
                       </label>
                       <div className="relative">
                         <input
@@ -329,7 +320,7 @@ export default function SettingsPage() {
                           name="confirmPassword"
                           value={passwordForm.confirmPassword}
                           onChange={handlePasswordChange}
-                          placeholder="Confirm your new password"
+                          placeholder="Xác nhận mật khẩu mới"
                           className="w-full px-4 py-3 pr-12 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary transition"
                         />
                         <button
@@ -353,7 +344,7 @@ export default function SettingsPage() {
                         passwordForm.newPassword !==
                           passwordForm.confirmPassword && (
                           <p className="text-xs text-red-500 mt-1">
-                            Passwords do not match
+                            Mật khẩu không khớp
                           </p>
                         )}
                     </div>
@@ -367,13 +358,15 @@ export default function SettingsPage() {
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
                             {isGoogleUser
-                              ? "Setting Password..."
-                              : "Updating Password..."}
+                              ? "Đang thiết lập..."
+                              : "Đang cập nhật..."}
                           </>
                         ) : (
                           <>
                             <Lock className="w-4 h-4" />
-                            {isGoogleUser ? "Set Password" : "Update Password"}
+                            {isGoogleUser
+                              ? "Thiết lập mật khẩu"
+                              : "Cập nhật mật khẩu"}
                           </>
                         )}
                       </button>
@@ -391,7 +384,7 @@ export default function SettingsPage() {
                           disabled={loading}
                           className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-medium disabled:opacity-50"
                         >
-                          Cancel
+                          Hủy
                         </button>
                       )}
                     </div>
@@ -409,117 +402,18 @@ export default function SettingsPage() {
                   <Lock className="w-5 h-5 text-blue-600" />
                 </div>
                 <h2 className="text-xl font-bold text-blue-900">
-                  Account Security
+                  Bảo mật tài khoản
                 </h2>
               </div>
               <p className="text-sm text-blue-800 mb-2">
-                🔐 Your account is secured with Google Sign-In
+                🔐 Tài khoản của bạn được bảo vệ bởi Google Sign-In
               </p>
               <p className="text-xs text-blue-600">
-                Password management is not available for Google accounts. Your
-                account security is managed by Google.
+                Quản lý mật khẩu không khả dụng cho tài khoản Google. Bảo mật
+                tài khoản của bạn được quản lý bởi Google.
               </p>
             </div>
           )}
-
-          {/* Notifications Section */}
-          <div className="bg-background border border-border rounded-lg p-6 mb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Bell className="w-6 h-6 text-primary" />
-              <h2 className="text-xl font-bold">Notifications</h2>
-            </div>
-            <div className="space-y-4">
-              {[
-                {
-                  key: "emailNotifications",
-                  label: "Email Notifications",
-                  desc: "Receive updates about your auctions",
-                },
-                {
-                  key: "bidNotifications",
-                  label: "Bid Notifications",
-                  desc: "Get notified when you're outbid",
-                },
-                {
-                  key: "marketingEmails",
-                  label: "Marketing Emails",
-                  desc: "Receive special offers and promotions",
-                },
-              ].map((item) => (
-                <div
-                  key={item.key}
-                  className="flex items-center justify-between p-3 border border-border rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium">{item.label}</p>
-                    <p className="text-sm text-muted-foreground">{item.desc}</p>
-                  </div>
-                  <button
-                    onClick={() => handleToggle(item.key)}
-                    className={`relative w-12 h-6 rounded-full transition ${
-                      settings[item.key] ? "bg-primary" : "bg-muted"
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition transform ${
-                        settings[item.key] ? "translate-x-6" : ""
-                      }`}
-                    />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Privacy Section */}
-          <div className="bg-background border border-border rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Privacy className="w-6 h-6 text-primary" />
-              <h2 className="text-xl font-bold">Privacy</h2>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                <div>
-                  <p className="font-medium">Private Profile</p>
-                  <p className="text-sm text-muted-foreground">
-                    Hide your profile from public view
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleToggle("privateProfile")}
-                  className={`relative w-12 h-6 rounded-full transition ${
-                    settings.privateProfile ? "bg-primary" : "bg-muted"
-                  }`}
-                >
-                  <div
-                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition transform ${
-                      settings.privateProfile ? "translate-x-6" : ""
-                    }`}
-                  />
-                </button>
-              </div>
-              <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                <div>
-                  <p className="font-medium">Two-Factor Authentication</p>
-                  <p className="text-sm text-muted-foreground">
-                    Add extra security to your account
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleToggle("twoFactorAuth")}
-                  className={`relative w-12 h-6 rounded-full transition ${
-                    settings.twoFactorAuth ? "bg-primary" : "bg-muted"
-                  }`}
-                >
-                  <div
-                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition transform ${
-                      settings.twoFactorAuth ? "translate-x-6" : ""
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

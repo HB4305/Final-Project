@@ -101,22 +101,6 @@ export default function SellerInfoCard({ seller }) {
           </div>
         </div>
       </div>
-
-      {/* Products Count */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <ShoppingBag className="w-4 h-4" />
-        <span>Đang bán {seller.productsCount || 0} sản phẩm</span>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex gap-2 pt-2">
-        <button className="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition text-sm font-semibold">
-          Xem cửa hàng
-        </button>
-        <button className="flex-1 py-2 border border-border rounded-lg hover:bg-muted transition text-sm font-semibold">
-          Liên hệ
-        </button>
-      </div>
     </div>
   );
 }

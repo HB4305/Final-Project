@@ -1,49 +1,53 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Image, X } from 'lucide-react';
-import { useOrderchat } from '../hooks/useOrderchat.js';
+import React, { useState, useEffect, useRef } from "react";
+import { Send, Paperclip, Image, X } from "lucide-react";
+import { useOrderchat } from "../hooks/useOrderchat.js";
+import Toast from "./Toast";
 
 /**
  * ChatComponent
  * Real-time chat between buyer and seller during order completion (section 7)
  */
-export default function ChatComponent({ 
-  order,
-  currentUser
-}) {
+export default function ChatComponent({ order, currentUser }) {
   const orderId = order._id;
   const currentUserId = currentUser._id;
   const currentUserName = currentUser.username || currentUser.fullName;
 
   // Determine other user
-  const isBuyer = order.buyerId._id === currentUserId || order.buyerId === currentUserId;
+  const isBuyer =
+    order.buyerId._id === currentUserId || order.buyerId === currentUserId;
   const otherUser = isBuyer ? order.sellerId : order.buyerId;
   const otherUserId = otherUser?._id || otherUser;
-  const otherUserName = otherUser?.fullName || otherUser?.username || 'User';
+  const otherUserName =
+    otherUser?.fullName || otherUser?.username || "Người dùng";
 
   const { messages, loading, sending, sendMessage } = useOrderchat(orderId);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [attachment, setAttachment] = useState(null);
+  const [toast, setToast] = useState(null);
   const messagesEndRef = useRef(null);
 
   const prevMessagesLengthRef = useRef(0);
   useEffect(() => {
     if (messages.length > prevMessagesLengthRef.current) {
-       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim() && !attachment) return;
 
     try {
       await sendMessage(newMessage.trim(), attachment?.url);
-      setNewMessage('');
+      setNewMessage("");
       setAttachment(null);
     } catch (error) {
-      alert('Failed to send message: ' + error.message);
+      setToast({
+        message: "Gửi tin nhắn thất bại: " + error.message,
+        type: "error",
+      });
     }
   };
 
@@ -55,7 +59,7 @@ export default function ChatComponent({
         name: file.name,
         type: file.type,
         size: file.size,
-        url: URL.createObjectURL(file)
+        url: URL.createObjectURL(file),
       });
     }
   };
@@ -65,75 +69,101 @@ export default function ChatComponent({
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    
+
+    if (diffMins < 1) return "Vừa xong";
+    if (diffMins < 60) return `${diffMins} phút trước`;
+
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+
+    return date.toLocaleDateString("vi-VN", { month: "short", day: "numeric" });
   };
 
   return (
     <div className="flex flex-col h-[600px] bg-background border border-border rounded-lg">
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       {/* Chat Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-muted">
         <div>
-          <h3 className="font-semibold">Chat with {otherUserName}</h3>
-          <p className="text-xs text-muted-foreground">Order #{orderId}</p>
+          <h3 className="font-semibold">Trò chuyện với {otherUserName}</h3>
+          <p className="text-xs text-muted-foreground">Đơn hàng #{orderId}</p>
         </div>
-        <div className="w-2 h-2 bg-green-500 rounded-full" title="Online"></div>
+        <div
+          className="w-2 h-2 bg-green-500 rounded-full"
+          title="Trực tuyến"
+        ></div>
       </div>
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p>No messages yet. Start the conversation!</p>
+            <p>Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!</p>
           </div>
         ) : (
           messages.map((msg, index) => {
             // Check if senderId is populated (object) or raw ID (string)
             const senderId = msg.senderId?._id || msg.senderId;
-            const isOwnMessage = senderId?.toString() === currentUserId?.toString();
-            const senderName = msg.senderId?.username || msg.senderId?.fullName || 'User';
-            
+            const isOwnMessage =
+              senderId?.toString() === currentUserId?.toString();
+            const senderName =
+              msg.senderId?.username || msg.senderId?.fullName || "Người dùng";
+
             return (
-              <div 
+              <div
                 key={index}
-                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${
+                  isOwnMessage ? "justify-end" : "justify-start"
+                }`}
               >
-                <div className={`max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col`}>
+                <div
+                  className={`max-w-[70%] ${
+                    isOwnMessage ? "items-end" : "items-start"
+                  } flex flex-col`}
+                >
                   {!isOwnMessage && (
-                    <span className="text-xs text-muted-foreground mb-1">{senderName}</span>
+                    <span className="text-xs text-muted-foreground mb-1">
+                      {senderName}
+                    </span>
                   )}
-                  
-                  <div className={`rounded-lg p-3 ${
-                    isOwnMessage 
-                      ? 'bg-primary text-white' 
-                      : 'bg-muted text-foreground'
-                  }`}>
-                    {msg.message && <p className="text-sm break-words">{msg.message}</p>}
-                    
+
+                  <div
+                    className={`rounded-lg p-3 ${
+                      isOwnMessage
+                        ? "bg-primary text-white"
+                        : "bg-muted text-foreground"
+                    }`}
+                  >
+                    {msg.message && (
+                      <p className="text-sm break-words">{msg.message}</p>
+                    )}
+
                     {msg.attachment && (
                       <div className="mt-2">
-                        {msg.attachment.type.startsWith('image/') ? (
-                          <img 
-                            src={msg.attachment.url} 
+                        {msg.attachment.type.startsWith("image/") ? (
+                          <img
+                            src={msg.attachment.url}
                             alt={msg.attachment.name}
                             className="max-w-full rounded"
                           />
                         ) : (
                           <div className="flex items-center gap-2 p-2 bg-white/10 rounded">
                             <Paperclip className="w-4 h-4" />
-                            <span className="text-xs">{msg.attachment.name}</span>
+                            <span className="text-xs">
+                              {msg.attachment.name}
+                            </span>
                           </div>
                         )}
                       </div>
                     )}
                   </div>
-                  
+
                   <span className="text-xs text-muted-foreground mt-1">
                     {formatTime(msg.createdAt)}
                   </span>
@@ -149,11 +179,11 @@ export default function ChatComponent({
       {attachment && (
         <div className="px-4 py-2 border-t border-border bg-muted/50">
           <div className="flex items-center gap-2 p-2 bg-background rounded">
-            {attachment.type.startsWith('image/') ? (
+            {attachment.type.startsWith("image/") ? (
               <>
                 <Image className="w-4 h-4 text-primary" />
-                <img 
-                  src={attachment.url} 
+                <img
+                  src={attachment.url}
                   alt={attachment.name}
                   className="h-12 w-12 object-cover rounded"
                 />
@@ -173,7 +203,10 @@ export default function ChatComponent({
       )}
 
       {/* Message Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-border bg-muted">
+      <form
+        onSubmit={handleSubmit}
+        className="p-4 border-t border-border bg-muted"
+      >
         <div className="flex gap-2">
           {/* File Upload Button */}
           <label className="cursor-pointer p-2 hover:bg-background rounded transition">
@@ -191,7 +224,7 @@ export default function ChatComponent({
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
+            placeholder="Nhập tin nhắn..."
             className="flex-1 px-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           />
 
@@ -206,7 +239,8 @@ export default function ChatComponent({
         </div>
 
         <p className="text-xs text-muted-foreground mt-2">
-          Share order details, shipping info, or any questions here
+          Chia sẻ chi tiết đơn hàng, thông tin vận chuyển hoặc bất kỳ câu hỏi
+          nào tại đây
         </p>
       </form>
     </div>

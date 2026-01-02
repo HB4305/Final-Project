@@ -2,12 +2,18 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Clock, Heart, Gavel } from "lucide-react";
 import productService from "../app/services/productService";
+import watchlistService from "../app/services/watchlistService";
+import { useAuth } from "../app/context/AuthContext";
+
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=300&fit=crop";
 
 /**
  * Component hiển thị Top 5 sản phẩm
  * Gồm 3 nhóm: Gần kết thúc, Nhiều lượt ra giá, Giá cao nhất
  */
 export default function TopProductsSection() {
+  const { isLoggedIn } = useAuth();
   const [topProducts, setTopProducts] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -61,6 +67,42 @@ export default function TopProductsSection() {
     return () => clearInterval(interval);
   }, [topProducts]);
 
+  // Load watchlist status
+  const [watchlist, setWatchlist] = useState(new Set());
+
+  // Function to reload watchlist
+  const loadWatchlist = async () => {
+    if (!isLoggedIn) {
+      setWatchlist(new Set());
+      return;
+    }
+
+    try {
+      const response = await watchlistService.getWatchlist({
+        page: 1,
+        limit: 100,
+      });
+      if (response.success) {
+        const watchedIds = new Set(
+          response.data.watchlist
+            .map((item) => item.productId?._id || item.productId)
+            .filter(Boolean)
+        );
+        setWatchlist(watchedIds);
+      }
+    } catch (error) {
+      console.error("Failed to load watchlist", error);
+    }
+  };
+
+  useEffect(() => {
+    loadWatchlist();
+
+    // Add event listener for focus to reload watchlist when user comes back to tab
+    window.addEventListener("focus", loadWatchlist);
+    return () => window.removeEventListener("focus", loadWatchlist);
+  }, [isLoggedIn]);
+
   if (loading) {
     return (
       <div className="space-y-12">
@@ -98,6 +140,8 @@ export default function TopProductsSection() {
           subtitle="Các phiên đấu giá sắp kết thúc"
           products={topProducts.endingSoon}
           timeRemaining={timeRemaining}
+          watchlist={watchlist}
+          onWatchlistChange={loadWatchlist}
         />
       )}
 
@@ -108,6 +152,8 @@ export default function TopProductsSection() {
           subtitle="Những sản phẩm được quan tâm nhất"
           products={topProducts.mostBids}
           timeRemaining={timeRemaining}
+          watchlist={watchlist}
+          onWatchlistChange={loadWatchlist}
         />
       )}
 
@@ -118,14 +164,22 @@ export default function TopProductsSection() {
           subtitle="Những sản phẩm có giá cao"
           products={topProducts.highestPrice}
           timeRemaining={timeRemaining}
+          watchlist={watchlist}
+          onWatchlistChange={loadWatchlist}
         />
       )}
     </div>
   );
 }
 
-
-function TopProductsGroup({ title, subtitle, products, timeRemaining }) {
+function TopProductsGroup({
+  title,
+  subtitle,
+  products,
+  timeRemaining,
+  watchlist,
+  onWatchlistChange,
+}) {
   return (
     <div className="border rounded-lg overflow-hidden bg-white">
       {/* Header */}
@@ -141,6 +195,10 @@ function TopProductsGroup({ title, subtitle, products, timeRemaining }) {
             key={product.auctionId}
             product={product}
             timeRemaining={timeRemaining[product.auctionId]}
+            isWatchlisted={watchlist.has(
+              product.product?.productId || product.auctionId
+            )}
+            onWatchlistChange={onWatchlistChange}
           />
         ))}
       </div>
@@ -148,48 +206,84 @@ function TopProductsGroup({ title, subtitle, products, timeRemaining }) {
   );
 }
 
+function ProductCard({
+  product,
+  timeRemaining,
+  isWatchlisted,
+  onWatchlistChange,
+}) {
+  const [isFavorite, setIsFavorite] = useState(isWatchlisted);
 
-function ProductCard({ product, timeRemaining }) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  useEffect(() => {
+    setIsFavorite(isWatchlisted);
+  }, [isWatchlisted]);
 
   const time = timeRemaining || {};
 
+  const handleToggleWatchlist = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Optimistic update
+    const newStatus = !isFavorite;
+    setIsFavorite(newStatus);
+
+    const targetId = product.product?.productId || product.auctionId;
+
+    try {
+      if (newStatus) {
+        await watchlistService.addToWatchlist(targetId);
+      } else {
+        await watchlistService.removeFromWatchlist(targetId);
+      }
+
+      if (onWatchlistChange) onWatchlistChange();
+    } catch (error) {
+      console.error("Error toggling watchlist:", error);
+      // Revert if failed
+      setIsFavorite(!newStatus);
+    }
+  };
+
   return (
-    <Link to={`/product/${product.product?.productId || product.auctionId}`}>
-      <div className="group cursor-pointer bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-all overflow-hidden">
-        {/* Product Image */}
-        <div className="relative h-40 bg-gray-100 overflow-hidden">
-          {product.product?.image ? (
-            <img
-              src={product.product.image}
-              alt={product.product?.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              No Image
-            </div>
-          )}
-
-          {/* Favorite Button */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              setIsFavorite(!isFavorite);
+    <div className="group cursor-pointer bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-all overflow-hidden relative">
+      {/* Product Image */}
+      <div className="relative h-40 bg-gray-100 overflow-hidden">
+        <Link
+          to={`/product/${product.product?.productId || product.auctionId}`}
+          className="block w-full h-full"
+        >
+          <img
+            src={product.product?.image || FALLBACK_IMAGE}
+            alt={product.product?.title}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+            onError={(e) => {
+              e.target.src = FALLBACK_IMAGE;
             }}
-            className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition z-10"
-          >
-            <Heart
-              size={18}
-              className={isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}
-            />
-          </button>
-        </div>
+          />
+        </Link>
 
-        {/* Product Info */}
-        <div className="p-3">
+        {/* Favorite Button */}
+        <button
+          onClick={handleToggleWatchlist}
+          className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition z-10"
+        >
+          <Heart
+            size={18}
+            className={
+              isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"
+            }
+          />
+        </button>
+      </div>
+
+      {/* Product Info */}
+      <div className="p-3">
+        <Link
+          to={`/product/${product.product?.productId || product.auctionId}`}
+        >
           {/* Title */}
-          <h3 className="font-semibold text-sm text-gray-800 line-clamp-2 group-hover:text-blue-600">
+          <h3 className="font-semibold text-sm text-gray-800 line-clamp-2 group-hover:text-blue-600 pb-1">
             {product.product?.title}
           </h3>
 
@@ -217,8 +311,8 @@ function ProductCard({ product, timeRemaining }) {
               )}
             </span>
           </div>
-        </div>
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 }

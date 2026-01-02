@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { MessageSquare, Send, User, Clock, AlertCircle } from 'lucide-react';
-import { useAuth } from '../app/context/AuthContext.jsx';
-import questionService from '../app/services/questionService';
-import Toast from './Toast';
+import { useState, useEffect } from "react";
+import { MessageSquare, Send, User, Clock, AlertCircle } from "lucide-react";
+import { useAuth } from "../app/context/AuthContext.jsx";
+import questionService from "../app/services/questionService";
+import Toast from "./Toast";
 
 /**
  * ProductQA Component
@@ -10,15 +10,12 @@ import Toast from './Toast';
  * Buyers can ask questions, sellers can respond
  * All users see Q&A history
  */
-export default function ProductQA({ 
-  productId,
-  sellerId,
-}) {
+export default function ProductQA({ productId, sellerId }) {
   const { currentUser, isLoggedIn } = useAuth();
 
-  const [newQuestion, setNewQuestion] = useState('');
+  const [newQuestion, setNewQuestion] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
-  const [replyText, setReplyText] = useState('');
+  const [replyText, setReplyText] = useState("");
   const [toast, setToast] = useState(null);
 
   const [questions, setQuestions] = useState([]);
@@ -44,7 +41,7 @@ export default function ProductQA({
         setError(result.error);
       }
     } catch (err) {
-      setError('Failed to load questions.');
+      setError("Failed to load questions.");
     } finally {
       setLoading(false);
     }
@@ -52,33 +49,41 @@ export default function ProductQA({
 
   const handleSubmitQuestion = async (e) => {
     e.preventDefault();
-    
+
     if (!isLoggedIn) {
-      setToast({ message: 'Please log in to ask a question.', type: 'error' });
+      setToast({ message: "Please log in to ask a question.", type: "error" });
       return;
     }
 
     if (!newQuestion.trim()) return;
 
     if (isSeller) {
-      setToast({ message: 'Sellers cannot ask questions about their own products.', type: 'error' });
+      setToast({
+        message: "Sellers cannot ask questions about their own products.",
+        type: "error",
+      });
       return;
     }
 
     try {
       setSubmitting(true);
-      const result = await questionService.createQuestion(productId, newQuestion);
-      
+      const result = await questionService.createQuestion(
+        productId,
+        newQuestion
+      );
+
       if (result.success) {
-        setNewQuestion('');
+        setNewQuestion("");
         await loadQuestions();
-        setToast({ message: 'Your question has been submitted.', type: 'success' });
-      }
-      else {
-        setToast({ message: result.error, type: 'error' });
+        setToast({
+          message: "Your question has been submitted.",
+          type: "success",
+        });
+      } else {
+        setToast({ message: result.error, type: "error" });
       }
     } catch (err) {
-      setToast({ message: 'Failed to submit question.', type: 'error' });
+      setToast({ message: "Failed to submit question.", type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -89,18 +94,27 @@ export default function ProductQA({
 
     try {
       setSubmitting(true);
-      const result = await questionService.answerQuestion(questionId, replyText);
+      const result = await questionService.answerQuestion(
+        questionId,
+        replyText
+      );
 
       if (result.success) {
-        setReplyText('');
+        setReplyText("");
         setReplyingTo(null);
         await loadQuestions();
-        setToast({ message: 'Your answer has been submitted.', type: 'success' });
+        setToast({
+          message: "Your answer has been submitted.",
+          type: "success",
+        });
       } else {
-        setToast({ message: result.error || 'Failed to submit answer.', type: 'error' });
+        setToast({
+          message: result.error || "Failed to submit answer.",
+          type: "error",
+        });
       }
     } catch (err) {
-      setToast({ message: 'Failed to submit answer.', type: 'error' });
+      setToast({ message: "Failed to submit answer.", type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -124,9 +138,7 @@ export default function ProductQA({
       <div className="bg-background border border-border rounded-lg p-6">
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary">
-            <span className="ml-3 text-muted-foreground">
-              Loading...
-            </span>
+            <span className="ml-3 text-muted-foreground">Loading...</span>
           </div>
         </div>
       </div>
@@ -149,13 +161,17 @@ export default function ProductQA({
       <div className="flex items-center gap-2 mb-6">
         <MessageSquare className="w-5 h-5 text-primary" />
         <h2 className="text-xl font-bold">Questions & Answers</h2>
-        <span className="text-sm text-muted-foreground">({questions.length})</span>
+        <span className="text-sm text-muted-foreground">
+          ({questions.length})
+        </span>
       </div>
 
       {/* Ask Question Form - Only for buyers */}
       {isLoggedIn && !isSeller && (
         <form onSubmit={handleSubmitQuestion} className="mb-6">
-          <label className="block text-sm font-medium mb-2">Ask the seller a question</label>
+          <label className="block text-sm font-medium mb-2">
+            Ask the seller a question
+          </label>
           <div className="flex gap-2">
             <textarea
               value={newQuestion}
@@ -182,7 +198,11 @@ export default function ProductQA({
       {!isLoggedIn && (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-blue-800">
-            Vui lòng <a href="/auth/signin" className="underline font-semibold">đăng nhập</a> để đặt câu hỏi
+            Vui lòng{" "}
+            <a href="/auth/signin" className="underline font-semibold">
+              đăng nhập
+            </a>{" "}
+            để đặt câu hỏi
           </p>
         </div>
       )}
@@ -196,7 +216,10 @@ export default function ProductQA({
           </div>
         ) : (
           questions.map((q) => (
-            <div key={q._id} className="border border-border rounded-lg p-4 space-y-3">
+            <div
+              key={q._id}
+              className="border border-border rounded-lg p-4 space-y-3"
+            >
               {/* Question */}
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -205,7 +228,7 @@ export default function ProductQA({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold text-sm">
-                      {q.authorId.fullName || 'Người dùng'}
+                      {q.authorId?.fullName || "Người dùng"}
                     </span>
                   </div>
                   <p className="text-sm">{q.text}</p>
@@ -216,7 +239,10 @@ export default function ProductQA({
               {q.answers && q.answers.length > 0 && (
                 <div className="ml-11 space-y-2">
                   {q.answers.map((answer, index) => (
-                    <div key={index} className="pl-4 border-l-2 border-primary/30">
+                    <div
+                      key={index}
+                      className="pl-4 border-l-2 border-primary/30"
+                    >
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-sm text-primary">
                           {answer.authorId?.fullName || "Người dùng"}
@@ -233,7 +259,7 @@ export default function ProductQA({
               )}
 
               {/* Reply Section */}
-              {isSeller || (currentUser?._id === q.authorId._id) ? (
+              {isSeller || currentUser?._id === q.authorId?._id ? (
                 <div className="ml-11 mt-2">
                   {replyingTo === q._id ? (
                     <div className="space-y-2">

@@ -41,11 +41,10 @@ export default function LoginPage() {
       return;
     }
 
-    // TEMPORARY: Comment recaptcha validation for testing
-    // if (!recaptchaToken) {
-    //   setError("Vui lòng xác minh bạn không phải là robot");
-    //   return;
-    // }
+    if (!recaptchaToken) {
+      setError("Vui lòng xác minh bạn không phải là robot");
+      return;
+    }
 
     setIsLoading(true);
     setError("");
@@ -92,8 +91,11 @@ export default function LoginPage() {
       }
 
       // Dịch một số lỗi phổ biến từ backend nếu cần
-      if (errorMessage === "Invalid credentials")
-        errorMessage = "Email hoặc mật khẩu không đúng";
+      if (
+        errorMessage === "Invalid credentials" ||
+        errorMessage === "Email hoặc mật khẩu không chính xác"
+      )
+        errorMessage = "Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.";
       if (errorMessage === "User not found")
         errorMessage = "Tài khoản không tồn tại";
       if (errorMessage === "Please verify your email first")
@@ -101,7 +103,6 @@ export default function LoginPage() {
 
       setError(errorMessage);
       setToast({ message: errorMessage, type: "error" });
-      // setRecaptchaToken(null); // Reset reCAPTCHA on error (commented)
     }
   };
 
@@ -118,7 +119,9 @@ export default function LoginPage() {
         <div className="bg-background border border-border rounded-lg p-8 shadow-sm">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-primary mb-2">AuctionHub</h1>
-            <p className="text-muted-foreground">Sign in to your account</p>
+            <p className="text-muted-foreground">
+              Đăng nhập vào tài khoản của bạn
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -141,7 +144,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
+              <label className="block text-sm font-medium mb-2">Mật khẩu</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -170,16 +173,14 @@ export default function LoginPage() {
                   type="checkbox"
                   className="w-4 h-4 rounded border-border"
                 />
-                <span>Remember me</span>
+                <span>Ghi nhớ đăng nhập</span>
               </label>
 
-              {/* --- THAY ĐỔI QUAN TRỌNG Ở ĐÂY --- */}
-              {/* Đổi từ button sang Link để trỏ tới trang Forgot Password */}
               <Link
                 to="/auth/forgot-password"
                 className="text-primary hover:underline"
               >
-                Forgot password?
+                Quên mật khẩu?
               </Link>
             </div>
 
@@ -202,7 +203,7 @@ export default function LoginPage() {
               {isLoading ? (
                 <Loader2 className="animate-spin mr-2 h-4 w-4" />
               ) : null}
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
           </form>
 
@@ -214,7 +215,7 @@ export default function LoginPage() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-background text-muted-foreground">
-                  Or continue with
+                  Hoặc tiếp tục với
                 </span>
               </div>
             </div>
@@ -238,12 +239,12 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-6 border-t border-border">
             <p className="text-center text-sm text-muted-foreground">
-              Don't have an account?{" "}
+              Chưa có tài khoản?{" "}
               <Link
                 to="/auth/signup"
                 className="text-primary hover:underline font-medium"
               >
-                Sign up
+                Đăng ký
               </Link>
             </p>
           </div>
