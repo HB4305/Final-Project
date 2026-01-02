@@ -56,9 +56,8 @@ const WatchlistButton = ({ productId, isWatched, onToggle }) => (
     aria-label={isWatched ? "Remove from watchlist" : "Add to watchlist"}
   >
     <Heart
-      className={`w-5 h-5 ${
-        isWatched ? "fill-primary text-primary" : "text-gray-400"
-      }`}
+      className={`w-5 h-5 ${isWatched ? "fill-primary text-primary" : "text-gray-400"
+        }`}
     />
   </button>
 );
@@ -138,11 +137,10 @@ const ProductCard = ({ product, isWatched, onToggleWatchlist }) => (
           </div>
 
           <span
-            className={`inline-block text-xs px-2 py-1 rounded ${
-              product.auction?.status === "active"
+            className={`inline-block text-xs px-2 py-1 rounded ${product.auction?.status === "active"
                 ? "bg-green-100 text-green-700"
                 : "bg-gray-100 text-gray-700"
-            }`}
+              }`}
           >
             {product.auction?.status || "N/A"}
           </span>
@@ -156,7 +154,10 @@ const ProductCard = ({ product, isWatched, onToggleWatchlist }) => (
   </Link>
 );
 
+import { useAuth } from "../app/context/AuthContext";
+
 export default function FeaturedProducts() {
+  const { isLoggedIn } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [watchlist, setWatchlist] = useState(new Set());
@@ -180,7 +181,10 @@ export default function FeaturedProducts() {
   // Load watchlist status for displayed products
   useEffect(() => {
     const loadWatchlistStatus = async () => {
-      if (products.length === 0) return;
+      if (products.length === 0 || !isLoggedIn) {
+        if (!isLoggedIn) setWatchlist(new Set());
+        return;
+      }
 
       try {
         const watchlistData = await watchlistService.getWatchlist({
@@ -199,7 +203,7 @@ export default function FeaturedProducts() {
     };
 
     loadWatchlistStatus();
-  }, [products]);
+  }, [products, isLoggedIn]);
 
   const toggleWatchlist = useCallback(
     async (productId) => {

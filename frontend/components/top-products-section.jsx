@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Clock, Heart, Gavel } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
@@ -72,7 +72,7 @@ export default function TopProductsSection() {
   const [watchlist, setWatchlist] = useState(new Set());
 
   // Function to reload watchlist
-  const loadWatchlist = async () => {
+  const loadWatchlist = useCallback(async () => {
     if (!isLoggedIn) {
       setWatchlist(new Set());
       return;
@@ -94,7 +94,7 @@ export default function TopProductsSection() {
     } catch (error) {
       console.error("Failed to load watchlist", error);
     }
-  };
+  }, [isLoggedIn]);
 
   useEffect(() => {
     loadWatchlist();
@@ -102,7 +102,7 @@ export default function TopProductsSection() {
     // Add event listener for focus to reload watchlist when user comes back to tab
     window.addEventListener("focus", loadWatchlist);
     return () => window.removeEventListener("focus", loadWatchlist);
-  }, [isLoggedIn]);
+  }, [loadWatchlist]);
 
   if (loading) {
     return (
@@ -113,9 +113,9 @@ export default function TopProductsSection() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               {[1, 2, 3, 4, 5].map((j) => (
                 <div key={j} className="h-[340px] w-full">
-                    <Skeleton className="h-48 w-full rounded-t-2xl mb-4 bg-white/5" />
-                    <Skeleton className="h-6 w-3/4 mb-2 bg-white/5" />
-                    <Skeleton className="h-4 w-1/2 bg-white/5" />
+                  <Skeleton className="h-48 w-full rounded-t-2xl mb-4 bg-white/5" />
+                  <Skeleton className="h-6 w-3/4 mb-2 bg-white/5" />
+                  <Skeleton className="h-4 w-1/2 bg-white/5" />
                 </div>
               ))}
             </div>
@@ -187,7 +187,7 @@ function TopProductsGroup({
       {/* Header */}
       <div className="bg-white/5 border-b border-white/10 px-6 py-4 backdrop-blur-3xl">
         <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
-            {title}
+          {title}
         </h2>
         <p className="text-gray-400 text-sm">{subtitle}</p>
       </div>
@@ -294,33 +294,33 @@ function ProductCard({
 
           <div className="flex items-end justify-between mt-2">
             <div>
-                 {/* Current Price */}
-                <p className="text-xs text-gray-400 mb-0.5">Hiện tại</p>
-                <p className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
-                    {productService.formatPrice(product.currentPrice)}
-                </p>
+              {/* Current Price */}
+              <p className="text-xs text-gray-400 mb-0.5">Hiện tại</p>
+              <p className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                {productService.formatPrice(product.currentPrice)}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
-             {/* Bid Count */}
+            {/* Bid Count */}
             <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                <Gavel size={14} className="text-primary" />
-                <span>{product.bidCount} lượt</span>
+              <Gavel size={14} className="text-primary" />
+              <span>{product.bidCount} lượt</span>
             </div>
 
             {/* Time Remaining */}
             <div className="flex items-center gap-1.5 text-xs font-medium">
-                <Clock size={14} className={time.isEnded ? "text-red-500" : "text-orange-400"} />
-                <span className={time.isEnded ? "text-red-500" : "text-orange-400"}>
+              <Clock size={14} className={time.isEnded ? "text-red-500" : "text-orange-400"} />
+              <span className={time.isEnded ? "text-red-500" : "text-orange-400"}>
                 {time.isEnded ? (
-                    "Kết thúc"
+                  "Kết thúc"
                 ) : (
-                    <>
+                  <>
                     {time.days}d {time.hours}h {time.minutes}m
-                    </>
+                  </>
                 )}
-                </span>
+              </span>
             </div>
           </div>
         </Link>

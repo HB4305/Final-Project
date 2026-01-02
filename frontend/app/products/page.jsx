@@ -19,7 +19,7 @@ import {
 } from './_components';
 import CategoryBreadcrumb from './_components/CategoryBreadcrumb';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; 
+import { useAuth } from '../context/AuthContext';
 
 // ============================================
 // CUSTOM HOOKS
@@ -33,11 +33,11 @@ const useCategories = () => {
     const fetchCategories = async () => {
       try {
         const response = await categoryService.getAllCategories();
-        
+
         if (response.success) {
           const allCats = response.data;
           const parentCats = allCats.filter(cat => cat.level === 1);
-          
+
           setCategories(['All', ...parentCats.map(cat => cat.name)]);
           setCategoryMap(buildCategoryMap(allCats));
         }
@@ -45,7 +45,7 @@ const useCategories = () => {
         setError('Failed to load categories');
       }
     };
-    
+
     fetchCategories();
   }, []);
 
@@ -62,7 +62,7 @@ const useProducts = () => {
       setLoading(true);
       setError(null);
       const response = await productService.getAllProducts(params);
-      
+
       if (response.success) {
         const transformedProducts = response.data.map(transformProductData);
         setProducts({
@@ -84,9 +84,16 @@ const useProducts = () => {
 
 const useWatchlist = () => {
   const [watchlist, setWatchlist] = useState(new Set());
+  const { isLoggedIn } = useAuth();
 
   useEffect(() => {
     const loadWatchlist = async () => {
+      // If not logged in, clear watchlist
+      if (!isLoggedIn) {
+        setWatchlist(new Set());
+        return;
+      }
+
       try {
         const response = await watchlistService.getWatchlist({ page: 1, limit: 100 });
         if (response.success) {
@@ -102,9 +109,14 @@ const useWatchlist = () => {
       }
     };
     loadWatchlist();
-  }, []);
+  }, [isLoggedIn]); // Re-run when auth status changes
 
   const toggleWatchlist = useCallback(async (productId) => {
+    if (!isLoggedIn) {
+      // Optional: could show toast telling user to login
+      return;
+    }
+
     setWatchlist(prev => {
       const newWatchlist = new Set(prev);
       if (newWatchlist.has(productId)) {
@@ -116,9 +128,46 @@ const useWatchlist = () => {
     });
 
     try {
-      await watchlistService.toggleWatchlist(productId);
+      // Check current state to determine action
+      // We need to know if we just added or removed it from local state
+      // Actually, relying on the 'toggle' implies we don't know the server state? 
+      // The service has addToWatchlist and removeFromWatchlist. 
+      // The component logic above optimistically toggles.
+      // Let's check the previous state by checking if it WAS in the set.
+      // But we already updated the state. 
+      // safer way:
+
+      // We need to know if we are adding or removing.
+      // Since we just toggled the set, check if it IS in the set now.
+      // Wait, we can't easily check the 'new' state inside the async call if we used closure.
+      // Let's just use the service calls directly based on what we think we did.
+
+      // Actually, looking at the original code: 
+      // await watchlistService.toggleWatchlist(productId); 
+      // But wait, the service file I read earlier ONLY had add and remove, NOT toggle.
+      // File: frontend/app/services/watchlistService.js
+      // Exports: getWatchlist, addToWatchlist, removeFromWatchlist, checkWatchlist.
+      // The original code in ProductsPage CALLS `toggleWatchlist` which DOES NOT EXIST in the service file I saw.
+      // This is another bug!
+
+      // I need to implement the toggle logic properly here.
+
+      // We need to check if it was in the watchlist before the toggle.
+      // But we optimistically updated it. 
+      // Let's rely on the previous state of the set which we have access to? No.
+
+      // Let's redo this function to be safer.
+      const isWatched = watchlist.has(productId);
+
+      if (isWatched) {
+        await watchlistService.removeFromWatchlist(productId);
+      } else {
+        await watchlistService.addToWatchlist(productId);
+      }
+
     } catch (error) {
       console.error("Error toggling watchlist:", error);
+      // Revert on error
       setWatchlist(prev => {
         const newWatchlist = new Set(prev);
         if (newWatchlist.has(productId)) {
@@ -129,7 +178,7 @@ const useWatchlist = () => {
         return newWatchlist;
       });
     }
-  }, []);
+  }, [isLoggedIn, watchlist]); // Need watchlist dependency to know current state
 
   return { watchlist, toggleWatchlist };
 };
@@ -230,7 +279,7 @@ export default function ProductsPage() {
 
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
 
-   // Sync URL query -> filters
+  // Sync URL query -> filters
   useEffect(() => {
     if (!location || !location.search) {
       setSelectedCategory('All');
@@ -245,7 +294,7 @@ export default function ProductsPage() {
     if (subcategoryParam) {
       const subName = decodeURIComponent(subcategoryParam);
       setSelectedSubcategory(subName);
-      
+
       const parentCat = categoryMap[subName];
       if (parentCat) {
         setSelectedCategory(parentCat);
@@ -268,13 +317,13 @@ export default function ProductsPage() {
       sortBy: sortBy,
       status: 'active'
     };
-    
+
     // Note: If we had a direct categoryId from URL, we'd use it.
     // However, the current backend implementation of getAllProducts 
     // doesn't filter by category name string, but the generic list does.
     // For now, let's keep it simple and just fetch base on page/limit/sort.
     // REAL FIX: Backend getAllProducts should support categoryId/name or search.
-    
+
     refetch(params);
   }, [currentPage, itemsPerPage, sortBy, refetch]);
 
@@ -290,7 +339,7 @@ export default function ProductsPage() {
       priceRange,
       categoryMap
     });
-    
+
     // Sort logic is already in backend for sortBy, but we keep it here for client-side filters
     return sortProducts(filtered, sortBy);
   }, [products.data, searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap, sortBy]);
@@ -316,21 +365,21 @@ export default function ProductsPage() {
           watchlist={watchlist}
           onToggleWatchlist={toggleWatchlist}
         />
-        
+
         {/* Pagination */}
         <div className="mt-12">
-            <Pagination
+          <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             itemsPerPage={itemsPerPage}
             totalItems={totalItems}
             onItemsPerPageChange={setItemsPerPage}
-            />
+          />
         </div>
 
         <div className="mt-8 border-t border-gray-100 pt-6">
-             <CategoryBreadcrumb selectedCategory={selectedCategory} selectedSubcategory={selectedSubcategory} />
+          <CategoryBreadcrumb selectedCategory={selectedCategory} selectedSubcategory={selectedSubcategory} />
         </div>
       </div>
     );
