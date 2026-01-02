@@ -5,31 +5,39 @@
  * ============================================
  */
 
-import Product from '../models/Product.js';
-import Category from '../models/Category.js';
-import Auction from '../models/Auction.js';
-import Bid from '../models/Bid.js';
-import { AppError } from '../utils/errors.js';
-import mongoose from 'mongoose';
+import Product from "../models/Product.js";
+import Category from "../models/Category.js";
+import Auction from "../models/Auction.js";
+import Bid from "../models/Bid.js";
+import { AppError } from "../utils/errors.js";
+import mongoose from "mongoose";
 
 export class ProductService {
-
   /**
    * API 1.1: Lấy tất cả sản phẩm (không lọc danh mục, có phân trang)
    * OPTIMIZED: Sử dụng Auction-First approach để tận dụng index
    */
-  async getAllProducts(page = 1, limit = 12, sortBy = 'newest', status = 'active') {
+  async getAllProducts(
+    page = 1,
+    limit = 12,
+    sortBy = "newest",
+    status = "active"
+  ) {
     try {
       const skip = (page - 1) * limit;
 
       // Xác định sort order cho Auction query
       let sortOptions = { createdAt: -1 }; // Default newest (auction creation)
-      if (sortBy === 'price_asc') sortOptions = { currentPrice: 1 };
-      if (sortBy === 'price_desc') sortOptions = { currentPrice: -1 };
-      if (sortBy === 'ending_soon') sortOptions = { endAt: 1 };
-      if (sortBy === 'most_bids') sortOptions = { bidCount: -1 };
+      if (sortBy === "price_asc") sortOptions = { currentPrice: 1 };
+      if (sortBy === "price_desc") sortOptions = { currentPrice: -1 };
+      if (sortBy === "ending_soon") sortOptions = { endAt: 1 };
+      if (sortBy === "most_bids") sortOptions = { bidCount: -1 };
 
-      console.log(`[PRODUCT SERVICE] getAllProducts (Optimized) - Sort: ${JSON.stringify(sortOptions)}`);
+      console.log(
+        `[PRODUCT SERVICE] getAllProducts (Optimized) - Sort: ${JSON.stringify(
+          sortOptions
+        )}`
+      );
 
       // 1. Query Auction collection directly (Fast with indexes)
       const auctions = await Auction.find({ status: status })
@@ -37,18 +45,19 @@ export class ProductService {
         .skip(skip)
         .limit(parseInt(limit))
         .populate({
-          path: 'productId',
-          select: 'title slug primaryImageUrl imageUrls createdAt categoryId isActive',
-          populate: { path: 'categoryId', select: 'name' }
+          path: "productId",
+          select:
+            "title slug primaryImageUrl imageUrls createdAt categoryId isActive",
+          populate: { path: "categoryId", select: "name" },
         })
-        .populate('sellerId', 'username ratingSummary')
-        .populate('currentHighestBidderId', 'username')
+        .populate("sellerId", "username ratingSummary")
+        .populate("currentHighestBidderId", "username")
         .lean();
 
       // 2. Map results to expected format
       const products = auctions
-        .filter(auction => auction.productId && auction.productId.isActive) // Filter out inactive products/nulls
-        .map(auction => {
+        .filter((auction) => auction.productId && auction.productId.isActive) // Filter out inactive products/nulls
+        .map((auction) => {
           const product = auction.productId;
           const seller = auction.sellerId;
           const bidder = auction.currentHighestBidderId;
@@ -69,18 +78,24 @@ export class ProductService {
               startPrice: auction.startPrice,
               buyNowPrice: auction.buyNowPrice,
               currentHighestBidder: bidder ? bidder.username : null,
-              status: auction.status
+              status: auction.status,
             },
-            seller: seller ? {
-              _id: seller._id,
-              username: seller.username,
-              ratingSummary: seller.ratingSummary,
-              rating: seller.ratingSummary?.score ? Math.round(seller.ratingSummary.score * 5 * 10) / 10 : null
-            } : null,
-            category: category ? {
-              _id: category._id,
-              name: category.name
-            } : null
+            seller: seller
+              ? {
+                  _id: seller._id,
+                  username: seller.username,
+                  ratingSummary: seller.ratingSummary,
+                  rating: seller.ratingSummary?.score
+                    ? Math.round(seller.ratingSummary.score * 5 * 10) / 10
+                    : null,
+                }
+              : null,
+            category: category
+              ? {
+                  _id: category._id,
+                  name: category.name,
+                }
+              : null,
           };
         });
 
@@ -94,11 +109,11 @@ export class ProductService {
           currentPage: parseInt(page),
           totalPages,
           totalProducts: total,
-          limit: parseInt(limit)
-        }
+          limit: parseInt(limit),
+        },
       };
     } catch (error) {
-      console.error('[PRODUCT SERVICE] Lỗi getAllProducts:', error);
+      console.error("[PRODUCT SERVICE] Lỗi getAllProducts:", error);
       throw error;
     }
   }
@@ -111,65 +126,65 @@ export class ProductService {
    */
   async getTopProducts() {
     try {
-      console.log('[PRODUCT SERVICE] Lấy Top 5 sản phẩm cho Homepage');
+      console.log("[PRODUCT SERVICE] Lấy Top 5 sản phẩm cho Homepage");
 
       // Execute queries in parallel
       const [endingSoon, mostBids, highestPrice] = await Promise.all([
         // Top 5 gần kết thúc
-        Auction.find({ status: 'active' })
+        Auction.find({ status: "active" })
           .sort({ endAt: 1 })
           .limit(5)
           .populate({
-            path: 'productId',
-            select: 'title primaryImageUrl'
+            path: "productId",
+            select: "title primaryImageUrl",
           })
           .populate({
-            path: 'currentHighestBidderId',
-            select: 'username'
+            path: "currentHighestBidderId",
+            select: "username",
           })
-          .select('_id currentPrice bidCount endAt')
+          .select("_id currentPrice bidCount endAt")
           .lean(),
 
         // Top 5 nhiều bids nhất
-        Auction.find({ status: 'active' })
+        Auction.find({ status: "active" })
           .sort({ bidCount: -1 })
           .limit(5)
           .populate({
-            path: 'productId',
-            select: 'title primaryImageUrl'
+            path: "productId",
+            select: "title primaryImageUrl",
           })
           .populate({
-            path: 'currentHighestBidderId',
-            select: 'username'
+            path: "currentHighestBidderId",
+            select: "username",
           })
-          .select('_id currentPrice bidCount endAt')
+          .select("_id currentPrice bidCount endAt")
           .lean(),
 
         // Top 5 giá cao nhất
-        Auction.find({ status: 'active' })
+        Auction.find({ status: "active" })
           .sort({ currentPrice: -1 })
           .limit(5)
           .populate({
-            path: 'productId',
-            select: 'title primaryImageUrl'
+            path: "productId",
+            select: "title primaryImageUrl",
           })
           .populate({
-            path: 'currentHighestBidderId',
-            select: 'username'
+            path: "currentHighestBidderId",
+            select: "username",
           })
-          .select('_id currentPrice bidCount endAt')
-          .lean()
+          .select("_id currentPrice bidCount endAt")
+          .lean(),
       ]);
 
-      console.log('[PRODUCT SERVICE] Top products fetched successfully');
+      console.log("[PRODUCT SERVICE] Top products fetched successfully");
 
       return {
         endingSoon: this._formatTopProducts(endingSoon),
         mostBids: this._formatTopProducts(mostBids),
-        highestPrice: this._formatTopProducts(highestPrice)
+        highestPrice: this._formatTopProducts(highestPrice),
       };
     } catch (error) {
-      console.error('[PRODUCT SERVICE] Lỗi khi lấy top products:', error);
+      console.error("[PRODUCT SERVICE] Lỗi khi lấy top products:", error);
       throw error;
     }
   }
@@ -185,101 +200,120 @@ export class ProductService {
    * API 1.3: Lấy danh sách sản phẩm theo danh mục (phân trang)
    * Hỗ trợ sắp xếp theo: newest, price_asc, price_desc, ending_soon, most_bids
    */
-  async getProductsByCategory(categoryId, page = 1, limit = 12, sortBy = 'newest') {
+  async getProductsByCategory(
+    categoryId,
+    page = 1,
+    limit = 12,
+    sortBy = "newest"
+  ) {
     try {
-
       const category = await Category.findById(categoryId);
       if (!category) {
-        throw new AppError('Danh mục không tồn tại', 404, 'CATEGORY_NOT_FOUND');
+        throw new AppError("Danh mục không tồn tại", 404, "CATEGORY_NOT_FOUND");
       }
-      console.log('[PRODUCT SERVICE] Category found:', category.name, 'Level:', category.level);
+      console.log(
+        "[PRODUCT SERVICE] Category found:",
+        category.name,
+        "Level:",
+        category.level
+      );
 
       const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
 
       // FIX: If parent category (level 1), get all child categories
       let categoryIds = [categoryObjectId];
       if (category.level === 1) {
-        console.log('[PRODUCT SERVICE] Parent category detected, finding child categories...');
-        const childCategories = await Category.find({ parentId: categoryObjectId });
-        console.log('[PRODUCT SERVICE] Found', childCategories.length, 'child categories');
-        categoryIds = childCategories.map(cat => new mongoose.Types.ObjectId(cat._id));
+        console.log(
+          "[PRODUCT SERVICE] Parent category detected, finding child categories..."
+        );
+        const childCategories = await Category.find({
+          parentId: categoryObjectId,
+        });
+        console.log(
+          "[PRODUCT SERVICE] Found",
+          childCategories.length,
+          "child categories"
+        );
+        categoryIds = childCategories.map(
+          (cat) => new mongoose.Types.ObjectId(cat._id)
+        );
         categoryIds.unshift(categoryObjectId);
       }
 
       const skip = (page - 1) * limit;
 
       let sortStage = { createdAt: -1 };
-      if (sortBy === 'price_asc') sortStage = { 'auction.currentPrice': 1 };
-      if (sortBy === 'price_desc') sortStage = { 'auction.currentPrice': -1 };
-      if (sortBy === 'ending_soon') sortStage = { 'auction.endAt': 1 };
-      if (sortBy === 'most_bids') sortStage = { 'auction.bidCount': -1 };
+      if (sortBy === "price_asc") sortStage = { "auction.currentPrice": 1 };
+      if (sortBy === "price_desc") sortStage = { "auction.currentPrice": -1 };
+      if (sortBy === "ending_soon") sortStage = { "auction.endAt": 1 };
+      if (sortBy === "most_bids") sortStage = { "auction.bidCount": -1 };
 
       const pipeline = [
         // Stage 1: Match products in category (or child categories if parent)
         {
           $match: {
             categoryId: { $in: categoryIds },
-            isActive: true
-          }
+            isActive: true,
+          },
         },
         // Stage 2: Lookup auction
         {
           $lookup: {
-            from: 'auctions',
-            localField: '_id',
-            foreignField: 'productId',
-            as: 'auction'
-          }
+            from: "auctions",
+            localField: "_id",
+            foreignField: "productId",
+            as: "auction",
+          },
         },
         // Stage 3: Unwind auction (only active auctions)
         {
           $unwind: {
-            path: '$auction',
-            preserveNullAndEmptyArrays: false
-          }
+            path: "$auction",
+            preserveNullAndEmptyArrays: false,
+          },
         },
         // Stage 4: Match only active auctions
         {
           $match: {
-            'auction.status': 'active'
-          }
+            "auction.status": "active",
+          },
         },
         // Stage 5: Sort
         {
-          $sort: sortStage
+          $sort: sortStage,
         },
         // Stage 6: Skip
         {
-          $skip: skip
+          $skip: skip,
         },
         // Stage 7: Limit
         {
-          $limit: parseInt(limit)
+          $limit: parseInt(limit),
         },
         // Stage 8: Lookup highest bidder username for this auction
         {
           $lookup: {
-            from: 'users',
-            localField: 'auction.currentHighestBidderId',
-            foreignField: '_id',
-            as: 'auction_highestBidder'
-          }
+            from: "users",
+            localField: "auction.currentHighestBidderId",
+            foreignField: "_id",
+            as: "auction_highestBidder",
+          },
         },
         // Stage 9: Lookup seller info so we can expose seller rating in search results
         {
           $lookup: {
-            from: 'users',
-            localField: 'sellerId',
-            foreignField: '_id',
-            as: 'seller'
-          }
+            from: "users",
+            localField: "sellerId",
+            foreignField: "_id",
+            as: "seller",
+          },
         },
         // Stage 10: Unwind seller
         {
           $unwind: {
-            path: '$seller',
-            preserveNullAndEmptyArrays: true
-          }
+            path: "$seller",
+            preserveNullAndEmptyArrays: true,
+          },
         },
         // Stage 11: Project fields
         {
@@ -291,73 +325,85 @@ export class ProductService {
             imageUrls: 1,
             createdAt: 1,
             auction: {
-              _id: '$auction._id',
-              currentPrice: '$auction.currentPrice',
-              bidCount: '$auction.bidCount',
-              endAt: '$auction.endAt',
-              startPrice: '$auction.startPrice',
-              buyNowPrice: '$auction.buyNowPrice',
-              currentHighestBidder: { $arrayElemAt: ['$auction_highestBidder.username', 0] },
-              status: '$auction.status'
+              _id: "$auction._id",
+              currentPrice: "$auction.currentPrice",
+              bidCount: "$auction.bidCount",
+              endAt: "$auction.endAt",
+              startPrice: "$auction.startPrice",
+              buyNowPrice: "$auction.buyNowPrice",
+              currentHighestBidder: {
+                $arrayElemAt: ["$auction_highestBidder.username", 0],
+              },
+              status: "$auction.status",
             },
             seller: {
-              _id: '$seller._id',
-              username: '$seller.username',
-              ratingSummary: '$seller.ratingSummary',
+              _id: "$seller._id",
+              username: "$seller.username",
+              ratingSummary: "$seller.ratingSummary",
               rating: {
                 $cond: [
-                  { $ifNull: ['$seller.ratingSummary.score', false] },
-                  { $round: [{ $multiply: ['$seller.ratingSummary.score', 5] }, 1] },
-                  null
-                ]
-              }
-            }
-          }
-        }
+                  { $ifNull: ["$seller.ratingSummary.score", false] },
+                  {
+                    $round: [
+                      { $multiply: ["$seller.ratingSummary.score", 5] },
+                      1,
+                    ],
+                  },
+                  null,
+                ],
+              },
+            },
+          },
+        },
       ];
 
       // FIX: Execute aggregation
-      console.log('[PRODUCT SERVICE] Executing aggregation pipeline...');
+      console.log("[PRODUCT SERVICE] Executing aggregation pipeline...");
       const products = await Product.aggregate(pipeline);
-      console.log('[PRODUCT SERVICE] ✅ Aggregation done, found:', products.length);
+      console.log(
+        "[PRODUCT SERVICE] ✅ Aggregation done, found:",
+        products.length
+      );
 
       // FIX: Get total count - chỉ count products có auction active
-      console.log('[PRODUCT SERVICE] Counting total...');
+      console.log("[PRODUCT SERVICE] Counting total...");
       const totalPipeline = [
         {
           $match: {
             categoryId: { $in: categoryIds },
-            isActive: true
-          }
+            isActive: true,
+          },
         },
         {
           $lookup: {
-            from: 'auctions',
-            localField: '_id',
-            foreignField: 'productId',
-            as: 'auction'
-          }
+            from: "auctions",
+            localField: "_id",
+            foreignField: "productId",
+            as: "auction",
+          },
         },
         {
           $unwind: {
-            path: '$auction',
-            preserveNullAndEmptyArrays: false
-          }
+            path: "$auction",
+            preserveNullAndEmptyArrays: false,
+          },
         },
         {
           $match: {
-            'auction.status': 'active'
-          }
+            "auction.status": "active",
+          },
         },
         {
-          $count: 'total'
-        }
+          $count: "total",
+        },
       ];
 
       const totalResult = await Product.aggregate(totalPipeline);
       const total = totalResult.length > 0 ? totalResult[0].total : 0;
 
-      console.log(`[PRODUCT SERVICE] ✅ API 1.3 complete - Found ${products.length} products, total: ${total}`);
+      console.log(
+        `[PRODUCT SERVICE] ✅ API 1.3 complete - Found ${products.length} products, total: ${total}`
+      );
 
       return {
         data: products,
@@ -365,11 +411,14 @@ export class ProductService {
           page: parseInt(page),
           limit: parseInt(limit),
           total,
-          pages: Math.ceil(total / limit)
-        }
+          pages: Math.ceil(total / limit),
+        },
       };
     } catch (error) {
-      console.error('[PRODUCT SERVICE] Lỗi khi lấy sản phẩm theo danh mục:', error);
+      console.error(
+        "[PRODUCT SERVICE] Lỗi khi lấy sản phẩm theo danh mục:",
+        error
+      );
       throw error;
     }
   }
@@ -406,34 +455,41 @@ export class ProductService {
 
       // Xác định sắp xếp
       let sortQuery = { _id: -1 };
-      if (filters.sortBy === 'price_asc') sortQuery = { 'auction.currentPrice': 1 };
-      if (filters.sortBy === 'price_desc') sortQuery = { 'auction.currentPrice': -1 };
-      if (filters.sortBy === 'ending_soon') sortQuery = { 'auction.endAt': 1 };
-      if (filters.sortBy === 'most_bids') sortQuery = { 'auction.bidCount': -1 };
+      if (filters.sortBy === "price_asc")
+        sortQuery = { "auction.currentPrice": 1 };
+      if (filters.sortBy === "price_desc")
+        sortQuery = { "auction.currentPrice": -1 };
+      if (filters.sortBy === "ending_soon") sortQuery = { "auction.endAt": 1 };
+      if (filters.sortBy === "most_bids")
+        sortQuery = { "auction.bidCount": -1 };
 
       const pipeline = [
         { $match: query },
         {
           $lookup: {
-            from: 'auctions',
-            localField: '_id',
-            foreignField: 'productId',
-            as: 'auction'
-          }
+            from: "auctions",
+            localField: "_id",
+            foreignField: "productId",
+            as: "auction",
+          },
         },
-        { $unwind: '$auction' },
-        { $match: { 'auction.status': 'active' } },
+        { $unwind: "$auction" },
+        { $match: { "auction.status": "active" } },
 
         // Lọc theo khoảng giá (nếu có)
         ...(filters.minPrice || filters.maxPrice
           ? [
-            {
-              $match: {
-                ...(filters.minPrice && { 'auction.currentPrice': { $gte: filters.minPrice } }),
-                ...(filters.maxPrice && { 'auction.currentPrice': { $lte: filters.maxPrice } })
-              }
-            }
-          ]
+              {
+                $match: {
+                  ...(filters.minPrice && {
+                    "auction.currentPrice": { $gte: filters.minPrice },
+                  }),
+                  ...(filters.maxPrice && {
+                    "auction.currentPrice": { $lte: filters.maxPrice },
+                  }),
+                },
+              },
+            ]
           : []),
 
         { $sort: sortQuery },
@@ -443,26 +499,26 @@ export class ProductService {
         // Lookup highest bidder username for this auction
         {
           $lookup: {
-            from: 'users',
-            localField: 'auction.currentHighestBidderId',
-            foreignField: '_id',
-            as: 'auction_highestBidder'
-          }
+            from: "users",
+            localField: "auction.currentHighestBidderId",
+            foreignField: "_id",
+            as: "auction_highestBidder",
+          },
         },
         // Lookup seller
         {
           $lookup: {
-            from: 'users',
-            localField: 'sellerId',
-            foreignField: '_id',
-            as: 'seller'
-          }
+            from: "users",
+            localField: "sellerId",
+            foreignField: "_id",
+            as: "seller",
+          },
         },
         {
           $unwind: {
-            path: '$seller',
-            preserveNullAndEmptyArrays: true
-          }
+            path: "$seller",
+            preserveNullAndEmptyArrays: true,
+          },
         },
 
         {
@@ -471,30 +527,37 @@ export class ProductService {
             title: 1,
             primaryImageUrl: 1,
             auction: {
-              _id: '$auction._id',
-              currentPrice: '$auction.currentPrice',
-              bidCount: '$auction.bidCount',
-              endAt: '$auction.endAt',
-              buyNowPrice: '$auction.buyNowPrice',
-              startPrice: '$auction.startPrice',
-              currentHighestBidder: { $arrayElemAt: ['$auction_highestBidder.username', 0] },
-              status: '$auction.status'
+              _id: "$auction._id",
+              currentPrice: "$auction.currentPrice",
+              bidCount: "$auction.bidCount",
+              endAt: "$auction.endAt",
+              buyNowPrice: "$auction.buyNowPrice",
+              startPrice: "$auction.startPrice",
+              currentHighestBidder: {
+                $arrayElemAt: ["$auction_highestBidder.username", 0],
+              },
+              status: "$auction.status",
             },
             seller: {
-              _id: '$seller._id',
-              username: '$seller.username',
-              ratingSummary: '$seller.ratingSummary',
+              _id: "$seller._id",
+              username: "$seller.username",
+              ratingSummary: "$seller.ratingSummary",
               rating: {
                 $cond: [
-                  { $ifNull: ['$seller.ratingSummary.score', false] },
-                  { $round: [{ $multiply: ['$seller.ratingSummary.score', 5] }, 1] },
-                  null
-                ]
-              }
+                  { $ifNull: ["$seller.ratingSummary.score", false] },
+                  {
+                    $round: [
+                      { $multiply: ["$seller.ratingSummary.score", 5] },
+                      1,
+                    ],
+                  },
+                  null,
+                ],
+              },
             },
-            ...(searchQuery && { score: { $meta: 'textScore' } })
-          }
-        }
+            ...(searchQuery && { score: { $meta: "textScore" } }),
+          },
+        },
       ];
 
       // Nếu có text search, sắp xếp lại theo relevance score
@@ -507,35 +570,41 @@ export class ProductService {
         { $match: query },
         {
           $lookup: {
-            from: 'auctions',
-            localField: '_id',
-            foreignField: 'productId',
-            as: 'auction'
-          }
+            from: "auctions",
+            localField: "_id",
+            foreignField: "productId",
+            as: "auction",
+          },
         },
-        { $unwind: '$auction' },
-        { $match: { 'auction.status': 'active' } },
+        { $unwind: "$auction" },
+        { $match: { "auction.status": "active" } },
 
         // Lọc theo khoảng giá (phải khớp với pipeline lấy dữ liệu)
         ...(filters.minPrice || filters.maxPrice
           ? [
-            {
-              $match: {
-                ...(filters.minPrice && { 'auction.currentPrice': { $gte: filters.minPrice } }),
-                ...(filters.maxPrice && { 'auction.currentPrice': { $lte: filters.maxPrice } })
-              }
-            }
-          ]
+              {
+                $match: {
+                  ...(filters.minPrice && {
+                    "auction.currentPrice": { $gte: filters.minPrice },
+                  }),
+                  ...(filters.maxPrice && {
+                    "auction.currentPrice": { $lte: filters.maxPrice },
+                  }),
+                },
+              },
+            ]
           : []),
 
-        { $count: 'total' }
+        { $count: "total" },
       ];
 
       const products = await Product.aggregate(pipeline);
       const totalResult = await Product.aggregate(countPipeline);
       const total = totalResult.length > 0 ? totalResult[0].total : 0;
 
-      console.log(`[PRODUCT SERVICE] Tìm kiếm hoàn tất, tìm được ${products.length}/${total} kết quả`);
+      console.log(
+        `[PRODUCT SERVICE] Tìm kiếm hoàn tất, tìm được ${products.length}/${total} kết quả`
+      );
 
       return {
         data: products,
@@ -543,12 +612,12 @@ export class ProductService {
           page,
           limit,
           total,
-          pages: Math.ceil(total / limit)
+          pages: Math.ceil(total / limit),
         },
-        query: searchQuery
+        query: searchQuery,
       };
     } catch (error) {
-      console.error('[PRODUCT SERVICE] Lỗi khi tìm kiếm sản phẩm:', error);
+      console.error("[PRODUCT SERVICE] Lỗi khi tìm kiếm sản phẩm:", error);
       throw error;
     }
   }
@@ -569,11 +638,11 @@ export class ProductService {
       console.log(`[PRODUCT SERVICE] Lấy chi tiết sản phẩm: ${productId}`);
 
       const product = await Product.findById(productId)
-        .populate('categoryId', 'name slug')
-        .populate('sellerId', 'username email profileImageUrl ratingSummary');
+        .populate("categoryId", "name slug")
+        .populate("sellerId", "username email profileImageUrl ratingSummary");
 
       if (!product) {
-        throw new AppError('Sản phẩm không tồn tại', 404, 'PRODUCT_NOT_FOUND');
+        throw new AppError("Sản phẩm không tồn tại", 404, "PRODUCT_NOT_FOUND");
       }
 
       // Chuyển sang plain object
@@ -581,29 +650,35 @@ export class ProductService {
 
       // Lấy thông tin phiên đấu giá hiện tại
       const auction = await Auction.findOne({ productId: productId })
-        .select('_id currentPrice bidCount startAt endAt startPrice priceStep buyNowPrice autoExtendEnabled currentHighestBidderId status')
+        .select(
+          "_id currentPrice bidCount startAt endAt startPrice priceStep buyNowPrice autoExtendEnabled currentHighestBidderId status"
+        )
         .lean();
 
       if (!auction) {
-        throw new AppError('Phiên đấu giá không tồn tại', 404, 'AUCTION_NOT_FOUND');
+        throw new AppError(
+          "Phiên đấu giá không tồn tại",
+          404,
+          "AUCTION_NOT_FOUND"
+        );
       }
 
       // Tính thời gian còn lại (ms)
       const timeRemaining = new Date(auction.endAt) - new Date();
-      const isAuctionActive = timeRemaining > 0 && auction.status === 'active';
+      const isAuctionActive = timeRemaining > 0 && auction.status === "active";
 
       // Lấy tất cả bidders
       const topBidders = await Bid.find({ auctionId: auction._id })
         .sort({ amount: -1, createdAt: -1 })
-        .populate('bidderId', 'username ratingSummary')
-        .select('amount createdAt bidderId')
+        .populate("bidderId", "username ratingSummary")
+        .select("amount createdAt bidderId")
         .lean();
 
-      const formattedBidders = topBidders.map(bid => ({
+      const formattedBidders = topBidders.map((bid) => ({
         amount: bid.amount,
-        bidderUsername: bid.bidderId?.username || 'Unknown',
+        bidderUsername: bid.bidderId?.username || "Unknown",
         bidderRating: bid.bidderId?.ratingSummary?.score || 0,
-        createdAt: bid.createdAt
+        createdAt: bid.createdAt,
       }));
 
       const categoryIdRef = productObj.categoryId?._id || productObj.categoryId;
@@ -613,38 +688,43 @@ export class ProductService {
           $match: {
             categoryId: categoryIdRef,
             _id: { $ne: product._id },
-            isActive: true
-          }
+            isActive: true,
+          },
         },
         { $limit: 5 },
         {
           $lookup: {
-            from: 'auctions',
-            localField: '_id',
-            foreignField: 'productId',
-            as: 'auction'
-          }
+            from: "auctions",
+            localField: "_id",
+            foreignField: "productId",
+            as: "auction",
+          },
         },
-        { $unwind: { path: '$auction', preserveNullAndEmptyArrays: true } },
-        { $match: { 'auction.status': 'active' } },
+        { $unwind: { path: "$auction", preserveNullAndEmptyArrays: true } },
+        { $match: { "auction.status": "active" } },
         {
           $project: {
             _id: 1,
             title: 1,
             primaryImageUrl: 1,
-            'auction._id': 1,
-            'auction.currentPrice': 1,
-            'auction.bidCount': 1,
-            'auction.endAt': 1
-          }
-        }
+            "auction._id": 1,
+            "auction.currentPrice": 1,
+            "auction.bidCount": 1,
+            "auction.endAt": 1,
+          },
+        },
       ]);
 
       console.log(`[PRODUCT SERVICE] Chi tiết sản phẩm lấy thành công`);
 
       // Normalize seller rating (0..5) for frontend convenience
-      if (productObj.sellerId && productObj.sellerId.ratingSummary && typeof productObj.sellerId.ratingSummary.score === 'number') {
-        productObj.sellerId.rating = Math.round((productObj.sellerId.ratingSummary.score * 5) * 10) / 10; // one decimal
+      if (
+        productObj.sellerId &&
+        productObj.sellerId.ratingSummary &&
+        typeof productObj.sellerId.ratingSummary.score === "number"
+      ) {
+        productObj.sellerId.rating =
+          Math.round(productObj.sellerId.ratingSummary.score * 5 * 10) / 10; // one decimal
       } else {
         productObj.sellerId = productObj.sellerId || {};
         productObj.sellerId.rating = productObj.sellerId.rating || null;
@@ -657,10 +737,10 @@ export class ProductService {
             ...auction,
             timeRemaining: Math.max(0, timeRemaining),
             isActive: isAuctionActive,
-            topBidders: formattedBidders
-          }
+            topBidders: formattedBidders,
+          },
         },
-        relatedProducts: relatedProducts.map(p => ({
+        relatedProducts: relatedProducts.map((p) => ({
           _id: p._id,
           title: p.title,
           primaryImageUrl: p.primaryImageUrl,
@@ -669,12 +749,14 @@ export class ProductService {
             currentPrice: p.auction?.currentPrice,
             bidCount: p.auction?.bidCount,
             endAt: p.auction?.endAt,
-            timeRemaining: p.auction ? new Date(p.auction.endAt) - new Date() : 0
-          }
-        }))
+            timeRemaining: p.auction
+              ? new Date(p.auction.endAt) - new Date()
+              : 0,
+          },
+        })),
       };
     } catch (error) {
-      console.error('[PRODUCT SERVICE] Lỗi khi lấy chi tiết sản phẩm:', error);
+      console.error("[PRODUCT SERVICE] Lỗi khi lấy chi tiết sản phẩm:", error);
       throw error;
     }
   }
@@ -683,18 +765,19 @@ export class ProductService {
    * Helper: Format danh sách top products để hiển thị
    */
   _formatTopProducts(auctions) {
-    return auctions.map(auction => ({
+    return auctions.map((auction) => ({
       auctionId: auction._id,
       product: {
         productId: auction.productId?._id,
         title: auction.productId?.title,
-        image: auction.productId?.primaryImageUrl
+        image: auction.productId?.primaryImageUrl,
       },
       currentPrice: auction.currentPrice,
       bidCount: auction.bidCount,
       endAt: auction.endAt,
       timeRemaining: new Date(auction.endAt) - new Date(),
-      currentHighestBidder: auction.currentHighestBidderId?.username || 'Chưa có bidder'
+      currentHighestBidder:
+        auction.currentHighestBidderId?.username || "Chưa có bidder",
     }));
   }
 }

@@ -59,10 +59,13 @@ export default function LoginPage() {
       setIsLoading(false);
 
       const user = response.data.data.user;
-      const isAdmin = user?.roles?.includes("admin") || user?.roles?.includes("superadmin");
+      const isAdmin =
+        user?.roles?.includes("admin") || user?.roles?.includes("superadmin");
 
       setToast({
-        message: `Đăng nhập thành công! ${isAdmin ? "Đang chuyển hướng quản trị..." : "Đang chuyển hướng..."}`,
+        message: `Đăng nhập thành công! ${
+          isAdmin ? "Đang chuyển hướng quản trị..." : "Đang chuyển hướng..."
+        }`,
         type: "success",
       });
 
@@ -80,12 +83,16 @@ export default function LoginPage() {
       if (err.response && err.response.data && err.response.data.errors) {
         errorMessage = err.response.data.errors[0].msg;
       } else if (err.response && err.response.data) {
-        errorMessage = err.response.data.message || err.response.data.msg || errorMessage;
+        errorMessage =
+          err.response.data.message || err.response.data.msg || errorMessage;
       }
 
-      if (errorMessage === "Invalid credentials" || errorMessage === "Email hoặc mật khẩu không chính xác")
+      if (
+        errorMessage === "Invalid credentials" ||
+        errorMessage === "Email hoặc mật khẩu không chính xác"
+      )
         errorMessage = "Email hoặc mật khẩu không đúng.";
-      
+
       setError(errorMessage);
       setToast({ message: errorMessage, type: "error" });
     }
@@ -95,8 +102,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px]" />
-          <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px]" />
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px]" />
       </div>
 
       {toast && (
@@ -110,13 +117,18 @@ export default function LoginPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col justify-center items-center p-4 relative z-10">
         <div className="w-full max-w-md animate-fade-in">
-          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-6 transition">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-6 transition"
+          >
             <ArrowLeft className="w-4 h-4" /> Về trang chủ
           </Link>
-          
+
           <div className="glass rounded-2xl p-8 md:p-10 border border-white/10 shadow-2xl">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400 mb-2">Chào mừng trở lại!</h1>
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400 mb-2">
+                Chào mừng trở lại!
+              </h1>
               <p className="text-muted-foreground">
                 Đăng nhập để tiếp tục phiên đấu giá
               </p>
@@ -130,7 +142,9 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Email</label>
+                <label className="text-sm font-medium text-gray-300">
+                  Email
+                </label>
                 <input
                   type="email"
                   value={email}
@@ -142,10 +156,15 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                   <label className="text-sm font-medium text-gray-300">Mật khẩu</label>
-                   <Link to="/auth/forgot-password" className="text-xs text-primary hover:text-primary/80 transition font-medium">
-                      Quên mật khẩu?
-                   </Link>
+                  <label className="text-sm font-medium text-gray-300">
+                    Mật khẩu
+                  </label>
+                  <Link
+                    to="/auth/forgot-password"
+                    className="text-xs text-primary hover:text-primary/80 transition font-medium"
+                  >
+                    Quên mật khẩu?
+                  </Link>
                 </div>
                 <div className="relative">
                   <input
@@ -160,7 +179,11 @@ export default function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -196,7 +219,9 @@ export default function LoginPage() {
               </div>
 
               <a
-                href={`${import.meta.env.VITE_API_URL || "http://localhost:5001/api"}/auth/google`}
+                href={`${
+                  import.meta.env.VITE_API_URL || "http://localhost:5001/api"
+                }/auth/google`}
                 className="flex items-center justify-center px-4 py-3 bg-white text-black rounded-xl hover:bg-gray-100 transition-all font-medium gap-2 w-full"
               >
                 <img
@@ -210,7 +235,10 @@ export default function LoginPage() {
 
             <div className="mt-8 text-center text-sm text-gray-400">
               Chưa có tài khoản?{" "}
-              <Link to="/auth/signup" className="text-primary hover:text-primary/80 font-bold transition">
+              <Link
+                to="/auth/signup"
+                className="text-primary hover:text-primary/80 font-bold transition"
+              >
                 Đăng ký miễn phí
               </Link>
             </div>
