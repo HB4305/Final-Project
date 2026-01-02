@@ -102,7 +102,7 @@ export class AuctionService {
         try {
             const seller = await User.findById(auction.sellerId);
             const product = await Product.findById(auction.productId);
-            const productUrl = `${process.env.FRONTEND_BASE_URL}/products/${auction.productId}`;
+            const productUrl = `${process.env.FRONTEND_URL}/product/${auction.productId}`;
              
             if (!auction.currentHighestBidderId) {
                 // No winner
@@ -120,7 +120,7 @@ export class AuctionService {
             } else {
                 // Has winner
                 const winner = await User.findById(auction.currentHighestBidderId);
-                const orderUrl = order ? `${process.env.FRONTEND_BASE_URL}/payment?orderId=${order._id}` : `${process.env.FRONTEND_BASE_URL}/profile/orders`;
+                const orderUrl = order ? `${process.env.FRONTEND_URL}/payment?orderId=${order._id}` : `${process.env.FRONTEND_URL}/profile/orders`;
 
                 if (seller && winner) {
                     // Email to Seller

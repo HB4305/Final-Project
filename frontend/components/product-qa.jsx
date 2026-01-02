@@ -178,12 +178,17 @@ export default function ProductQA({ productId, sellerId }) {
               onChange={(e) => setNewQuestion(e.target.value)}
               placeholder="Type your question here..."
               rows="3"
-              className="flex-1 px-4 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              disabled={submitting}
+              className={`flex-1 px-4 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none ${
+                submitting ? "cursor-wait opacity-50" : ""
+              }`}
             />
             <button
               type="submit"
               disabled={!newQuestion.trim() || submitting}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed self-end"
+              className={`px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium disabled:opacity-50 self-end ${
+                submitting ? "cursor-wait" : "disabled:cursor-not-allowed"
+              }`}
             >
               <Send className="w-5 h-5" />
             </button>
@@ -268,14 +273,19 @@ export default function ProductQA({ productId, sellerId }) {
                         onChange={(e) => setReplyText(e.target.value)}
                         placeholder="Type your answer or reply..."
                         rows="2"
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
+                        disabled={submitting}
+                        className={`w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm ${
+                          submitting ? "cursor-wait opacity-50" : ""
+                        }`}
                         autoFocus
                       />
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleSubmitReply(q._id)}
                           disabled={submitting}
-                          className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90 transition"
+                          className={`px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90 transition ${
+                            submitting ? "cursor-wait" : ""
+                          }`}
                         >
                           {isSeller ? "Send Answer" : "Send Reply"}
                         </button>
@@ -284,7 +294,10 @@ export default function ProductQA({ productId, sellerId }) {
                             setReplyingTo(null);
                             setReplyText("");
                           }}
-                          className="px-3 py-1 border border-border rounded text-sm hover:bg-muted transition"
+                          disabled={submitting}
+                          className={`px-3 py-1 border border-border rounded text-sm hover:bg-muted transition ${
+                            submitting ? "cursor-wait opacity-50" : ""
+                          }`}
                         >
                           Cancel
                         </button>
