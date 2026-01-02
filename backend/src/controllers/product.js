@@ -704,9 +704,7 @@ export const postProduct = async (req, res) => {
 
       primaryImageUrl = imageUrls[0];
 
-      console.log(
-        `[PRODUCT CONTROLLER] ✓ Đã lưu ${imageUrls.length} ảnh`
-      );
+      console.log(`[PRODUCT CONTROLLER] ✓ Đã lưu ${imageUrls.length} ảnh`);
     }
     // Nếu không có middleware (test mode)
     else {

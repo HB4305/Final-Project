@@ -46,8 +46,7 @@ export class ProductService {
         .limit(parseInt(limit))
         .populate({
           path: "productId",
-          select:
-            "title slug primaryImageUrl createdAt categoryId isActive",
+          select: "title slug primaryImageUrl createdAt categoryId isActive",
           populate: { path: "categoryId", select: "name" },
         })
         .populate("sellerId", "username ratingSummary")
