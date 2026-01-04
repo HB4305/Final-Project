@@ -80,6 +80,10 @@ function UserManagement({ searchQuery, setSearchQuery }) {
   const [error, setError] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const fetchUsers = async () => {
     try {
@@ -102,6 +106,40 @@ function UserManagement({ searchQuery, setSearchQuery }) {
       setError("Failed to load users. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await adminService.deleteUser(userToDelete._id);
+      
+      if (response.status === 200) {
+        setToast({
+          type: 'success',
+          message: `Đã xóa user ${userToDelete.username} thành công. ${response.data.data?.summary?.auctionsCancelled || 0} đấu giá đã hủy, ${response.data.data?.summary?.productsDeleted || 0} sản phẩm đã xóa, ${response.data.data?.summary?.emailsSent || 0} email đã gửi.`
+        });
+        
+        // Refresh user list
+        await fetchUsers();
+        setShowDeleteModal(false);
+        setUserToDelete(null);
+      } else {
+        setToast({
+          type: 'error',
+          message: response.data?.message || 'Không thể xóa user'
+        });
+      }
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setToast({
+        type: 'error',
+        message: err.response?.data?.message || 'Đã xảy ra lỗi khi xóa user'
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -151,6 +189,14 @@ function UserManagement({ searchQuery, setSearchQuery }) {
 
   return (
     <div className="space-y-4">
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+      
       {/* Search */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
@@ -195,13 +241,16 @@ function UserManagement({ searchQuery, setSearchQuery }) {
               <th className="px-4 py-3 text-left text-sm font-semibold">
                 Ngày tham gia
               </th>
+              <th className="px-4 py-3 text-left text-sm font-semibold">
+                Hành động
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {filteredUsers.length === 0 ? (
               <tr>
                 <td
-                  colSpan="6"
+                  colSpan="7"
                   className="px-4 py-8 text-center text-muted-foreground"
                 >
                   {searchQuery
@@ -267,6 +316,20 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {new Date(user.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUserToDelete(user);
+                        setShowDeleteModal(true);
+                      }}
+                      disabled={user.roles?.includes('superadmin')}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={user.roles?.includes('superadmin') ? 'Không thể xóa superadmin' : 'Xóa user'}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))
@@ -401,6 +464,81 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                 className="px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && userToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-red-600 to-rose-600 p-6 text-white rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Xác nhận xóa user</h2>
+                  <p className="text-red-100 text-sm">Hành động này không thể hoàn tác</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800 font-semibold mb-2">Bạn có chắc chắn muốn xóa user này?</p>
+                <div className="text-sm text-red-700 space-y-1">
+                  <p>• <strong>Username:</strong> {userToDelete.username}</p>
+                  <p>• <strong>Email:</strong> {userToDelete.email}</p>
+                  <p>• <strong>Vai trò:</strong> {userToDelete.roles?.join(', ')}</p>
+                </div>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800 font-semibold mb-2 flex items-center gap-2">
+                  <XCircle className="w-5 h-5" />
+                  Các hành động sẽ được thực hiện:
+                </p>
+                <ul className="text-sm text-yellow-700 space-y-1 ml-7 list-disc">
+                  <li>Hủy tất cả đấu giá đang hoạt động của seller</li>
+                  <li>Gửi email thông báo cho tất cả người tham gia</li>
+                  <li>Xóa tất cả sản phẩm của seller</li>
+                  <li>Chuyển bid cho người thứ 2 nếu user là highest bidder</li>
+                  <li>Invalidate tất cả bids của user</li>
+                  <li>Xóa các đấu giá đã lên lịch trong tương lai</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setUserToDelete(null);
+                }}
+                disabled={isDeleting}
+                className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={isDeleting}
+                className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium flex items-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Đang xóa...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Xác nhận xóa
+                  </>
+                )}
               </button>
             </div>
           </div>

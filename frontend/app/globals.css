@@ -278,6 +278,8 @@
 
 .quill-dark-theme .ql-snow .ql-picker-options::-webkit-scrollbar-thumb:hover {
   background: rgba(96, 165, 250, 0.6);
+}
+
 /* 4. Global Smooth Scrollbars (Dark Theme) */
 ::-webkit-scrollbar {
   width: 5px;
@@ -295,4 +297,28 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.4);
+}
+/* Force dark theme for dynamically added update sections */
+.prose [style*="background-color: #f8f9fa"],
+.prose [style*="background: #f8f9fa"],
+.prose-invert [style*="background-color: #f8f9fa"],
+.prose-invert [style*="background: #f8f9fa"] {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-left: 4px solid #10b981 !important;
+  border-radius: 12px !important;
+}
+
+.prose [style*="color: #666"],
+.prose-invert [style*="color: #666"] {
+  color: #9ca3af !important;
+}
+
+.prose div[style] p,
+.prose-invert div[style] p,
+.prose div[style] strong,
+.prose-invert div[style] strong,
+.prose div[style] span,
+.prose-invert div[style] span {
+  color: #d1d5db !important;
 }

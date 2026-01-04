@@ -759,15 +759,15 @@ export default function DashboardPage() {
       {/* Edit Product Description Modal */}
       {showEditDescModal && selectedProductForEdit && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative shadow-2xl animate-slide-up">
-            <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold">Cập nhật nội dung sản phẩm</h3>
+          <div className="bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative shadow-2xl animate-slide-up border border-white/10">
+            <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm z-10 border-b border-white/10 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-white">Cập nhật nội dung sản phẩm</h3>
               <button
                 onClick={() => {
                   setShowEditDescModal(false);
                   setSelectedProductForEdit(null);
                 }}
-                className="text-gray-400 hover:text-gray-900 p-2 hover:bg-gray-100 rounded-full transition"
+                className="text-gray-400 hover:text-white p-2 hover:bg-white/10 rounded-full transition"
               >
                 <XCircle className="w-6 h-6" />
               </button>

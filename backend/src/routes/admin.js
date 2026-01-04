@@ -4,6 +4,7 @@ import {
   getAutoExtendSettings,
   getAllUsers,
   updateUser,
+  deleteUser,
   getAllAuctions,
   getAuditLogs,
   getStatistics,
@@ -56,6 +57,13 @@ router.put(
   authenticate,
   authorize(USER_ROLES.ADMIN),
   updateUser
+);
+
+router.delete(
+  "/users/:userId",
+  authenticate,
+  authorize(USER_ROLES.ADMIN),
+  deleteUser
 );
 
 /**

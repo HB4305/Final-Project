@@ -8,6 +8,8 @@ import Category from '../models/Category.js';
 import Watchlist from '../models/Watchlist.js';
 import Question from '../models/Question.js';
 import UpgradeRequest from '../models/UpgradeRequest.js';
+import { sendEmail } from '../utils/email.js';
+import AutoBid from '../models/AutoBid.js';
 
 /**
  * Get auto-extend settings
@@ -183,6 +185,199 @@ export const updateUser = async (req, res, next) => {
       success: true,
       message: 'User updated successfully',
       data: { user }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete user with cascade operations
+ * DELETE /api/admin/users/:userId
+ */
+export const deleteUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const adminId = req.user._id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Prevent deleting superadmin
+    if (user.roles?.includes('superadmin')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot delete superadmin account'
+      });
+    }
+
+    const deletionSummary = {
+      userId: user._id,
+      userEmail: user.email,
+      auctionsCancelled: 0,
+      auctionsDeleted: 0,
+      productsDeleted: 0,
+      bidsInvalidated: 0,
+      emailsSent: 0
+    };
+
+    // 1. Handle active auctions where user is seller - Cancel and notify
+    const activeSellerAuctions = await Auction.find({ 
+      seller: userId,
+      status: 'active'
+    }).populate('product');
+
+    for (const auction of activeSellerAuctions) {
+      // Get all unique bidders for this auction to notify them
+      const bidderIds = await Bid.find({ 
+        auctionId: auction._id,
+        isValid: true 
+      }).distinct('bidderId');
+
+      const bidders = await User.find({ _id: { $in: bidderIds } }, 'email fullName');
+
+      // Send notification emails to all participants
+      for (const bidder of bidders) {
+        if (bidder && bidder.email) {
+          try {
+            await sendEmail({
+              to: bidder.email,
+              subject: 'Auction Cancelled - Seller Account Deleted',
+              html: `
+                <h2>Auction Cancelled</h2>
+                <p>Dear ${bidder.fullName || 'Bidder'},</p>
+                <p>The auction for <strong>${auction.product?.title || 'product'}</strong> has been cancelled because the seller's account was deleted by an administrator.</p>
+                <p>Any bids you placed on this auction have been invalidated and will not be processed.</p>
+                <p>We apologize for any inconvenience.</p>
+                <p>Best regards,<br>AuctionHub Team</p>
+              `
+            });
+            deletionSummary.emailsSent++;
+          } catch (emailError) {
+            console.error(`Failed to send email to ${bidder.email}:`, emailError);
+          }
+        }
+      }
+
+      deletionSummary.auctionsCancelled++;
+    }
+
+    // 2. Delete ALL auctions by this seller (active, scheduled, ended, cancelled)
+    const auctionsDeleteResult = await Auction.deleteMany({
+      seller: userId
+    });
+    deletionSummary.auctionsDeleted = auctionsDeleteResult.deletedCount || 0;
+
+    // 3. Delete all products by this seller
+    const productsDeleted = await Product.deleteMany({ seller: userId });
+    deletionSummary.productsDeleted = productsDeleted.deletedCount || 0;
+
+    // 4. Handle bids where user is the bidder
+    const userBids = await Bid.find({ 
+      bidderId: userId,
+      isValid: true 
+    });
+
+    for (const bid of userBids) {
+      const auction = await Auction.findById(bid.auctionId).populate('product');
+      
+      if (auction && auction.status === 'active') {
+        // Check if this user is the highest bidder
+        if (auction.currentBidder?.toString() === userId.toString()) {
+          // Find the second highest valid bid
+          const secondHighestBid = await Bid.findOne({
+            auctionId: auction._id,
+            bidderId: { $ne: userId },
+            isValid: true
+          }).sort({ amount: -1 });
+
+          if (secondHighestBid) {
+            // Update auction to second highest bidder
+            auction.currentBidder = secondHighestBid.bidderId;
+            auction.currentPrice = secondHighestBid.amount;
+            await auction.save();
+
+            // Notify the new highest bidder
+            const newHighestBidder = await User.findById(secondHighestBid.bidderId);
+            if (newHighestBidder && newHighestBidder.email) {
+              try {
+                await sendEmail({
+                  to: newHighestBidder.email,
+                  subject: 'You are now the highest bidder!',
+                  html: `
+                    <h2>Bid Status Update</h2>
+                    <p>Dear ${newHighestBidder.fullName || 'Bidder'},</p>
+                    <p>You are now the highest bidder on the auction for <strong>${auction.product?.title || 'product'}</strong>.</p>
+                    <p>Current bid: ${auction.currentPrice?.toLocaleString('vi-VN')} VND</p>
+                    <p>The previous highest bidder's account was deleted.</p>
+                    <p>Best regards,<br>AuctionHub Team</p>
+                  `
+                });
+                deletionSummary.emailsSent++;
+              } catch (emailError) {
+                console.error(`Failed to send email to new highest bidder:`, emailError);
+              }
+            }
+          } else {
+            // No other bids, reset auction to starting price
+            auction.currentBidder = null;
+            auction.currentPrice = auction.startPrice;
+            auction.bidCount = 0;
+            await auction.save();
+          }
+        }
+
+        // Invalidate user's bid
+        bid.isValid = false;
+        bid.invalidatedAt = new Date();
+        bid.invalidatedReason = 'User account deleted by admin';
+        await bid.save();
+        deletionSummary.bidsInvalidated++;
+      }
+    }
+
+    // 5. Delete user's auto-bids
+    await AutoBid.deleteMany({ userId });
+
+    // 6. Remove user from watchlists
+    await Watchlist.deleteMany({ userId });
+
+    // 7. Delete user's questions
+    await Question.deleteMany({ askedBy: userId });
+
+    // 8. Delete upgrade requests
+    await UpgradeRequest.deleteMany({ user: userId });
+
+    // 9. Finally, delete the user
+    await User.findByIdAndDelete(userId);
+
+    // 10. Create audit log
+    await AuditLog.create({
+      entityType: 'User',
+      entityId: userId,
+      action: 'DELETE_USER',
+      performedBy: adminId,
+      changes: {
+        deletedUser: {
+          email: user.email,
+          fullName: user.fullName,
+          roles: user.roles
+        },
+        summary: deletionSummary
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully',
+      data: {
+        summary: deletionSummary
+      }
     });
   } catch (error) {
     next(error);
