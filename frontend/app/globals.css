@@ -278,4 +278,21 @@
 
 .quill-dark-theme .ql-snow .ql-picker-options::-webkit-scrollbar-thumb:hover {
   background: rgba(96, 165, 250, 0.6);
+/* 4. Global Smooth Scrollbars (Dark Theme) */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2); /* Slate-400 with low opacity */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
 }

@@ -48,6 +48,11 @@ export const getAllProducts = async (req, res, next) => {
       limit = PAGINATION.DEFAULT_LIMIT,
       sortBy = "newest",
       status = AUCTION_STATUS.ACTIVE,
+      minPrice,
+      maxPrice,
+      categoryId,
+      search,
+      q
     } = req.query;
 
     // Validate sort options
@@ -75,11 +80,19 @@ export const getAllProducts = async (req, res, next) => {
       `[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}, status=${status}`
     );
 
+    const filters = {
+        minPrice, 
+        maxPrice, 
+        categoryId, 
+        search: search || q // Support both 'search' and 'q' params
+    };
+
     const result = await productService.getAllProducts(
       parseInt(page),
       parseInt(limit),
       sortBy,
-      status
+      status,
+      filters
     );
 
     res.status(200).json({

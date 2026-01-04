@@ -26,6 +26,7 @@ import { useAuth } from '../context/AuthContext';
 // ============================================
 const useCategories = () => {
   const [categories, setCategories] = useState(['All']);
+  const [allCategories, setAllCategories] = useState([]);
   const [categoryMap, setCategoryMap] = useState({});
   const [error, setError] = useState(null);
 
@@ -36,6 +37,7 @@ const useCategories = () => {
 
         if (response.success) {
           const allCats = response.data;
+          setAllCategories(allCats);
           const parentCats = allCats.filter(cat => cat.level === 1);
 
           setCategories(['All', ...parentCats.map(cat => cat.name)]);
@@ -49,7 +51,7 @@ const useCategories = () => {
     fetchCategories();
   }, []);
 
-  return { categories, categoryMap, error };
+  return { categories, allCategories, categoryMap, error };
 };
 
 const useProducts = () => {
@@ -88,7 +90,6 @@ const useWatchlist = () => {
 
   useEffect(() => {
     const loadWatchlist = async () => {
-      // If not logged in, clear watchlist
       if (!isLoggedIn) {
         setWatchlist(new Set());
         return;
@@ -109,14 +110,12 @@ const useWatchlist = () => {
       }
     };
     loadWatchlist();
-  }, [isLoggedIn]); // Re-run when auth status changes
+  }, [isLoggedIn]);
 
   const toggleWatchlist = useCallback(async (productId) => {
-    if (!isLoggedIn) {
-      // Optional: could show toast telling user to login
-      return;
-    }
+    if (!isLoggedIn) return;
 
+    // Optimistic update
     setWatchlist(prev => {
       const newWatchlist = new Set(prev);
       if (newWatchlist.has(productId)) {
@@ -128,46 +127,21 @@ const useWatchlist = () => {
     });
 
     try {
-      // Check current state to determine action
-      // We need to know if we just added or removed it from local state
-      // Actually, relying on the 'toggle' implies we don't know the server state? 
-      // The service has addToWatchlist and removeFromWatchlist. 
-      // The component logic above optimistically toggles.
-      // Let's check the previous state by checking if it WAS in the set.
-      // But we already updated the state. 
-      // safer way:
-
-      // We need to know if we are adding or removing.
-      // Since we just toggled the set, check if it IS in the set now.
-      // Wait, we can't easily check the 'new' state inside the async call if we used closure.
-      // Let's just use the service calls directly based on what we think we did.
-
-      // Actually, looking at the original code: 
-      // await watchlistService.toggleWatchlist(productId); 
-      // But wait, the service file I read earlier ONLY had add and remove, NOT toggle.
-      // File: frontend/app/services/watchlistService.js
-      // Exports: getWatchlist, addToWatchlist, removeFromWatchlist, checkWatchlist.
-      // The original code in ProductsPage CALLS `toggleWatchlist` which DOES NOT EXIST in the service file I saw.
-      // This is another bug!
-
-      // I need to implement the toggle logic properly here.
-
-      // We need to check if it was in the watchlist before the toggle.
-      // But we optimistically updated it. 
-      // Let's rely on the previous state of the set which we have access to? No.
-
-      // Let's redo this function to be safer.
+      // Determine action based on *previous* state (before we toggled it above, but we only have current watchlist state accessible in closure?)
+      // Actually, we can check if it IS in the set *now* (after update? No, closure captures old state unless we use ref or derived).
+      // Let's use the fact that we just toggled it.
+      // If `watchlist.has(productId)` checks the state *when the function was created*, it depends on `watchlist` dependency.
+      // So `watchlist` in closure is the state *before* the setWatchlist update.
+      
       const isWatched = watchlist.has(productId);
-
       if (isWatched) {
         await watchlistService.removeFromWatchlist(productId);
       } else {
         await watchlistService.addToWatchlist(productId);
       }
-
     } catch (error) {
       console.error("Error toggling watchlist:", error);
-      // Revert on error
+      // Revert
       setWatchlist(prev => {
         const newWatchlist = new Set(prev);
         if (newWatchlist.has(productId)) {
@@ -178,7 +152,7 @@ const useWatchlist = () => {
         return newWatchlist;
       });
     }
-  }, [isLoggedIn, watchlist]); // Need watchlist dependency to know current state
+  }, [isLoggedIn, watchlist]);
 
   return { watchlist, toggleWatchlist };
 };
@@ -248,13 +222,12 @@ const useFilters = () => {
   };
 };
 
-
 export default function ProductsPage() {
   const { currentUser } = useAuth();
   const location = useLocation();
 
   // Custom hooks
-  const { categories, categoryMap, error: categoryError } = useCategories();
+  const { categories, allCategories, categoryMap, error: categoryError } = useCategories();
   const { products, loading, error: productError, refetch } = useProducts();
   const { watchlist, toggleWatchlist } = useWatchlist();
   const {
@@ -311,38 +284,34 @@ export default function ProductsPage() {
 
   // Sync filters to API call
   useEffect(() => {
+    // Find categoryId from selectedCategory name
+    // Note: selectedCategory can be "All" or a name
+    let categoryId = null;
+    if (selectedCategory && selectedCategory !== 'All' && allCategories.length > 0) {
+        const cat = allCategories.find(c => c.name === selectedCategory);
+        if (cat) categoryId = cat._id;
+    }
+
     const params = {
       page: currentPage,
       limit: itemsPerPage,
       sortBy: sortBy,
-      status: 'active'
+      status: 'active',
+      // Pass filters to backend
+      categoryId,
+      searchQuery,
+      priceRange
     };
 
-    // Note: If we had a direct categoryId from URL, we'd use it.
-    // However, the current backend implementation of getAllProducts 
-    // doesn't filter by category name string, but the generic list does.
-    // For now, let's keep it simple and just fetch base on page/limit/sort.
-    // REAL FIX: Backend getAllProducts should support categoryId/name or search.
-
     refetch(params);
-  }, [currentPage, itemsPerPage, sortBy, refetch]);
+  }, [currentPage, itemsPerPage, sortBy, selectedCategory, searchQuery, priceRange, allCategories, refetch]);
 
   // Derived data
   const filteredProducts = useMemo(() => {
-    // We still keep client-side filtering for search/category if backend doesn't support them in getAllProducts
-    // But pagination is now handled by backend.
-    const allProducts = products.data || [];
-    const filtered = filterProducts(allProducts, {
-      searchQuery,
-      selectedCategory,
-      selectedSubcategory,
-      priceRange,
-      categoryMap
-    });
-
-    // Sort logic is already in backend for sortBy, but we keep it here for client-side filters
-    return sortProducts(filtered, sortBy);
-  }, [products.data, searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap, sortBy]);
+    // Backend now handles filtering and pagination.
+    // We just return the data received.
+    return products.data || [];
+  }, [products.data]);
 
   const totalItems = products.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);

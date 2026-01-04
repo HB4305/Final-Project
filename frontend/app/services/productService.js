@@ -89,19 +89,35 @@ export const getAllProducts = async (params = {}) => {
   try {
     const {
       sortBy = "newest",
-      status = null, // Không filter theo status để lấy tất cả
+      status = null,
+      page = 1,
+      limit = 12,
+      searchQuery,
+      q,
+      priceRange,
+      categoryId,
+      minPrice,
+      maxPrice
     } = params;
 
     const queryParams = { 
-      page: params.page || 1, 
-      limit: params.limit || 12,
+      page, 
+      limit,
       sortBy
     };
 
-    // Chỉ thêm status vào params nếu được chỉ định
-    if (status) {
-      queryParams.status = status;
+    if (status) queryParams.status = status;
+    if (categoryId) queryParams.categoryId = categoryId;
+    if (searchQuery || q) queryParams.search = searchQuery || q;
+    
+    // Handle price range array [min, max]
+    if (Array.isArray(priceRange) && priceRange.length === 2) {
+        if (priceRange[0] !== null && priceRange[0] !== undefined) queryParams.minPrice = priceRange[0];
+        if (priceRange[1] !== null && priceRange[1] !== undefined && priceRange[1] !== Infinity) queryParams.maxPrice = priceRange[1];
     }
+    // Handle separate minPrice/maxPrice
+    if (minPrice !== undefined) queryParams.minPrice = minPrice;
+    if (maxPrice !== undefined) queryParams.maxPrice = maxPrice;
 
     const response = await api.get("/products", {
       params: queryParams,

@@ -40,19 +40,19 @@ export class BidService {
     });
 
     if (isNaN(maxAmount)) {
-      throw new AppError("Invalid bid amount", 400);
+      throw new AppError("Số tiền đặt giá không hợp lệ", 400);
     }
 
     // 1. Lấy thông tin auction
     const auction = await Auction.findById(auctionId);
     if (!auction) {
-      throw new AppError("Auction not found", 404);
+      throw new AppError("Không tìm thấy cuộc đấu giá", 404);
     }
 
     // 2. Kiểm tra trạng thái
     if (auction.status !== AUCTION_STATUS.ACTIVE) {
       throw new AppError(
-        "Auction has ended or is not active",
+        "Cuộc đấu giá đã kết thúc hoặc không còn hoạt động",
         400,
         ERROR_CODES.AUCTION_NOT_ACTIVE
       );
@@ -61,7 +61,7 @@ export class BidService {
     const now = new Date();
     if (now > new Date(auction.endAt)) {
       throw new AppError(
-        "Auction has ended",
+        "Cuộc đấu giá đã kết thúc",
         400,
         ERROR_CODES.AUCTION_NOT_ACTIVE
       );
@@ -74,7 +74,7 @@ export class BidService {
     });
     if (isRejected) {
       throw new AppError(
-        "You are not allowed to bid on this product",
+        "Bạn không được phép tham gia đấu giá sản phẩm này",
         403,
         ERROR_CODES.BIDDER_REJECTED
       );
@@ -83,16 +83,24 @@ export class BidService {
     // 4. Kiểm tra User & Rating
     const bidder = await User.findById(bidderId);
     if (!bidder) {
-      throw new AppError("User not found", 404);
+      throw new AppError("Không tìm thấy người dùng", 404);
     }
 
-    const ratingPercentage = bidder.ratingSummary?.score || 0;
-    if (ratingPercentage < 80) {
-      throw new AppError(
-        `Your rating (${ratingPercentage}%) must be >= 80% to bid`,
-        403,
-        ERROR_CODES.RATING_TOO_LOW
-      );
+    const ratingSummary = bidder.ratingSummary || { score: 0, totalRatings: 0 };
+    
+    // Allow new users (0 ratings) to bid
+    if (ratingSummary.totalCount > 0) {
+      // Use Strict Percentage Scale (0-100) as requested
+      // Recalculate from counts to ensure consistency with Frontend
+      const ratingPercentage = (ratingSummary.countPositive / ratingSummary.totalCount) * 100;
+
+      if (ratingPercentage < 80) {
+        throw new AppError(
+          `Bạn cần có đánh giá tích cực >= 80% để tham gia (Hiện tại: ${Math.round(ratingPercentage)}%)`,
+          403,
+          ERROR_CODES.RATING_TOO_LOW
+        );
+      }
     }
 
     // 5. Validate Max Amount
@@ -116,7 +124,7 @@ export class BidService {
 
     if (maxAmount < minAllowed) {
       throw new AppError(
-        `Your max bid must be greater than or equal to ${minAllowed.toLocaleString(
+        `Giá đặt tối đa của bạn phải lớn hơn hoặc bằng ${minAllowed.toLocaleString(
           "vi-VN"
         )}đ`,
         400,
@@ -564,7 +572,7 @@ export class BidService {
     try {
       // 1. Lấy thông tin auction
       const auction = await Auction.findOne({ productId }).session(session);
-      if (!auction) throw new AppError("Auction not found", 404);
+      if (!auction) throw new AppError("Không tìm thấy cuộc đấu giá", 404);
 
       // 2. Chặn bidder (Lưu vào danh sách đen)
       await RejectedBidder.findOneAndUpdate(

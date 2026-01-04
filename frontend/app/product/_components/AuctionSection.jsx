@@ -1,4 +1,4 @@
-  import { useState } from 'react';
+import { useState } from 'react';
 import { Gavel, Clock, Zap, ArrowRight, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -15,10 +15,19 @@ export default function AuctionSection({ auction, onPlaceBid }) {
 
   const minBid = (auction?.currentPrice || 0) + (auction?.priceStep || 50000);
 
+  const handleBidChange = (e) => {
+    // Remove non-digits
+    const rawValue = e.target.value.replace(/\D/g, '');
+    // Format with dots
+    const formatted = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    setBidAmount(formatted);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (parseInt(bidAmount) >= minBid) {
-      onPlaceBid(parseInt(bidAmount));
+    const rawAmount = parseInt(bidAmount.replace(/\./g, ''));
+    if (rawAmount >= minBid) {
+      onPlaceBid(rawAmount);
       setBidAmount('');
       setShowBidForm(false);
     }
@@ -105,7 +114,6 @@ export default function AuctionSection({ auction, onPlaceBid }) {
         </div>
 
         {/* Countdown */}
-        {/* Countdown */}
         {!time.isEnded && (
           <div className="mt-4">
             <CountdownTimer endAt={auction?.endAt} />
@@ -144,14 +152,11 @@ export default function AuctionSection({ auction, onPlaceBid }) {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
+                    type="text"
                     value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    min={minBid}
-                    step={auction?.priceStep || 50000}
-                    placeholder={minBid}
-                    onWheel={(e) => e.target.blur()}
-                    className="w-full pl-4 pr-12 py-3.5 border border-white/20 rounded-xl bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-lg font-bold shadow-sm transition-all text-white placeholder-gray-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    onChange={handleBidChange}
+                    placeholder={formatPrice(minBid).replace(' ₫', '')}
+                    className="w-full pl-4 pr-12 py-3.5 border border-white/20 rounded-xl bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-lg font-bold shadow-sm transition-all text-white placeholder-gray-500"
                     autoFocus
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">VND</div>

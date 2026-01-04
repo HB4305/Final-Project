@@ -21,10 +21,29 @@ export class ProductService {
     page = 1,
     limit = 12,
     sortBy = "newest",
-    status = "active"
+    status = "active",
+    filters = {}
   ) {
     try {
       const skip = (page - 1) * limit;
+
+      const { minPrice, maxPrice, categoryId, search } = filters;
+
+      // 1. Resolve Category IDs (including children if parent)
+      let categoryIds = [];
+      if (categoryId) {
+        if (mongoose.Types.ObjectId.isValid(categoryId)) {
+             const category = await Category.findById(categoryId);
+             if (category) {
+                 const catObjId = new mongoose.Types.ObjectId(categoryId);
+                 categoryIds = [catObjId];
+                 if (category.level === 1) {
+                     const childCategories = await Category.find({ parentId: catObjId });
+                     categoryIds = [...categoryIds, ...childCategories.map(c => c._id)];
+                 }
+             }
+        }
+      }
 
       // Xác định sort order cho aggregation stage
       let sortStage = { createdAt: -1 };
@@ -33,15 +52,21 @@ export class ProductService {
       if (sortBy === "ending_soon") sortStage = { endAt: 1 };
       if (sortBy === "most_bids") sortStage = { bidCount: -1 };
 
+      // 1. Match Auction filters (Status + Price)
+      let auctionMatch = { status: status };
+      if (minPrice || maxPrice) {
+          auctionMatch.currentPrice = {};
+          if (minPrice) auctionMatch.currentPrice.$gte = parseInt(minPrice);
+          if (maxPrice) auctionMatch.currentPrice.$lte = parseInt(maxPrice);
+      }
+
       console.log(
-        `[PRODUCT SERVICE] getAllProducts (Aggregation) - Sort: ${JSON.stringify(
-          sortStage
-        )}`
+        `[PRODUCT SERVICE] getAllProducts (Aggregation) - Filters:`, filters
       );
 
       const pipeline = [
-        // 1. Match active auctions
-        { $match: { status: status } },
+        // 1. Match active auctions (and price)
+        { $match: auctionMatch },
         
         // 2. Lookup existing product
         {
@@ -53,9 +78,15 @@ export class ProductService {
           },
         },
         
-        // 3. Unwind product and filter only active products
+        // 3. Unwind product and filter active products + Category + Search
         { $unwind: "$product" },
-        { $match: { "product.isActive": true } },
+        { 
+            $match: { 
+                "product.isActive": true,
+                ...(categoryIds.length > 0 && { "product.categoryId": { $in: categoryIds } }),
+                ...(search && { "product.title": { $regex: search, $options: 'i' } })
+            } 
+        },
         
         // 4. Sort
         { $sort: sortStage },

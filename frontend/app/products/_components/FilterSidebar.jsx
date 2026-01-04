@@ -56,25 +56,31 @@ const FilterSidebar = ({
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-xs">$</span>
                   <input
-                    type="number"
-                    value={priceRange[0] === Infinity ? '' : priceRange[0]}
-                    onChange={(e) => onPriceRangeChange([parseInt(e.target.value) || 0, priceRange[1]])}
+                    type="text"
+                    value={priceRange[0] ? priceRange[0].toLocaleString('vi-VN') : ''}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value.replace(/\./g, ''));
+                      onPriceRangeChange([isNaN(val) ? 0 : val, priceRange[1]]);
+                    }}
                     placeholder="Min"
-                    className="w-full pl-6 pr-3 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 text-gray-900 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder-gray-400 dark:placeholder-gray-500"
+                    className="w-full px-3 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 text-gray-900 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder-gray-400 dark:placeholder-gray-500 font-bold"
                   />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₫</span>
               </div>
-              <span className="text-gray-400">-</span>
+              <span className="text-gray-400 font-bold">-</span>
               <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-xs">$</span>
                   <input
-                    type="number"
-                    value={priceRange[1] === Infinity ? '' : priceRange[1]}
-                    onChange={(e) => onPriceRangeChange([priceRange[0], parseInt(e.target.value) || Infinity])}
+                    type="text"
+                    value={priceRange[1] === Infinity ? '' : (priceRange[1] ? priceRange[1].toLocaleString('vi-VN') : '')}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value.replace(/\./g, ''));
+                      onPriceRangeChange([priceRange[0], isNaN(val) ? Infinity : val]);
+                    }}
                     placeholder="Max"
-                    className="w-full pl-6 pr-3 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 text-gray-900 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder-gray-400 dark:placeholder-gray-500"
+                    className="w-full px-3 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 text-gray-900 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder-gray-400 dark:placeholder-gray-500 font-bold"
                   />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₫</span>
               </div>
             </div>
           </div>

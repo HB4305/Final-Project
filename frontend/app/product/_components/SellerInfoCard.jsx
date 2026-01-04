@@ -9,10 +9,8 @@ export default function SellerInfoCard({ seller }) {
   const rating = seller.ratingSummary || {};
   const positiveRate = calculatePositiveRate(seller);
   const avatarUrl = seller.profileImageUrl || seller.avatar || FALLBACK_IMAGE.AVATAR;
-  // Calculate percentage dynamically
   const total = rating.totalCount || rating.totalRatings || 0;
-  const positive = rating.countPositive || 0;
-  const averageRating = total > 0 ? (positive / total) * 100 : 0;
+  const averageRating = calculatePositiveRate(seller);
   const ratingCount = total;
 
   return (
@@ -58,7 +56,7 @@ export default function SellerInfoCard({ seller }) {
                 <p className="text-xs text-gray-400 mb-1">Đánh giá trung bình</p>
                 <div className="flex items-center justify-center gap-1 font-bold text-white text-lg">
                     {/* <Star className="w-5 h-5 text-yellow-500 fill-current" /> */}
-                    {averageRating.toFixed(1)}%
+                    {averageRating}%
                     <span className="text-gray-400 font-normal text-sm">({ratingCount} lượt)</span>
                 </div>
            </div>

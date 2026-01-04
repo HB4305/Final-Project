@@ -291,7 +291,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${currentUser?.role === 'seller' || currentUser?.role === 'admin' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6 mb-12 animate-slide-up`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${currentUser?.roles?.includes('seller') || currentUser?.roles?.includes('admin') ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6 mb-12 animate-slide-up`}>
           {[
             { title: "Đang đấu giá", value: stats.activeBids, icon: Gavel, color: "text-blue-600", bg: "bg-blue-100", border: "border-blue-200", gradient: "from-blue-50 to-white" },
             { title: "Đang theo dõi", value: stats.watchlistCount, icon: Heart, color: "text-pink-600", bg: "bg-pink-100", border: "border-pink-200", gradient: "from-pink-50 to-white" },
@@ -300,7 +300,7 @@ export default function DashboardPage() {
           ]
             .filter(item => {
               if (item.key === "selling") {
-                return currentUser?.role === 'seller' || currentUser?.role === 'admin';
+                return currentUser?.roles?.includes('seller') || currentUser?.roles?.includes('admin');
               }
               return true;
             })
@@ -328,8 +328,8 @@ export default function DashboardPage() {
                 .filter((tab) => {
                   if (tab.key === "selling" || tab.key === "sold") {
                     return (
-                      currentUser?.role === "seller" ||
-                      currentUser?.role === "admin"
+                      currentUser?.roles?.includes("seller") ||
+                      currentUser?.roles?.includes("admin")
                     );
                   }
                   return true;

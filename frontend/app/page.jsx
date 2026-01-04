@@ -38,11 +38,9 @@ export default function Home() {
   useEffect(() => {
     const fetchHeroAuction = async () => {
       try {
-        const res = await import("./services/auctionService").then(m => m.default.getAuctions({ page: 1, limit: 10, status: 'active', sort: 'bidCount:desc' }));
-        if (res.data?.data?.auctions?.length > 0) {
-           // Try to find the Sony set first, otherwise take the first one (most popular)
-           const sonyAuction = res.data.data.auctions.find(a => a.productId?.title?.toLowerCase().includes("sony"));
-           setHeroAuction(sonyAuction || res.data.data.auctions[0]);
+        const res = await import("./services/auctionService").then(m => m.getHighestPriceAuctions({ limit: 1 }));
+        if (res.data?.auctions?.length > 0) {
+           setHeroAuction(res.data.auctions[0]);
         }
       } catch (error) {
         console.error("Failed to fetch hero auction", error);
@@ -57,14 +55,14 @@ export default function Home() {
 
       <main className="pt-20">
         {/* Category Nav - Static Top */}
-        <section className="py-2 mb-8 transition-colors duration-300">
+        <section className="py-2 mb-2 transition-colors duration-300">
            <div className="max-w-7xl mx-auto px-4">
              <CategoryNav />
            </div>
         </section>
 
         {/* Hero Section */}
-        <section className="relative px-4 py-12 md:py-20 lg:py-28 overflow-hidden">
+        <section className="relative px-4 py-8 md:py-12 lg:py-20 overflow-hidden">
           {/* Background Elements */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-float" />
