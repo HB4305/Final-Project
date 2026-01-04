@@ -341,8 +341,8 @@ export default function ProductDetailPage() {
               <button
                 onClick={toggleWatchlist}
                 className={`p-3 rounded-xl border transition-all duration-300 ${isWatchlisted
-                    ? "bg-red-500/20 border-red-500/50 text-red-500 shadow-md transform scale-105"
-                    : "border-white/10 bg-white/5 hover:bg-white/10 hover:shadow-md text-gray-400 hover:text-white"
+                  ? "bg-red-500/20 border-red-500/50 text-red-500 shadow-md transform scale-105"
+                  : "border-white/10 bg-white/5 hover:bg-white/10 hover:shadow-md text-gray-400 hover:text-white"
                   }`}
                 title={isWatchlisted ? "Bỏ theo dõi" : "Theo dõi sản phẩm"}
               >
@@ -389,8 +389,8 @@ export default function ProductDetailPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex-1 min-w-[120px] py-4 px-6 font-bold text-sm transition-all border-b-2 relative flex items-center justify-center gap-2 ${activeTab === tab.id
-                        ? "border-primary text-primary bg-primary/5"
-                        : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5"
+                      ? "border-primary text-primary bg-primary/5"
+                      : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5"
                       }`}
                   >
                     {tab.id === 'description' && <FileText className="w-4 h-4" />}
@@ -435,7 +435,9 @@ export default function ProductDetailPage() {
             <div className="sticky top-24 space-y-6">
               <AuctionSection
                 auction={product.auction}
+                productTitle={product.title}
                 onPlaceBid={handlePlaceBid}
+                onShowToast={(type, message) => setToast({ type, message })}
               />
 
               {/* Seller Info Card */}
