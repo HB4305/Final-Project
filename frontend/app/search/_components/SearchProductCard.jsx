@@ -1,20 +1,63 @@
-import { Clock, TrendingUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Clock, TrendingUp, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FALLBACK_IMAGE } from './constants.js';
 import { formatPrice, calculateTimeLeft, isEndingSoon, isHotProduct } from './utils.js';
+import watchlistService from '../../services/watchlistService';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Search Product Card Component
  * Card hiển thị sản phẩm trong kết quả tìm kiếm
  */
 const SearchProductCard = ({ product }) => {
+  const { currentUser } = useAuth();
+  const [isWatchlisted, setIsWatchlisted] = useState(false);
   const endingSoon = isEndingSoon(product.auction?.endAt);
   const isHot = isHotProduct(product.auction?.bidCount);
   const displayPrice = product.auction?.currentPrice || product.auction?.startPrice;
 
+  useEffect(() => {
+    const checkWatchlistStatus = async () => {
+      if (currentUser && product?._id) {
+        try {
+          const response = await watchlistService.checkWatchlist(product._id);
+          if (response.success) {
+            setIsWatchlisted(response.data.isWatched);
+          }
+        } catch (error) {
+          console.error("Failed to check watchlist status", error);
+        }
+      }
+    };
+    checkWatchlistStatus();
+  }, [currentUser, product]);
+
+  const toggleWatchlist = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!currentUser) {
+      alert("Vui lòng đăng nhập để thêm vào danh sách yêu thích");
+      return;
+    }
+
+    try {
+      if (isWatchlisted) {
+        await watchlistService.removeFromWatchlist(product._id);
+        setIsWatchlisted(false);
+      } else {
+        await watchlistService.addToWatchlist(product._id);
+        setIsWatchlisted(true);
+      }
+    } catch (err) {
+      console.error("Watchlist action failed", err);
+    }
+  };
+
   return (
     <Link to={`/product/${product._id}`} className="block">
-      <div className="bg-background border border-border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer h-full flex flex-col group">
+      <div className="bg-background border border-border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer h-full flex flex-col group relative">
         {/* Image Section */}
         <div className="relative h-48 bg-muted overflow-hidden">
           <img
@@ -23,7 +66,7 @@ const SearchProductCard = ({ product }) => {
             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
             onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
           />
-          
+
           {/* Status Badges */}
           <div className="absolute top-2 left-2 flex gap-2">
             {endingSoon && (
@@ -37,6 +80,19 @@ const SearchProductCard = ({ product }) => {
               </span>
             )}
           </div>
+
+          {/* Watchlist Button */}
+          <button
+            onClick={toggleWatchlist}
+            className="absolute top-2 right-2 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-sm rounded-full transition-all duration-200 group-hover:opacity-100"
+          >
+            <Heart
+              className={`w-5 h-5 transition-colors ${isWatchlisted
+                  ? "fill-red-500 text-red-500"
+                  : "text-white hover:text-red-400"
+                }`}
+            />
+          </button>
 
           {/* Relevance Score (nếu có từ full-text search) */}
           {product.score && (
@@ -54,7 +110,7 @@ const SearchProductCard = ({ product }) => {
           <h3 className="font-semibold mb-1 line-clamp-2 group-hover:text-primary transition">
             {product.title}
           </h3>
-          
+
           {/* Category */}
           <p className="text-xs text-muted-foreground mb-3">
             {product.category?.name || 'Chưa phân loại'}
@@ -68,7 +124,7 @@ const SearchProductCard = ({ product }) => {
                 {formatPrice(displayPrice)}
               </p>
             </div>
-            
+
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">
                 {product.auction?.bidCount || 0} lượt đấu giá
