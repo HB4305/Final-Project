@@ -98,6 +98,15 @@ const productSchema = new mongoose.Schema({
     condition: String,
     specs: mongoose.Schema.Types.Mixed
   },
+  // Bidder approval configuration
+  requireBidderApproval: {
+    type: Boolean,
+    default: false
+  },
+  approvedBidders: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   createdAt: {
     type: Date,
     default: Date.now

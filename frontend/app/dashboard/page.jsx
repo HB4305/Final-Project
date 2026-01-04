@@ -12,7 +12,10 @@ import {
   Edit,
   AlertCircle,
   Loader2,
-  Trash2
+  Trash2,
+  ShieldCheck,
+  ShieldOff,
+  AlertTriangle
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Navigation from "../../components/navigation";
@@ -20,9 +23,10 @@ import watchlistService from "../services/watchlistService";
 import auctionService from "../services/auctionService";
 import transactionService from "../services/transactionService";
 import ratingService from "../services/ratingService";
-import { sellerDeleteProduct } from "../services/productService";
+import { deleteProduct, toggleBidderApproval } from "../services/productService";
 import RatingComponent from "../../components/rating-component";
 import UpdateProductDescription from "../../components/update-product-description";
+import RejectBidder from "../../components/reject-bidder";
 import { useAuth } from "../context/AuthContext";
 import Toast from "../../components/Toast";
 
@@ -68,6 +72,13 @@ export default function DashboardPage() {
   // Edit Product Description Modal State
   const [showEditDescModal, setShowEditDescModal] = useState(false);
   const [selectedProductForEdit, setSelectedProductForEdit] = useState(null);
+
+  // Delete Product Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  
+  // Toggle Bidder Approval Loading State
+  const [togglingProductId, setTogglingProductId] = useState(null);
 
   // Handle OAuth callback token
   useEffect(() => {
@@ -182,22 +193,23 @@ export default function DashboardPage() {
   };
 
   const handleDeleteProduct = async (productId, productTitle) => {
-    if (
-      !confirm(
-        `Bạn có chắc chắn muốn xóa sản phẩm "${productTitle}"?\n\nTất cả người đặt giá sẽ nhận được email thông báo và cuộc đấu giá sẽ bị hủy.`
-      )
-    ) {
-      return;
-    }
+    setProductToDelete({ id: productId, title: productTitle });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
 
     try {
-      const result = await sellerDeleteProduct(productId);
+      const result = await deleteProduct(productToDelete.id);
       if (result.success) {
         setToast({ 
           message: result.message || "Xóa sản phẩm thành công", 
           type: "success" 
         });
         fetchAllData(); // Refresh the data
+        setShowDeleteModal(false);
+        setProductToDelete(null);
       } else {
         setToast({
           message: result.message || "Không thể xóa sản phẩm",
@@ -209,6 +221,80 @@ export default function DashboardPage() {
         message: err.response?.data?.message || "Lỗi khi xóa sản phẩm",
         type: "error",
       });
+    }
+  };
+
+  const handleToggleBidderApproval = async (productId, currentStatus) => {
+    // Prevent double click
+    if (togglingProductId === productId) {
+      return;
+    }
+
+    // Set loading state
+    setTogglingProductId(productId);
+
+    // Optimistic update - update UI immediately
+    const newStatus = !currentStatus;
+    setSellingAuctions(prev => prev.map(auction => {
+      if (auction.productId?._id === productId) {
+        return {
+          ...auction,
+          productId: {
+            ...auction.productId,
+            requireBidderApproval: newStatus
+          }
+        };
+      }
+      return auction;
+    }));
+
+    try {
+      const result = await toggleBidderApproval(productId);
+      if (result.success) {
+        setToast({
+          message: result.message || "Đã cập nhật cấu hình thành công",
+          type: "success"
+        });
+        // No need to refresh all data, optimistic update already done
+      } else {
+        // Rollback on error
+        setSellingAuctions(prev => prev.map(auction => {
+          if (auction.productId?._id === productId) {
+            return {
+              ...auction,
+              productId: {
+                ...auction.productId,
+                requireBidderApproval: currentStatus
+              }
+            };
+          }
+          return auction;
+        }));
+        setToast({
+          message: result.message || "Không thể cập nhật cấu hình",
+          type: "error"
+        });
+      }
+    } catch (err) {
+      // Rollback on error
+      setSellingAuctions(prev => prev.map(auction => {
+        if (auction.productId?._id === productId) {
+          return {
+            ...auction,
+            productId: {
+              ...auction.productId,
+              requireBidderApproval: currentStatus
+            }
+          };
+        }
+        return auction;
+      }));
+      setToast({
+        message: err.response?.data?.message || "Lỗi khi cập nhật cấu hình",
+        type: "error"
+      });
+    } finally {
+      setTogglingProductId(null);
     }
   };
 
@@ -595,9 +681,39 @@ export default function DashboardPage() {
                               />
                               <div className="flex-1 text-center sm:text-left">
                                 <h3 className="font-bold text-lg mb-1 text-gray-200">{auction.productId?.title}</h3>
-                                <div className="flex justify-center sm:justify-start gap-4 text-sm text-gray-400">
+                                <div className="flex justify-center sm:justify-start gap-4 text-sm text-gray-400 mb-2">
                                   <span className="flex items-center gap-1"><Gavel className="w-3 h-3" /> {auction.bidCount} lượt đặt</span>
                                   <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTimeLeft(auction.endAt)}</span>
+                                </div>
+                                {/* Bidder Approval Toggle */}
+                                <div className="flex items-center gap-2 mt-2">
+                                  <button
+                                    onClick={() => handleToggleBidderApproval(auction.productId?._id, auction.productId?.requireBidderApproval)}
+                                    disabled={togglingProductId === auction.productId?._id}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                                      auction.productId?.requireBidderApproval
+                                        ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
+                                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/30 hover:bg-gray-500/30'
+                                    }`}
+                                    title={auction.productId?.requireBidderApproval ? "Tắt phê duyệt bidder" : "Bật phê duyệt bidder"}
+                                  >
+                                    {togglingProductId === auction.productId?._id ? (
+                                      <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Đang cập nhật...</span>
+                                      </>
+                                    ) : auction.productId?.requireBidderApproval ? (
+                                      <>
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                        <span>Yêu cầu phê duyệt</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ShieldOff className="w-3.5 h-3.5" />
+                                        <span>Tự do đặt giá</span>
+                                      </>
+                                    )}
+                                  </button>
                                 </div>
                               </div>
                               <div className="flex flex-col gap-2 items-end">
@@ -615,12 +731,19 @@ export default function DashboardPage() {
                                       });
                                       setShowEditDescModal(true);
                                     }}
-                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                    className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition border border-blue-500/30"
                                     title="Sửa nội dung"
                                   >
                                     <Edit className="w-5 h-5" />
                                   </button>
-                                  <Link to={`/product/${auction.productId?._id}`} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition" title="Xem chi tiết">
+                                  <button
+                                    onClick={() => handleDeleteProduct(auction.productId?._id, auction.productId?.title)}
+                                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition border border-red-500/30"
+                                    title="Xóa sản phẩm"
+                                  >
+                                    <Trash2 className="w-5 h-5" />
+                                  </button>
+                                  <Link to={`/product/${auction.productId?._id}`} className="p-2 text-gray-400 hover:bg-white/10 rounded-lg transition border border-white/10" title="Xem chi tiết">
                                     <ArrowRight className="w-5 h-5" />
                                   </Link>
                                 </div>
@@ -787,6 +910,69 @@ export default function DashboardPage() {
                   });
                 }}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Product Confirmation Modal */}
+      {showDeleteModal && productToDelete && (
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl animate-slide-up">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/30">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    Xác nhận xóa sản phẩm
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    Hành động này không thể hoàn tác
+                  </p>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="mb-6">
+                <p className="text-gray-300 mb-4">
+                  Bạn có chắc chắn muốn xóa sản phẩm{" "}
+                  <strong className="text-white">"{productToDelete.title}"</strong>?
+                </p>
+                
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-yellow-400 mb-2">
+                    ⚠️ Lưu ý:
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-yellow-300/90 space-y-1">
+                    <li>Tất cả người đặt giá sẽ nhận email thông báo</li>
+                    <li>Cuộc đấu giá sẽ bị hủy ngay lập tức</li>
+                    <li>Không thể khôi phục sau khi xóa</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmDeleteProduct}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:shadow-lg hover:shadow-red-500/25 transition font-medium"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Xác nhận xóa
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setProductToDelete(null);
+                  }}
+                  className="px-6 py-3 bg-white/5 text-gray-300 rounded-xl hover:bg-white/10 transition font-medium border border-white/10"
+                >
+                  Hủy
+                </button>
+              </div>
             </div>
           </div>
         </div>

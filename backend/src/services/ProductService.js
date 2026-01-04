@@ -744,6 +744,7 @@ export class ProductService {
 
       const formattedBidders = topBidders.map((bid) => ({
         amount: bid.amount,
+        bidderId: bid.bidderId?._id,
         bidderUsername: bid.bidderId?.username || "Unknown",
         bidderRating: bid.bidderId?.ratingSummary?.score || 0,
         createdAt: bid.createdAt,

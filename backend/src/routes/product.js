@@ -18,9 +18,10 @@ import {
   toggleAutoExtend,
   updateProductDescription,
   rejectBidder,
+  approveFirstTimeBidder,
   withdrawBid,
   deleteProduct,
-  sellerDeleteProduct
+  toggleBidderApproval,
 } from '../controllers/product.js';
 
 import {
@@ -112,6 +113,27 @@ router.post('/:productId/reject-bidder',
 );
 
 /**
+ * API: Duyệt first-time bidder tham gia đấu giá
+ * POST /api/products/:productId/approve-bidder
+ * Requires: Authentication, must be seller
+ * Body: { bidderId }
+ */
+router.post('/:productId/approve-bidder',
+  authenticate,
+  approveFirstTimeBidder
+);
+
+/**
+ * API: Toggle bidder approval requirement
+ * POST /api/products/:productId/toggle-approval
+ * Requires: Authentication, must be seller
+ */
+router.post('/:productId/toggle-approval',
+  authenticate,
+  toggleBidderApproval
+);
+
+/**
  * API 3.3: Bidder tự rút lại bid
  * POST /api/products/:productId/withdraw-bid
  * Requires: Authentication
@@ -134,19 +156,9 @@ router.put('/:productId/auto-extend',
 );
 
 /**
- * API: Seller xóa sản phẩm của mình
- * DELETE /api/products/:productId/seller
- * Requires: Authentication, must be seller/owner
- */
-router.delete('/:productId/seller',
-  authenticate,
-  sellerDeleteProduct
-);
-
-/**
- * API: Xóa sản phẩm (Admin only)
+ * API: Seller xóa sản phẩm
  * DELETE /api/products/:productId
- * Requires: Authentication, must be admin
+ * Requires: Authentication, must be seller/owner
  */
 router.delete('/:productId',
   authenticate,

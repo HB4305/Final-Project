@@ -68,10 +68,12 @@ export class BidService {
     }
 
     // 3. Kiểm tra Rejected Bidder
+    console.log(`[BID SERVICE] Checking rejected bidder - productId: ${auction.productId}, bidderId: ${bidderId}`);
     const isRejected = await RejectedBidder.findOne({
       productId: auction.productId,
-      bidderId,
+      bidderId: bidderId,
     });
+    console.log(`[BID SERVICE] Rejected check result:`, isRejected);
     if (isRejected) {
       throw new AppError(
         "Bạn không được phép tham gia đấu giá sản phẩm này",
@@ -134,6 +136,21 @@ export class BidService {
     // --- CHECK BUY NOW PRICE ---
     // API 6.3 - Nếu giá đặt >= Giá mua ngay -> Thắng ngay lập tức
     if (auction.buyNowPrice && maxAmount >= auction.buyNowPrice) {
+      // Kiểm tra lại rejected bidder trước khi cho phép mua ngay
+      console.log(`[BID SERVICE] Checking rejected for Buy Now - productId: ${auction.productId}, bidderId: ${bidderId}`);
+      const isRejectedForBuyNow = await RejectedBidder.findOne({
+        productId: auction.productId,
+        bidderId: bidderId,
+      });
+      console.log(`[BID SERVICE] Buy Now rejected check result:`, isRejectedForBuyNow);
+      if (isRejectedForBuyNow) {
+        throw new AppError(
+          "Bạn không được phép mua sản phẩm này (đã bị từ chối bởi người bán)",
+          403,
+          ERROR_CODES.BIDDER_REJECTED
+        );
+      }
+
       console.log(`[BID SERVICE] Buy Now Triggered! Bidder: ${bidderId}, Amount: ${auction.buyNowPrice}`);
 
       const session = await Auction.startSession();
@@ -627,7 +644,10 @@ export class BidService {
       console.log(`[BID SERVICE] Rejecting bidder ${bidderId} for product ${productId}`);
 
       // 1. Kiểm tra xem bidder đã bị reject chưa
-      const existingRejection = await RejectedBidder.findOne({ productId, bidderId });
+      const existingRejection = await RejectedBidder.findOne({ 
+        productId: productId, 
+        bidderId: bidderId 
+      });
       if (existingRejection) {
         throw new AppError('Bidder này đã bị từ chối trước đó', 400, 'BIDDER_ALREADY_REJECTED');
       }
@@ -725,29 +745,53 @@ export class BidService {
       }
 
       // 6. Thêm bidder vào rejected list
+      console.log(`[BID SERVICE] Creating rejection entry - productId: ${productId}, bidderId: ${bidderId}`);
       const rejection = new RejectedBidder({
-        productId,
-        bidderId,
+        productId: productId,
+        bidderId: bidderId,
         rejectedBy: product.sellerId, // Seller là người reject
-        reason: reason || 'Không phù hợp',
-        rejectedAt: new Date(),
-        createdAt: new Date()
+        reason: reason || 'Không phù hợp'
       });
       await rejection.save();
 
-      console.log(`[BID SERVICE] Added bidder to rejected list`);
+      console.log(`[BID SERVICE] Added bidder to rejected list - Entry ID: ${rejection._id}`);
+      console.log(`[BID SERVICE] Rejection details:`, { 
+        productId: rejection.productId, 
+        bidderId: rejection.bidderId,
+        rejectedBy: rejection.rejectedBy 
+      });
 
-      // 7. Gửi email thông báo cho bidder bị reject
+      // 7. Lấy thông tin đầy đủ để gửi email
       const rejectedUser = await User.findById(bidderId);
+      const seller = await User.findById(product.sellerId);
+      
+      console.log(`[BID SERVICE] Email preparation - Rejected User:`, rejectedUser?.email);
+      console.log(`[BID SERVICE] Email preparation - Seller:`, seller?.fullName || seller?.username);
+      console.log(`[BID SERVICE] Email preparation - Rejection Date:`, rejection.rejectedAt);
+      
       if (rejectedUser && rejectedUser.email) {
         try {
           const productUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/product/${productId}`;
+          
+          // Format rejectedDate từ rejection.rejectedAt
+          const rejectedDate = new Date(rejection.rejectedAt).toLocaleString('vi-VN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+          
+          console.log(`[BID SERVICE] Formatted rejection date:`, rejectedDate);
+          
           await sendBidRejectedNotification({
             bidderEmail: rejectedUser.email,
             bidderName: rejectedUser.fullName || rejectedUser.username,
             productTitle: product.title,
-            sellerName: product.sellerId?.fullName || 'Seller',
-            reason: reason || 'Không phù hợp',
+            sellerName: seller?.fullName || seller?.username || 'Người bán',
+            reason: rejection.reason,
+            rejectedDate: rejectedDate,
             homeUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
           });
           console.log(`[BID SERVICE] Sent rejection email to ${rejectedUser.email}`);

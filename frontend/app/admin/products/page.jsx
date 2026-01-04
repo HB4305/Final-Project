@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Eye, RefreshCw, XCircle } from "lucide-react";
+import { Trash2, Eye, RefreshCw, XCircle, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminNavigation from "../../../components/admin-navigation";
 import productService from "../../services/productService";
@@ -13,6 +13,8 @@ export default function AdminProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
 
   const fetchProducts = async () => {
     try {
@@ -34,11 +36,16 @@ export default function AdminProductsPage() {
     fetchProducts();
   }, []);
 
-  const handleDelete = async (product) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa "${product.title}"?`)) return;
+  const handleDelete = (product) => {
+    setProductToDelete(product);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
 
     try {
-      const response = await productService.deleteProduct(product._id);
+      const response = await productService.deleteProduct(productToDelete._id);
 
       if (response.success) {
         setToast({
@@ -46,6 +53,8 @@ export default function AdminProductsPage() {
           type: "success",
         });
         fetchProducts();
+        setShowDeleteModal(false);
+        setProductToDelete(null);
       } else {
         setToast({ message: "Lỗi: " + response.message, type: "error" });
       }
@@ -427,6 +436,57 @@ export default function AdminProductsPage() {
                   Xem trên trang
                 </Link>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={() => setShowDeleteModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Xác nhận xóa sản phẩm</h3>
+                  <p className="text-sm text-gray-500 mt-1">Hành động này không thể hoàn tác</p>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-700 mb-2">
+                  Bạn có chắc chắn muốn xóa sản phẩm:
+                </p>
+                <p className="font-semibold text-gray-900 mb-3">
+                  "{productToDelete?.title}"
+                </p>
+                <div className="space-y-1 text-xs text-gray-600">
+                  <p>• Tất cả bids liên quan sẽ bị xóa</p>
+                  <p>• Phiên đấu giá sẽ bị hủy</p>
+                  <p>• Người dùng đã bid sẽ nhận email thông báo</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setProductToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                >
+                  Xóa sản phẩm
+                </button>
+              </div>
             </div>
           </div>
         </div>

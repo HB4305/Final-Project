@@ -205,12 +205,20 @@ export const sendBidRejectedNotification = async (data) => {
       productTitle: data.productTitle,
       sellerName: data.sellerName,
       reason: data.reason,
+      rejectedDate: data.rejectedDate || new Date().toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }),
       homeUrl: data.homeUrl,
     });
 
     return sendEmail({
       to: data.bidderEmail,
-      subject: `Bid Rejected: ${data.productTitle}`,
+      subject: `Lượt đặt giá bị từ chối: ${data.productTitle}`,
       html,
     });
   } catch (error) {

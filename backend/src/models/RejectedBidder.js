@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 
 const rejectedBidderSchema = new mongoose.Schema({
-  product: {
+  productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
     required: true
   },
-  bidder: {
+  bidderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
@@ -31,8 +31,8 @@ const rejectedBidderSchema = new mongoose.Schema({
 });
 
 // Indexes
-rejectedBidderSchema.index({ product: 1, bidder: 1 }, { unique: true });
-rejectedBidderSchema.index({ product: 1 });
-rejectedBidderSchema.index({ bidder: 1 });
+rejectedBidderSchema.index({ productId: 1, bidderId: 1 }, { unique: true });
+rejectedBidderSchema.index({ productId: 1 });
+rejectedBidderSchema.index({ bidderId: 1 });
 
 export default mongoose.model('RejectedBidder', rejectedBidderSchema);

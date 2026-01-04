@@ -109,6 +109,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   const [auctionType, setAuctionType] = useState(null); // 'now' or 'scheduled'
   const [endTime, setEndTime] = useState("");
   const [startTimeScheduled, setStartTimeScheduled] = useState("");
+  const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
 
   // Format number to Vietnamese currency format
   const formatCurrency = (value) => {
@@ -136,6 +137,12 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   
   
   const submitForm = async (data, submissionEndTime, submissionStartTime) => {
+    // Prevent double submission
+    if (isSubmittingProduct) {
+      console.log('[FORM] Already submitting, ignoring click');
+      return;
+    }
+
     // Validate images
     if (!mainImage) {
       setModalMessage("Vui lòng tải lên ảnh chính");
@@ -148,6 +155,9 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       setShowErrorModal(true);
       return;
     }
+    
+    // Set submitting state
+    setIsSubmittingProduct(true);
     
     try {
       // Create FormData for multipart/form-data request
@@ -209,6 +219,9 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       console.error("Error creating product:", error);
       setModalMessage(error.response?.data?.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
       setShowErrorModal(true);
+    } finally {
+      // Reset submitting state
+      setIsSubmittingProduct(false);
     }
   };
 
@@ -302,9 +315,9 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
     const formData = watch();
     
     // Set start time based on auction type
-    // Đấu giá ngay: thời điểm hiện tại + 30 giây (tính tại thời điểm submit)
+    // Đấu giá ngay: thời điểm hiện tại + 15 giây (tính tại thời điểm submit)
     const startTime = auctionType === 'now' 
-      ? new Date(Date.now() + 30000).toISOString() // +30 seconds
+      ? new Date(Date.now() + 15000).toISOString() // +15 seconds
       : new Date(startTimeScheduled).toISOString();
     
     const endTimeISO = new Date(endTime).toISOString();
@@ -664,19 +677,33 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 <button 
                   type="button"
                   onClick={() => handleAuctionTypeClick('now')}
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-green-500/25 focus:ring-4 focus:ring-green-500/20 transition transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || isSubmittingProduct}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-green-500/25 focus:ring-4 focus:ring-green-500/20 transition transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  Đấu giá ngay
+                  {isSubmittingProduct ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    'Đấu giá ngay'
+                  )}
                 </button>
                 
                 <button 
                   type="button"
                   onClick={() => handleAuctionTypeClick('scheduled')}
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/25 focus:ring-4 focus:ring-primary/20 transition transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || isSubmittingProduct}
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/25 focus:ring-4 focus:ring-primary/20 transition transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  Lên lịch đấu giá
+                  {isSubmittingProduct ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    'Lên lịch đấu giá'
+                  )}
                 </button>
               </div>
             </div>
@@ -742,20 +769,21 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                   setEndTime("");
                   setStartTimeScheduled("");
                 }}
-                className="flex-1 py-3 px-6 rounded-xl font-bold text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                disabled={isSubmittingProduct}
+                className="flex-1 py-3 px-6 rounded-xl font-bold text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Hủy
               </button>
               <button
                 type="button"
                 onClick={handleTimeSubmit}
-                disabled={isSubmitting}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 px-6 rounded-xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                disabled={isSubmitting || isSubmittingProduct}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 px-6 rounded-xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? (
+                {isSubmittingProduct ? (
                   <>
                     <Loader className="w-4 h-4 animate-spin" />
-                    Đang xử lý...
+                    Đang tạo sản phẩm...
                   </>
                 ) : (
                   'Xác nhận'

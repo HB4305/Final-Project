@@ -184,7 +184,7 @@ export const sellerDeleteProduct = async (productId) => {
 };
 
 /**
- * Xóa sản phẩm (admin)
+ * Xóa sản phẩm (Seller hoặc Admin)
  * @param {string} productId - ID sản phẩm
  * @returns {Promise}
  */
@@ -201,6 +201,80 @@ export const deleteProduct = async (productId) => {
     return {
       success: false,
       message: error.response?.data?.message || error.response?.data?.error || 'Lỗi khi xóa sản phẩm'
+    };
+  }
+};
+
+/**
+ * Từ chối bidder (blacklist)
+ * @param {string} productId - ID sản phẩm
+ * @param {string} bidderId - ID bidder bị từ chối
+ * @param {string} reason - Lý do từ chối
+ * @returns {Promise}
+ */
+export const rejectBidder = async (productId, bidderId, reason) => {
+  try {
+    const response = await api.post(`/products/${productId}/reject-bidder`, {
+      bidderId,
+      reason
+    });
+    return {
+      success: true,
+      message: response.data.message || 'Đã từ chối bidder thành công',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error rejecting bidder:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Lỗi khi từ chối bidder'
+    };
+  }
+};
+
+/**
+ * Duyệt first-time bidder
+ * @param {string} productId - ID sản phẩm
+ * @param {string} bidderId - ID bidder cần duyệt
+ * @returns {Promise}
+ */
+export const approveFirstTimeBidder = async (productId, bidderId) => {
+  try {
+    const response = await api.post(`/products/${productId}/approve-bidder`, {
+      bidderId
+    });
+    return {
+      success: true,
+      message: response.data.message || 'Đã duyệt bidder thành công',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error approving bidder:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Lỗi khi duyệt bidder'
+    };
+  }
+};
+
+/**
+ * Toggle cấu hình yêu cầu phê duyệt bidder
+ * @param {string} productId - ID sản phẩm
+ * @returns {Promise}
+ */
+export const toggleBidderApproval = async (productId) => {
+  try {
+    const response = await api.post(`/products/${productId}/toggle-approval`);
+    return {
+      success: true,
+      message: response.data.message || 'Đã cập nhật cấu hình thành công',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error toggling bidder approval:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Lỗi khi cập nhật cấu hình'
     };
   }
 };
@@ -234,21 +308,6 @@ export const getBidHistory = async (productId) => {
  */
 export const updateProductDescription = async (productId, data) => {
   const response = await api.put(`/products/${productId}/description`, data);
-  return response.data;
-};
-
-/**
- * API 3.3a: Từ chối lượt ra giá của bidder
- * @param {string} productId - ID sản phẩm
- * @param {string} bidderId - ID bidder cần từ chối
- * @param {string} reason - Lý do từ chối
- * @returns {Promise}
- */
-export const rejectBidder = async (productId, bidderId, reason) => {
-  const response = await api.post(`/products/${productId}/reject-bidder`, {
-    bidderId,
-    reason
-  });
   return response.data;
 };
 
