@@ -38,7 +38,13 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isLoggedIn, currentUser, loginWithToken, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState("participating");
+  /* 
+    derived state from URL 
+    activeTab is now controlled by the URL 'tab' query param.
+    Default to 'participating' if not present.
+  */
+  const activeTab = searchParams.get("tab") || "participating";
+
   const [toast, setToast] = useState(null);
 
   // Data states
@@ -340,7 +346,11 @@ export default function DashboardPage() {
                   return (
                     <button
                       key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
+                      onClick={() => {
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.set("tab", tab.key);
+                        setSearchParams(newParams);
+                      }}
                       className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-300 ${isActive
                         ? `bg-primary/20 text-primary shadow-sm border border-primary/20`
                         : "text-gray-400 hover:bg-white/5 hover:text-white"
@@ -503,9 +513,7 @@ export default function DashboardPage() {
                                 <div className="p-4">
                                   <div className="flex justify-between items-center mb-4">
                                     <span className="text-sm text-muted-foreground">Ngày thêm: {new Date(item.watchedAt).toLocaleDateString('vi-VN')}</span>
-                                    <span className="text-primary font-bold">
-                                      {item.productId?.startingPrice?.toLocaleString()} ₫
-                                    </span>
+
                                   </div>
                                   <Link to={`/product/${item.productId?._id}`} className="block w-full text-center py-2 bg-white/5 hover:bg-primary hover:text-white rounded-lg transition-colors font-medium border border-white/10 hover:border-primary text-gray-300">
                                     Xem chi tiết

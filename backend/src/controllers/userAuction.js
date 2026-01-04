@@ -58,7 +58,7 @@ export const getParticipatingAuctions = async (req, res, next) => {
           ...auction,
           userHighestBid,
           isWinning:
-            auction.currentHighestBidderId?.toString() ===
+            (auction.currentHighestBidderId?._id || auction.currentHighestBidderId)?.toString() ===
             req.user._id.toString(),
         };
       })
