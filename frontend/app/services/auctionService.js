@@ -3,6 +3,16 @@
 import api from "./api";
 
 /**
+ * Lấy danh sách đấu giá (public)
+ * @param {Object} params - { page, limit, status, sort }
+ * @returns {Promise}
+ */
+export const getAuctions = async (params = {}) => {
+  const response = await api.get("/auctions", { params });
+  return response;
+};
+
+/**
  * Lấy danh sách sản phẩm đang tham gia đấu giá
  * @param {Object} params - { page, limit }
  * @returns {Promise}
@@ -43,6 +53,7 @@ export const getSoldAuctions = async (params = {}) => {
 };
 
 const auctionService = {
+  getAuctions,
   getParticipatingAuctions,
   getWonAuctions,
   getSellingAuctions,

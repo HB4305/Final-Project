@@ -1,4 +1,5 @@
 // AUTH CONTEXT - Global Authentication State Management
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from "react";
 import authService from "../services/authService";
 
@@ -52,20 +53,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    const response = await authService.signin({ email, password });
+    setLoading(true);
+    try {
+      const response = await authService.signin({ email, password });
 
-    // Save token
-    const accessToken = response.data.data?.accessToken || response.data.accessToken;
-    if (accessToken) {
-      localStorage.setItem("token", accessToken);
+      // Save token
+      const accessToken = response.data.data?.accessToken || response.data.accessToken;
+      if (accessToken) {
+        localStorage.setItem("token", accessToken);
+      }
+
+      // Set user info
+      const userData = response.data.data?.user || response.data.user;
+      setCurrentUser(userData);
+      setIsLoggedIn(true);
+      console.log("=== END AUTH CONTEXT DEBUG ===");
+
+      return response;
+    } finally {
+      setLoading(false);
     }
-
-    // Set user info
-    setCurrentUser(response.data.data?.user || response.data.user);
-    setIsLoggedIn(true);
-    console.log("=== END AUTH CONTEXT DEBUG ===");
-
-    return response;
   };
 
   const logout = async () => {
@@ -81,6 +88,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginWithToken = async (token) => {
+    setLoading(true);
     try {
       // Save token
       localStorage.setItem("token", token);
@@ -95,6 +103,8 @@ export const AuthProvider = ({ children }) => {
       console.error("Login with token failed:", error);
       localStorage.removeItem("token");
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 

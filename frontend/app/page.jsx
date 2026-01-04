@@ -10,21 +10,28 @@ export default function Home() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { loginWithToken, isLoggedIn } = useAuth();
+  const [isProcessingToken, setIsProcessingToken] = React.useState(false);
 
   useEffect(() => {
     const token = searchParams.get("token");
-    if (token) {
+    if (token && !isProcessingToken) {
+      setIsProcessingToken(true);
       loginWithToken(token)
         .then(() => {
-          searchParams.delete("token");
-          setSearchParams(searchParams);
+          // Remove token from URL
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete("token");
+          setSearchParams(newSearchParams, { replace: true });
         })
         .catch((error) => {
           console.error("OAuth login failed:", error);
           navigate("/auth/login?error=oauth_failed");
+        })
+        .finally(() => {
+          setIsProcessingToken(false);
         });
     }
-  }, [searchParams]);
+  }, [searchParams, loginWithToken, navigate, setSearchParams, isProcessingToken]);
 
   const [heroAuction, setHeroAuction] = React.useState(null);
 

@@ -615,73 +615,152 @@ export class BidService {
    * @returns {Object} Thông tin rejection
    */
   async rejectBidder(productId, bidderId, reason = "") {
-    // 1. Tìm cuộc đấu giá active cho sản phẩm
-    const auction = await Auction.findOne({
-      productId,
-      status: AUCTION_STATUS.ACTIVE,
-    });
+    try {
+      console.log(`[BID SERVICE] Rejecting bidder ${bidderId} for product ${productId}`);
 
-    // 2. Nếu bidder này là highest bidder, cần chuyển sang bidder thứ 2
-    if (auction && auction.currentHighestBidderId?.toString() === bidderId) {
-      // Tìm bid cao thứ 2
-      const secondBid = await Bid.findOne({
-        auctionId: auction._id,
-        bidderId: { $ne: bidderId },
-      })
-        .sort({ amount: -1 })
-        .limit(1);
-
-      if (secondBid) {
-        // Update auction với highest bidder mới
-        await Auction.updateOne(
-          { _id: auction._id },
-          {
-            currentPrice: secondBid.amount,
-            currentHighestBidId: secondBid._id,
-            currentHighestBidderId: secondBid.bidderId,
-            updatedAt: new Date(),
-          }
-        );
-      } else {
-        // Không có bid nào khác, reset auction
-        await Auction.updateOne(
-          { _id: auction._id },
-          {
-            currentPrice: auction.startPrice,
-            currentHighestBidId: null,
-            currentHighestBidderId: null,
-            bidCount: 0,
-            updatedAt: new Date(),
-          }
-        );
+      // 1. Kiểm tra xem bidder đã bị reject chưa
+      const existingRejection = await RejectedBidder.findOne({ productId, bidderId });
+      if (existingRejection) {
+        throw new AppError('Bidder này đã bị từ chối trước đó', 400, 'BIDDER_ALREADY_REJECTED');
       }
-    }
 
-    // 3. Thêm bidder vào rejected list
-    const rejection = await RejectedBidder.findOneAndUpdate(
-      { productId, bidderId },
-      { reason, createdAt: new Date() },
-      { upsert: true, new: true }
-    );
+      // 2. Tìm product và auction
+      const product = await Product.findById(productId);
+      if (!product) {
+        throw new AppError('Sản phẩm không tồn tại', 404, 'PRODUCT_NOT_FOUND');
+      }
 
-    // Send email notification to the rejected bidder
-    const rejectedUser = await User.findById(bidderId);
-    const product = await Product.findById(productId);
-    const seller = await User.findById(product.sellerId);
+      const auction = await Auction.findOne({ productId });
+      if (!auction) {
+        throw new AppError('Phiên đấu giá không tồn tại', 404, 'AUCTION_NOT_FOUND');
+      }
 
-    if (rejectedUser && product) {
-      const productUrl = `${process.env.FRONTEND_URL}/product/${productId}`;
-      await sendBidRejectedNotification({
-        bidderEmail: rejectedUser.email,
-        bidderName: rejectedUser.fullName,
-        productTitle: product.title,
-        sellerName: seller ? seller.fullName : 'Seller',
-        reason: reason,
-        homeUrl: process.env.FRONTEND_URL
+      // 3. Tìm tất cả bids của bidder này trong auction
+      const bidderBids = await Bid.find({
+        auctionId: auction._id,
+        bidderId: bidderId
+      }).sort({ amount: -1 });
+
+      console.log(`[BID SERVICE] Found ${bidderBids.length} bids from rejected bidder`);
+
+      // 4. Xóa tất cả bids của bidder bị reject
+      if (bidderBids.length > 0) {
+        await Bid.deleteMany({
+          auctionId: auction._id,
+          bidderId: bidderId
+        });
+        
+        // Xóa AutoBid nếu có
+        await AutoBid.deleteMany({
+          auctionId: auction._id,
+          bidderId: bidderId
+        });
+
+        console.log(`[BID SERVICE] Deleted all bids and autobids from rejected bidder`);
+      }
+
+      // 5. Nếu bidder này là highest bidder, chuyển sang bidder thứ 2
+      const isHighestBidder = auction.currentHighestBidderId?.toString() === bidderId.toString();
+      
+      if (isHighestBidder) {
+        console.log(`[BID SERVICE] Rejected bidder was highest bidder, finding next highest bid`);
+        
+        // Tìm bid cao nhất còn lại (sau khi đã xóa bids của rejected bidder)
+        const nextHighestBid = await Bid.findOne({
+          auctionId: auction._id,
+          bidderId: { $ne: bidderId }
+        })
+          .sort({ amount: -1, createdAt: 1 })
+          .populate('bidderId', 'username email');
+
+        if (nextHighestBid) {
+          // Update auction với highest bidder mới
+          auction.currentPrice = nextHighestBid.amount;
+          auction.currentHighestBidId = nextHighestBid._id;
+          auction.currentHighestBidderId = nextHighestBid.bidderId._id;
+          auction.bidCount = await Bid.countDocuments({ auctionId: auction._id });
+          auction.updatedAt = new Date();
+          await auction.save();
+
+          console.log(`[BID SERVICE] Transferred to next highest bidder: ${nextHighestBid.bidderId.username} with bid $${nextHighestBid.amount}`);
+
+          // Gửi email thông báo cho bidder mới là highest
+          try {
+            const productUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/product/${productId}`;
+            await sendPriceUpdatedNotification({
+              email: nextHighestBid.bidderId.email,
+              bidderName: nextHighestBid.bidderId.username,
+              productTitle: product.title,
+              newPrice: nextHighestBid.amount,
+              productUrl
+            });
+            console.log(`[BID SERVICE] Sent notification to new highest bidder`);
+          } catch (emailError) {
+            console.error(`[BID SERVICE] Failed to send email to new highest bidder:`, emailError);
+          }
+        } else {
+          // Không có bid nào khác, reset auction về giá khởi điểm
+          auction.currentPrice = auction.startPrice;
+          auction.currentHighestBidId = null;
+          auction.currentHighestBidderId = null;
+          auction.bidCount = 0;
+          auction.updatedAt = new Date();
+          await auction.save();
+
+          console.log(`[BID SERVICE] No other bids found, reset auction to start price`);
+        }
+      } else {
+        // Chỉ cập nhật bidCount nếu không phải highest bidder
+        auction.bidCount = await Bid.countDocuments({ auctionId: auction._id });
+        auction.updatedAt = new Date();
+        await auction.save();
+      }
+
+      // 6. Thêm bidder vào rejected list
+      const rejection = new RejectedBidder({
+        productId,
+        bidderId,
+        rejectedBy: product.sellerId, // Seller là người reject
+        reason: reason || 'Không phù hợp',
+        rejectedAt: new Date(),
+        createdAt: new Date()
       });
-    }
+      await rejection.save();
 
-    return rejection;
+      console.log(`[BID SERVICE] Added bidder to rejected list`);
+
+      // 7. Gửi email thông báo cho bidder bị reject
+      const rejectedUser = await User.findById(bidderId);
+      if (rejectedUser && rejectedUser.email) {
+        try {
+          const productUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/product/${productId}`;
+          await sendBidRejectedNotification({
+            bidderEmail: rejectedUser.email,
+            bidderName: rejectedUser.fullName || rejectedUser.username,
+            productTitle: product.title,
+            sellerName: product.sellerId?.fullName || 'Seller',
+            reason: reason || 'Không phù hợp',
+            homeUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
+          });
+          console.log(`[BID SERVICE] Sent rejection email to ${rejectedUser.email}`);
+        } catch (emailError) {
+          console.error(`[BID SERVICE] Failed to send rejection email:`, emailError);
+          // Không throw error, vì rejection đã thành công
+        }
+      }
+
+      return {
+        rejection,
+        bidsRemoved: bidderBids.length,
+        newHighestBidder: auction.currentHighestBidderId ? {
+          bidderId: auction.currentHighestBidderId,
+          amount: auction.currentPrice
+        } : null
+      };
+    } catch (error) {
+      console.error('[BID SERVICE] Error rejecting bidder:', error);
+      throw error;
+    }
   }
 
   /**

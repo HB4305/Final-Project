@@ -799,6 +799,94 @@ export class ProductService {
   }
 
   /**
+   * Lấy thông tin đầy đủ của sản phẩm cho admin (tất cả fields của auction)
+   */
+  async getProductAdminDetails(productId) {
+    try {
+      console.log(`[PRODUCT SERVICE] Lấy chi tiết admin cho sản phẩm: ${productId}`);
+
+      const product = await Product.findById(productId)
+        .populate('categoryId', 'name slug')
+        .populate('sellerId', 'username email fullName phoneNumber address profileImageUrl ratingSummary')
+        .lean();
+
+      if (!product) {
+        throw new AppError('Sản phẩm không tồn tại', 404, 'PRODUCT_NOT_FOUND');
+      }
+
+      // Lấy tất cả thông tin auction
+      const auction = await Auction.findOne({ productId: productId })
+        .populate('currentHighestBidderId', 'username email')
+        .lean();
+
+      if (!auction) {
+        throw new AppError('Phiên đấu giá không tồn tại', 404, 'AUCTION_NOT_FOUND');
+      }
+
+      // Lấy tất cả bids
+      const bids = await Bid.find({ auctionId: auction._id })
+        .sort({ amount: -1, createdAt: -1 })
+        .populate('bidderId', 'username email ratingSummary')
+        .lean();
+
+      const formattedBids = bids.map(bid => ({
+        _id: bid._id,
+        amount: bid.amount,
+        bidder: {
+          _id: bid.bidderId?._id,
+          username: bid.bidderId?.username,
+          email: bid.bidderId?.email,
+          rating: bid.bidderId?.ratingSummary?.score || 0
+        },
+        createdAt: bid.createdAt
+      }));
+
+      // Tính thời gian còn lại
+      const timeRemaining = new Date(auction.endAt) - new Date();
+      const isAuctionActive = timeRemaining > 0 && auction.status === 'active';
+
+      console.log(`[PRODUCT SERVICE] Chi tiết admin lấy thành công`);
+
+      return {
+        product: {
+          ...product,
+          // Normalize seller rating
+          sellerId: {
+            ...product.sellerId,
+            rating: product.sellerId?.ratingSummary?.score 
+              ? Math.round((product.sellerId.ratingSummary.score * 5) * 10) / 10 
+              : null
+          }
+        },
+        auction: {
+          ...auction,
+          timeRemaining: Math.max(0, timeRemaining),
+          isActive: isAuctionActive,
+          // Thêm thông tin formatted
+          autoExtendHistory: auction.autoExtendHistory || [],
+          currentHighestBidder: auction.currentHighestBidderId ? {
+            _id: auction.currentHighestBidderId._id,
+            username: auction.currentHighestBidderId.username,
+            email: auction.currentHighestBidderId.email
+          } : null
+        },
+        bids: formattedBids,
+        stats: {
+          totalBids: bids.length,
+          uniqueBidders: [...new Set(bids.map(b => b.bidderId?._id?.toString()))].length,
+          averageBidAmount: bids.length > 0 
+            ? bids.reduce((sum, b) => sum + b.amount, 0) / bids.length 
+            : 0,
+          highestBid: bids.length > 0 ? bids[0].amount : auction.startPrice
+        }
+      };
+    } catch (error) {
+      console.error('[PRODUCT SERVICE] Lỗi khi lấy chi tiết admin:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Helper: Format danh sách top products để hiển thị
    */
   _formatTopProducts(auctions) {

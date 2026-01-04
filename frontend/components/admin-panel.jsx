@@ -78,6 +78,8 @@ function UserManagement({ searchQuery, setSearchQuery }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -117,9 +119,18 @@ function UserManagement({ searchQuery, setSearchQuery }) {
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        <p className="text-muted-foreground mt-4">Đang tải danh sách người dùng...</p>
+      <div className="flex items-center justify-center py-20">
+        <div className="relative">
+          <div className="w-24 h-24 border-4 border-primary/20 rounded-full"></div>
+          <div className="w-24 h-24 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Users className="w-10 h-10 text-primary animate-pulse" />
+          </div>
+        </div>
+        <div className="ml-6">
+          <p className="text-lg font-semibold text-foreground">Đang tải danh sách người dùng</p>
+          <p className="text-sm text-muted-foreground mt-1">Vui lòng đợi trong giây lát...</p>
+        </div>
       </div>
     );
   }
@@ -148,7 +159,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search users by name, email, or username..."
+            placeholder="Tìm kiếm người dùng..."
             className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -200,7 +211,14 @@ function UserManagement({ searchQuery, setSearchQuery }) {
               </tr>
             ) : (
               filteredUsers.map((user) => (
-                <tr key={user._id} className="hover:bg-muted/50">
+                <tr 
+                  key={user._id} 
+                  className="hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setShowDetailModal(true);
+                  }}
+                >
                   <td className="px-4 py-3">
                     <div>
                       <div className="font-semibold">{user.username}</div>
@@ -230,21 +248,21 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-semibold">
-                      {user.rating?.average?.toFixed(1) || "N/A"} ★
+                      {user.ratingSummary?.score?.toFixed(1)} ★
                     </span>
                     <span className="text-xs text-muted-foreground ml-1">
-                      ({user.rating?.count || 0})
+                      ({user.ratingSummary?.score || 0})
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <span
                       className={`px-2 py-1 rounded text-xs font-semibold ${
-                        user.isActive
+                        user.status
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {user.isActive ? "Active" : "Inactive"}
+                      {user.status ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
@@ -260,6 +278,134 @@ function UserManagement({ searchQuery, setSearchQuery }) {
       <div className="text-sm text-muted-foreground">
         Hiển thị {filteredUsers.length} trong tổng số {users.length} người dùng
       </div>
+
+      {/* User Detail Modal */}
+      {showDetailModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">Thông tin người dùng</h2>
+                  <p className="text-blue-100">Chi tiết tài khoản</p>
+                </div>
+                <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Tên đăng nhập</label>
+                  <p className="text-lg font-bold text-gray-900 mt-1">{selectedUser.username}</p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Họ tên</label>
+                  <p className="text-lg text-gray-900 mt-1">{selectedUser.fullName || 'Chưa cập nhật'}</p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Email</label>
+                  <p className="text-lg text-gray-900 mt-1">{selectedUser.email}</p>
+                </div>
+              </div>
+
+              {/* Roles */}
+              <div>
+                <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Vai trò</label>
+                <div className="flex flex-wrap gap-2">
+                  {selectedUser.roles?.map((role) => (
+                    <span
+                      key={role}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
+                        role === "admin" || role === "superadmin"
+                          ? "bg-red-100 text-red-700"
+                          : role === "seller"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {role}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rating & Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                  <label className="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Xếp hạng</label>
+                  <p className="text-2xl font-bold text-yellow-900 mt-1">
+                    {selectedUser.ratingSummary?.score?.toFixed(1) || '0.0'} ★
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-1">({selectedUser.ratingSummary?.totalCount || 0} đánh giá)</p>
+                </div>
+                <div className={`p-4 rounded-xl border ${
+                  selectedUser.status ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                }`}>
+                  <label className={`text-sm font-semibold uppercase tracking-wide ${
+                    selectedUser.status ? 'text-green-700' : 'text-red-700'
+                  }`}>Trạng thái</label>
+                  <p className={`text-2xl font-bold mt-1 ${
+                    selectedUser.status ? 'text-green-900' : 'text-red-900'
+                  }`}>
+                    {selectedUser.status ? 'Đang hoạt động' : 'Không hoạt động'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Ngày tham gia</label>
+                  <p className="text-gray-900 mt-1">{new Date(selectedUser.createdAt).toLocaleDateString('vi-VN')}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Cập nhật cuối</label>
+                  <p className="text-gray-900 mt-1">{new Date(selectedUser.updatedAt).toLocaleDateString('vi-VN')}</p>
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              {selectedUser.phoneNumber && (
+                <div>
+                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Số điện thoại</label>
+                  <p className="text-gray-900 mt-1">{selectedUser.phoneNumber}</p>
+                </div>
+              )}
+
+              {/* Address */}
+              {selectedUser.address && (
+                <div>
+                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Địa chỉ</label>
+                  <p className="text-gray-900 mt-1">
+                    {typeof selectedUser.address === 'object' 
+                      ? `${selectedUser.address.street || ''}, ${selectedUser.address.city || ''}`.trim().replace(/^,\s*/, '').replace(/,\s*$/, '')
+                      : selectedUser.address}
+                  </p>
+                </div>
+              )}
+
+              {/* User ID */}
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">User ID</label>
+                <p className="text-xs text-gray-600 mt-1 font-mono break-all">{selectedUser._id}</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 px-6 py-4 flex justify-end">
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -392,11 +538,18 @@ function UpgradeRequests() {
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        <p className="text-muted-foreground mt-4">
-          Đang tải danh sách yêu cầu...
-        </p>
+      <div className="flex items-center justify-center py-20">
+        <div className="relative">
+          <div className="w-24 h-24 border-4 border-primary/20 rounded-full"></div>
+          <div className="w-24 h-24 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Shield className="w-10 h-10 text-primary animate-pulse" />
+          </div>
+        </div>
+        <div className="ml-6">
+          <p className="text-lg font-semibold text-foreground">Đang tải danh sách yêu cầu</p>
+          <p className="text-sm text-muted-foreground mt-1">Đang xử lý thông tin...</p>
+        </div>
       </div>
     );
   }

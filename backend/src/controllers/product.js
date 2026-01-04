@@ -96,6 +96,119 @@ export const getAllProducts = async (req, res, next) => {
 };
 
 /**
+ * API: Seller xóa sản phẩm của mình (gửi email cho bidders)
+ * DELETE /api/products/:productId/seller
+ * Seller có thể xóa sản phẩm của mình và gửi thông báo cho tất cả bidders
+ */
+export const sellerDeleteProduct = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.user._id;
+
+    // Validate productId
+    if (!isValidObjectId(productId)) {
+      throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
+    }
+
+    console.log(
+      `[PRODUCT CONTROLLER] DELETE /api/products/${productId}/seller - Seller: ${userId}`
+    );
+
+    // Find product
+    const product = await Product.findById(productId);
+    if (!product) {
+      throw new AppError("Không tìm thấy sản phẩm", 404, "PRODUCT_NOT_FOUND");
+    }
+
+    // Check if user is the seller
+    if (product.sellerId.toString() !== userId.toString()) {
+      throw new AppError("Bạn không có quyền xóa sản phẩm này", 403, "FORBIDDEN");
+    }
+
+    // Find associated auction
+    const auction = await Auction.findOne({ productId: productId });
+
+    // Get all bidders who participated
+    let bidders = [];
+    if (auction) {
+      const bids = await Bid.find({ auctionId: auction._id })
+        .populate('bidderId', 'email username fullName')
+        .lean();
+      
+      // Get unique bidders
+      const uniqueBidderIds = [...new Set(bids.map(bid => bid.bidderId._id.toString()))];
+      bidders = bids
+        .filter(bid => uniqueBidderIds.includes(bid.bidderId._id.toString()))
+        .map(bid => bid.bidderId)
+        .filter((bidder, index, self) => 
+          index === self.findIndex(b => b._id.toString() === bidder._id.toString())
+        );
+    }
+
+    // Delete all related data
+    const deletePromises = [];
+
+    if (auction) {
+      deletePromises.push(Auction.findByIdAndDelete(auction._id));
+      deletePromises.push(AutoBid.deleteMany({ auctionId: auction._id }));
+      deletePromises.push(Bid.deleteMany({ auctionId: auction._id }));
+      console.log(`[PRODUCT CONTROLLER] Xóa auction và related data: ${auction._id}`);
+    }
+
+    deletePromises.push(Watchlist.deleteMany({ productId: productId }));
+    deletePromises.push(Question.deleteMany({ productId: productId }));
+    deletePromises.push(Product.findByIdAndDelete(productId));
+
+    await Promise.all(deletePromises);
+
+    // Send email notifications to all bidders
+    if (bidders.length > 0) {
+      const { sendEmail } = await import('../utils/email.js');
+      const emailPromises = bidders.map(bidder => 
+        sendEmail({
+          to: bidder.email,
+          subject: `Thông báo: Sản phẩm "${product.title}" đã bị xóa`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #dc2626;">Sản phẩm đã bị người bán xóa</h2>
+              <p>Xin chào <strong>${bidder.fullName || bidder.username}</strong>,</p>
+              <p>Chúng tôi rất tiếc phải thông báo rằng sản phẩm <strong>"${product.title}"</strong> mà bạn đã tham gia đặt giá đã bị người bán xóa khỏi hệ thống.</p>
+              <div style="background-color: #fee2e2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; color: #991b1b;"><strong>Thông tin sản phẩm:</strong></p>
+                <p style="margin: 5px 0;">Tên sản phẩm: ${product.title}</p>
+                <p style="margin: 5px 0;">Giá khởi điểm: ${product.startPrice?.toLocaleString('vi-VN')} VND</p>
+              </div>
+              <p>Cuộc đấu giá đã bị hủy và tất cả các lượt đặt giá đã được xóa khỏi hệ thống.</p>
+              <p>Chúng tôi xin lỗi vì sự bất tiện này và mong bạn tiếp tục tham gia các cuộc đấu giá khác trên nền tảng của chúng tôi.</p>
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <p style="color: #6b7280; font-size: 12px;">Trân trọng,<br/>Đội ngũ Auction Platform</p>
+              </div>
+            </div>
+          `
+        }).catch(err => {
+          console.error(`Lỗi khi gửi email cho ${bidder.email}:`, err);
+        })
+      );
+
+      await Promise.all(emailPromises);
+      console.log(`[PRODUCT CONTROLLER] Đã gửi email thông báo cho ${bidders.length} bidder(s)`);
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: `Xóa sản phẩm thành công. Đã gửi thông báo cho ${bidders.length} người đặt giá.`,
+      data: {
+        productId,
+        notifiedBidders: bidders.length
+      },
+    });
+  } catch (error) {
+    console.error("[PRODUCT CONTROLLER] Lỗi trong sellerDeleteProduct:", error);
+    next(error);
+  }
+};
+
+/**
  * API: Xóa sản phẩm (Admin only)
  * DELETE /api/products/:productId
  * Xóa sản phẩm và tất cả dữ liệu liên quan:
@@ -423,6 +536,35 @@ export const getProductDetail = async (req, res, next) => {
 };
 
 /**
+ * API: Lấy thông tin chi tiết đầy đủ của sản phẩm cho admin
+ * GET /api/products/:productId/admin-details
+ */
+export const getProductAdminDetails = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+
+    console.log(`[PRODUCT CONTROLLER] GET /api/products/${productId}/admin-details`);
+
+    // Validate productId
+    if (!isValidObjectId(productId)) {
+      throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
+    }
+
+    const result = await productService.getProductAdminDetails(productId);
+
+    res.status(200).json({
+      status: "success",
+      message: "Lấy chi tiết sản phẩm (admin) thành công",
+      data: result,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("[PRODUCT CONTROLLER] Lỗi trong getProductAdminDetails:", error);
+    next(error);
+  }
+};
+
+/**
  * ============================================
  * API 3.1: Đăng sản phẩm đấu giá
  * ============================================
@@ -448,8 +590,13 @@ export const postProduct = async (req, res) => {
     const uploadedFiles = req.files;
 
     console.log(
-      `[PRODUCT CONTROLLER] Số ảnh đã upload: ${uploadedFiles?.length || 0}`
+      `[PRODUCT CONTROLLER] Files uploaded:`,
+      uploadedFiles ? Object.keys(uploadedFiles) : 'none'
     );
+
+    // Lấy primaryImage và additional images
+    const primaryImageFile = uploadedFiles?.['primaryImage']?.[0];
+    const additionalImageFiles = uploadedFiles?.['images'] || [];
 
     // ========================================
     // 3. VALIDATE CÁC TRƯỜNG TEXT
@@ -684,27 +831,30 @@ export const postProduct = async (req, res) => {
     }
 
     // ========================================
-    // 6. XỬ LÝ ẢNH - Lưu URL ảnh vào MongoDB
+    // 6. XỬ LÝ ẢNH - Convert thành base64 URL và lưu vào MongoDB
     // ========================================
 
     let imageUrls;
     let primaryImageUrl;
 
     // Nếu có middleware upload
-    if (uploadedFiles && uploadedFiles.length > 0) {
+    if (primaryImageFile && additionalImageFiles.length > 0) {
       console.log(
-        `[PRODUCT CONTROLLER] Processing ${uploadedFiles.length} uploaded files...`
+        `[PRODUCT CONTROLLER] Processing 1 primary + ${additionalImageFiles.length} additional images...`
       );
 
-      // Map uploaded files to URLs
-      imageUrls = uploadedFiles.map((file) => {
-        // Construct URL: /uploads/filename
-        return `/uploads/${file.filename}`;
+      // Convert primary image to base64
+      const primaryB64 = Buffer.from(primaryImageFile.buffer).toString('base64');
+      primaryImageUrl = "data:" + primaryImageFile.mimetype + ";base64," + primaryB64;
+      console.log(`[PRODUCT CONTROLLER] ✓ Primary image converted to base64`);
+
+      // Convert additional images to base64 URLs
+      imageUrls = additionalImageFiles.map((file) => {
+        const b64 = Buffer.from(file.buffer).toString('base64');
+        return "data:" + file.mimetype + ";base64," + b64;
       });
 
-      primaryImageUrl = imageUrls[0];
-
-      console.log(`[PRODUCT CONTROLLER] ✓ Đã lưu ${imageUrls.length} ảnh`);
+      console.log(`[PRODUCT CONTROLLER] ✓ Đã convert ${imageUrls.length} ảnh phụ sang base64`);
     }
     // Nếu không có middleware (test mode)
     else {
@@ -808,7 +958,7 @@ export const postProduct = async (req, res) => {
     // ========================================
     await savedProduct.populate("categoryId", "name slug");
 
-    const isTestMode = !uploadedFiles || uploadedFiles.length === 0;
+    const isTestMode = !primaryImageFile || additionalImageFiles.length === 0;
 
     return res.status(201).json({
       success: true,
@@ -1165,17 +1315,27 @@ export const rejectBidder = async (req, res, next) => {
     const result = await bidService.rejectBidder(
       productId,
       bidderId,
-      userId,
       reason
     );
 
     res.json({
       success: true,
       message: "Từ chối bidder thành công",
-      data: result,
+      data: {
+        rejection: result.rejection,
+        bidsRemoved: result.bidsRemoved,
+        newHighestBidder: result.newHighestBidder
+      },
     });
   } catch (error) {
     console.error("[PRODUCT CONTROLLER] Error in rejectBidder:", error);
+
+    if (error.code === 'BIDDER_ALREADY_REJECTED') {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Bidder này đã bị từ chối trước đó",
+      });
+    }
 
     if (error.message === "Auction not found") {
       return res.status(404).json({

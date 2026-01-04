@@ -13,12 +13,14 @@ import {
   getProductsByCategory,
   searchProducts,
   getProductDetail,
+  getProductAdminDetails,
   postProduct,
   toggleAutoExtend,
   updateProductDescription,
   rejectBidder,
   withdrawBid,
-  deleteProduct
+  deleteProduct,
+  sellerDeleteProduct
 } from '../controllers/product.js';
 
 import {
@@ -66,6 +68,13 @@ router.get('/category/:categoryId', getProductsByCategory);
  * Response: { product, relatedProducts }
  */
 router.get('/:productId', getProductDetail);
+
+/**
+ * API: Chi tiết sản phẩm đầy đủ cho admin (tất cả fields của auction)
+ * GET /api/products/:productId/admin-details
+ * Response: { product, auction (full), bids, stats }
+ */
+router.get('/:productId/admin-details', authenticate, getProductAdminDetails);
 
 /**
  * API 3.1:  Đăng sản phẩm đấu giá
@@ -122,6 +131,16 @@ router.post('/:productId/withdraw-bid',
 router.put('/:productId/auto-extend',
   authenticate,
   toggleAutoExtend
+);
+
+/**
+ * API: Seller xóa sản phẩm của mình
+ * DELETE /api/products/:productId/seller
+ * Requires: Authentication, must be seller/owner
+ */
+router.delete('/:productId/seller',
+  authenticate,
+  sellerDeleteProduct
 );
 
 /**

@@ -24,6 +24,7 @@ import Navigation from './navigation';
 
 export default function ProductListingForm({ onSubmit, initialData = null }) {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [selectedParentCategory, setSelectedParentCategory] = useState(null);
@@ -70,13 +71,12 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       { message: "Bước giá phải lớn hơn 0" }
     ),
     buyNowPrice: z.union([z.string(), z.number()]).optional(),
-    startTime: z.string().min(1, "Thời gian bắt đầu là bắt buộc"),
-    endTime: z.string().min(1, "Thời gian kết thúc là bắt buộc"),
     autoExtendEnabled: z.boolean().optional(),
     description: z
       .string()
       .min(10, "Mô tả phải có ít nhất 10 ký tự"),
-    images: z.array(z.any()).min(3, "Yêu cầu tối thiểu 3 ảnh"),
+    mainImage: z.any().refine((val) => val !== null, "Ảnh chính là bắt buộc"),
+    additionalImages: z.array(z.any()).min(3, "Yêu cầu tối thiểu 3 ảnh phụ"),
   });
 
   const {
@@ -93,19 +93,22 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       startPrice: "",
       priceStep: "",
       buyNowPrice: "",
-      startTime: "",
-      endTime: "",
       autoExtendEnabled: false,
       description: "",
-      images: [],
+      mainImage: null,
+      additionalImages: [],
     },
   });
 
-  const [images, setImages] = useState([]);
+  const [mainImage, setMainImage] = useState(null);
+  const [additionalImages, setAdditionalImages] = useState([]);
   const [startPriceDisplay, setStartPriceDisplay] = useState("");
   const [priceStepDisplay, setPriceStepDisplay] = useState("");
   const [buyNowPriceDisplay, setBuyNowPriceDisplay] = useState("");
-  const navigate = useNavigate();
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [auctionType, setAuctionType] = useState(null); // 'now' or 'scheduled'
+  const [endTime, setEndTime] = useState("");
+  const [startTimeScheduled, setStartTimeScheduled] = useState("");
 
   // Format number to Vietnamese currency format
   const formatCurrency = (value) => {
@@ -132,10 +135,16 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   };
   
   
-  const submitForm = async (data) => {
-    // Validate minimum images
-    if (images.length < 3) {
-      setModalMessage("Vui lòng tải lên ít nhất 3 ảnh");
+  const submitForm = async (data, submissionEndTime, submissionStartTime) => {
+    // Validate images
+    if (!mainImage) {
+      setModalMessage("Vui lòng tải lên ảnh chính");
+      setShowErrorModal(true);
+      return;
+    }
+    
+    if (additionalImages.length < 3) {
+      setModalMessage("Vui lòng tải lên ít nhất 3 ảnh phụ");
       setShowErrorModal(true);
       return;
     }
@@ -156,8 +165,8 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       
       formData.append("startPrice", startPrice.toString());
       formData.append("priceStep", priceStep.toString());
-      formData.append("startTime", data.startTime);
-      formData.append("endTime", data.endTime);
+      formData.append("startTime", submissionStartTime);
+      formData.append("endTime", submissionEndTime);
       
       // Optional fields
       if (buyNowPrice && buyNowPrice > 0) {
@@ -169,9 +178,12 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
         autoExtendEnabled: data.autoExtendEnabled || false
       }));
       
-      // Append image files
-      for (const img of images) {
-        formData.append("images", img.file); // 'images' matches multer field name
+      // Append main image
+      formData.append("primaryImage", mainImage.file);
+      
+      // Append additional images
+      for (const img of additionalImages) {
+        formData.append("images", img.file);
       }
       
       // Send request with FormData via productService
@@ -206,7 +218,20 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
     setValue("description", value);
   }
 
-  const handleImageUpload = (event) => {
+  const handleMainImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const imageData = {
+        id: Date.now(),
+        file,
+        preview: URL.createObjectURL(file),
+      };
+      setMainImage(imageData);
+      setValue("mainImage", imageData);
+    }
+  };
+
+  const handleAdditionalImagesUpload = (event) => {
     const files = Array.from(event.target.files);
     const mapped = files.map((file) => ({
       id: Date.now() + Math.random(),
@@ -214,8 +239,85 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       preview: URL.createObjectURL(file),
     }));
 
-    setImages((prev) => [...prev, ...mapped]);
-    setValue("images", [...images, ...mapped]);
+    const newImages = [...additionalImages, ...mapped];
+    setAdditionalImages(newImages);
+    setValue("additionalImages", newImages);
+  };
+
+  const removeMainImage = () => {
+    if (mainImage) {
+      URL.revokeObjectURL(mainImage.preview);
+    }
+    setMainImage(null);
+    setValue("mainImage", null);
+  };
+
+  const removeAdditionalImage = (id) => {
+    const newImages = additionalImages.filter(img => img.id !== id);
+    setAdditionalImages(newImages);
+    setValue("additionalImages", newImages);
+  };
+
+  const handleAuctionTypeClick = async (type) => {
+    // Validate form first
+    const isValid = await handleSubmit(() => {}, (errors) => {
+      console.log('Validation errors:', errors);
+    })();
+    
+    setAuctionType(type);
+    setShowTimeModal(true);
+  };
+
+  // Auto-submit when all required times are selected
+  useEffect(() => {
+    if (!showTimeModal) return;
+    
+    const checkAndSubmit = async () => {
+      if (auctionType === 'now' && endTime) {
+        // For immediate auction, only need end time
+        await handleTimeSubmit();
+      } else if (auctionType === 'scheduled' && startTimeScheduled && endTime) {
+        // For scheduled auction, need both times
+        await handleTimeSubmit();
+      }
+    };
+
+    checkAndSubmit();
+  }, [endTime, startTimeScheduled, auctionType, showTimeModal]);
+
+  const handleTimeSubmit = async () => {
+    if (!endTime) {
+      setModalMessage("Vui lòng chọn thời gian kết thúc");
+      setShowErrorModal(true);
+      return;
+    }
+
+    if (auctionType === 'scheduled' && !startTimeScheduled) {
+      setModalMessage("Vui lòng chọn thời gian bắt đầu");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Get current form data
+    const formData = watch();
+    
+    // Set start time based on auction type
+    // Đấu giá ngay: thời điểm hiện tại + 30 giây (tính tại thời điểm submit)
+    const startTime = auctionType === 'now' 
+      ? new Date(Date.now() + 30000).toISOString() // +30 seconds
+      : new Date(startTimeScheduled).toISOString();
+    
+    const endTimeISO = new Date(endTime).toISOString();
+
+    // Validate times
+    if (new Date(endTimeISO) <= new Date(startTime)) {
+      setModalMessage("Thời gian kết thúc phải sau thời gian bắt đầu");
+      setShowErrorModal(true);
+      return;
+    }
+
+    setShowTimeModal(false);
+    await submitForm(formData, endTimeISO, startTime);
   };
 
   return (
@@ -235,7 +337,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             <p className="text-gray-400">Điền thông tin chi tiết để bắt đầu phiên đấu giá của bạn</p>
           </div>
 
-          <form onSubmit={handleSubmit(submitForm)} className="space-y-8">
+          <form className="space-y-8">
             
             {/* Product Name */}
             <div className="space-y-2">
@@ -255,41 +357,44 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               )}
             </div>
 
-            {/* Categories Grid */}
-            <div className="grid md:grid-cols-2 gap-6">
-                 {/* Parent Category */}
-                <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-primary" />
-                    Danh mục chính <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                     <select 
-                        value={selectedParentCategory || ''}
-                        onChange={(e) => {
-                        setSelectedParentCategory(e.target.value);
-                        setValue('categoryId', ''); // Reset subcategory when parent changes
-                        }}
-                        className="w-full px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none appearance-none cursor-pointer"
-                        disabled={loadingCategories}
-                    >
-                        <option value="" className="bg-slate-800">
-                        {loadingCategories ? 'Đang tải danh mục...' : 'Chọn danh mục'}
-                        </option>
-                        {parentCategories.map((cat) => {
-                        const catId = cat._id || cat.id;
-                        return (
-                            <option key={catId} value={catId} className="bg-slate-800">
-                            {cat.name}
-                            </option>
-                        );
-                        })}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        ▼
-                    </div>
+            {/* Parent Category */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <Tag className="w-4 h-4 text-primary" />
+                Danh mục chính <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <select 
+                  value={selectedParentCategory || ''}
+                  onChange={(e) => {
+                    setSelectedParentCategory(e.target.value);
+                    setValue('categoryId', ''); // Reset subcategory when parent changes
+                  }}
+                  className={`w-full px-5 py-3 rounded-xl bg-white/5 border text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none appearance-none cursor-pointer ${
+                    loadingCategories ? 'opacity-50 cursor-not-allowed' : ''
+                  } border-white/10`}
+                  disabled={loadingCategories}
+                >
+                  <option value="" className="bg-slate-800 text-gray-300">
+                    {loadingCategories ? 'Đang tải danh mục...' : 'Chọn danh mục chính'}
+                  </option>
+                  {parentCategories.map((cat) => {
+                    const catId = cat._id || cat.id;
+                    return (
+                      <option key={catId} value={catId} className="bg-slate-800">
+                        {cat.name}
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  ▼
                 </div>
-                </div>
+              </div>
+              {loadingCategories && (
+                <p className="text-blue-500 text-sm mt-1">Đang tải danh mục...</p>
+              )}
+            </div>
 
                 {/* Subcategory */}
                 <div className="space-y-2">
@@ -322,7 +427,6 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                  {errors.categoryId && (
                     <p className="text-red-500 text-sm mt-1">{errors.categoryId.message}</p>
                 )}
-                </div>
             </div>
 
             {/* If parent has no children, use parent as categoryId */}
@@ -333,12 +437,12 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             {/* Price Fields */}
             <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
                 <h3 className="font-bold text-gray-200 mb-4 flex items-center gap-2">
-                    💰 Thiết lập giá
+                    Thiết lập giá
                 </h3>
                 <div className="grid md:grid-cols-3 gap-6">
                     {/* Starting Price */}
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-300">Giá khởi điểm <span className="text-red-500">*</span></label>
+                        <label className="text-sm font-semibold text-white">Giá khởi điểm <span className="text-red-500">*</span></label>
                         <div className="relative">
                         <input 
                             type="text"
@@ -349,14 +453,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                             errors.startPrice ? 'border-red-500' : 'border-white/10'
                             }`}
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">₫</span>
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-sm font-bold">VND</span>
                         </div>
                          {errors.startPrice && <p className="text-red-500 text-xs mt-1">{errors.startPrice.message}</p>}
                     </div>
 
                     {/* Step Price */}
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-300">Bước giá <span className="text-red-500">*</span></label>
+                        <label className="text-sm font-semibold text-white">Bước giá <span className="text-red-500">*</span></label>
                         <div className="relative">
                         <input 
                             type="text"
@@ -367,14 +471,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                             errors.priceStep ? 'border-red-500' : 'border-white/10'
                             }`}
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">₫</span>
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-sm font-bold">VND</span>
                         </div>
                         {errors.priceStep && <p className="text-red-500 text-xs mt-1">{errors.priceStep.message}</p>}
                     </div>
 
                     {/* Buy Now Price */}
                     <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-300">Giá mua ngay (Tùy chọn)</label>
+                    <label className="text-sm font-semibold text-white">Giá mua ngay (Tùy chọn)</label>
                     <div className="relative">
                         <input 
                         type="text"
@@ -383,46 +487,13 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                         placeholder="0"
                         className="w-full pl-4 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none font-bold text-white placeholder-gray-500"
                         />
-                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">₫</span>
+                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-sm font-bold">VND</span>
                     </div>
                     </div>
                 </div>
             </div>
 
-             {/* Time Settings */}
-             <div className="grid md:grid-cols-2 gap-6">
-                 {/* Start Time */}
-                <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-primary" />
-                    Bắt đầu <span className="text-red-500">*</span>
-                </label>
-                <input 
-                    type="datetime-local"
-                    {...register("startTime")}
-                    className={`w-full px-5 py-3 rounded-xl bg-white/5 border text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none cursor-pointer ${
-                    errors.startTime ? 'border-red-500' : 'border-white/10'
-                    }`}
-                />
-                 {errors.startTime && <p className="text-red-500 text-sm mt-1">{errors.startTime.message}</p>}
-                </div>
 
-                {/* End Time */}
-                <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
-                     <Clock className="w-4 h-4 text-red-500" />
-                     Kết thúc <span className="text-red-500">*</span>
-                </label>
-                <input 
-                    type="datetime-local"
-                    {...register("endTime")}
-                     className={`w-full px-5 py-3 rounded-xl bg-white/5 border text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition outline-none cursor-pointer ${
-                    errors.endTime ? 'border-red-500' : 'border-white/10'
-                    }`}
-                />
-                 {errors.endTime && <p className="text-red-500 text-sm mt-1">{errors.endTime.message}</p>}
-                </div>
-            </div>
 
              {/* Auto Extend Toggle */}
              <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
@@ -446,13 +517,14 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
               <label className="text-sm font-semibold text-gray-300 mb-2 block">
                 Mô tả chi tiết <span className="text-red-500">*</span>
               </label>
-              <div className={`rounded-xl overflow-hidden border ${
-                errors.description ? 'border-red-500' : 'border-white/10'
+              <div className={`rounded-2xl overflow-hidden border-2 ${
+                errors.description ? 'border-red-500' : 'border-white/20'
               }`}>
                 <ReactQuill
                   value={description}
                   onChange={handleQuillChange}
-                  className="bg-white min-h-[200px]"
+                  className="quill-dark-theme"
+                  theme="snow"
                   modules={{
                     toolbar: [
                       [{ 'header': [1, 2, 3, false] }],
@@ -469,91 +541,233 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
             </div>
 
             {/* Image Upload */}
-            <div className="space-y-4">
-              <label className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-primary" />
-                Ảnh sản phẩm <span className="text-red-500">*</span>
-                <span className="text-xs font-normal text-muted-foreground">(Tối thiểu 3 ảnh)</span>
-              </label>
-              
-              <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group cursor-pointer hover:border-primary/50 hover:bg-primary/5 ${
-                errors.images ? 'border-red-500 bg-red-900/10' : 'border-white/10 bg-white/5'
-              }`}>
-                <input 
-                  type="file" 
-                  multiple 
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  id="image-upload"
-                />
-                <div className="flex flex-col items-center justify-center pointer-events-none">
-                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
-                        <Upload className="w-8 h-8 text-primary" />
-                    </div>
-                    <p className="font-bold text-gray-200 mb-1">Tải ảnh lên</p>
-                    <p className="text-sm text-gray-400">Kéo thả hoặc click để chọn ảnh (PNG, JPG, MAX 10MB)</p>
-                </div>
-              </div>
-               {errors.images && (
-                <p className="text-red-500 text-sm mt-1">{errors.images.message}</p>
-              )}
-
-              {/* Preview Grid */}
-              {images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
-                  {images.map((img) => (
-                    <div key={img.id} className="relative group aspect-square rounded-xl overflow-hidden shadow-sm border border-gray-100">
-                      <img 
-                        src={img.preview}
-                        alt="Preview"
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                           <button
-                            type="button"
-                            onClick={() => {
-                            const newImages = images.filter(i => i.id !== img.id);
-                            setImages(newImages);
-                            setValue("images", newImages);
-                            }}
-                            className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition hover:scale-110"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
+            <div className="space-y-6">
+              {/* Main Image Section */}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-primary" />
+                  Ảnh chính <span className="text-red-500">*</span>
+                  <span className="text-xs font-normal text-gray-400">(Ảnh đại diện cho sản phẩm)</span>
+                </label>
+                
+                {!mainImage ? (
+                  <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all duration-300 relative group cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5 ${
+                    errors.mainImage ? 'border-red-500 bg-red-900/10' : 'border-blue-500/30 bg-blue-500/5'
+                  }`}>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleMainImageUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      id="main-image-upload"
+                    />
+                    <div className="flex flex-col items-center justify-center pointer-events-none">
+                      <div className="w-14 h-14 bg-blue-500/20 rounded-full flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                        <Upload className="w-7 h-7 text-blue-400" />
                       </div>
+                      <p className="font-semibold text-gray-200 mb-1">Tải ảnh chính lên</p>
+                      <p className="text-xs text-gray-400">Click để chọn ảnh (PNG, JPG, MAX 10MB)</p>
                     </div>
-                  ))}
+                  </div>
+                ) : (
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-blue-500/50 shadow-lg">
+                    <div className="aspect-video w-full">
+                      <img 
+                        src={mainImage.preview}
+                        alt="Main preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute top-2 right-2">
+                      <button
+                        type="button"
+                        onClick={removeMainImage}
+                        className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition hover:scale-110 shadow-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                      <p className="text-white text-sm font-semibold">Ảnh chính</p>
+                    </div>
+                  </div>
+                )}
+                
+                {errors.mainImage && (
+                  <p className="text-red-500 text-sm">{errors.mainImage.message}</p>
+                )}
+              </div>
+
+              {/* Additional Images Section */}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-primary" />
+                  Ảnh phụ <span className="text-red-500">*</span>
+                  <span className="text-xs font-normal text-gray-400">
+                    (Tối thiểu 3 ảnh - Hiện có: {additionalImages.length}/3)
+                  </span>
+                </label>
+                
+                <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all duration-300 relative group cursor-pointer hover:border-primary/50 hover:bg-primary/5 ${
+                  errors.additionalImages ? 'border-red-500 bg-red-900/10' : 'border-white/10 bg-white/5'
+                }`}>
+                  <input 
+                    type="file" 
+                    multiple 
+                    accept="image/*"
+                    onChange={handleAdditionalImagesUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    id="additional-images-upload"
+                  />
+                  <div className="flex flex-col items-center justify-center pointer-events-none">
+                    <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                      <Plus className="w-7 h-7 text-primary" />
+                    </div>
+                    <p className="font-semibold text-gray-200 mb-1">Thêm ảnh phụ</p>
+                    <p className="text-xs text-gray-400">Kéo thả hoặc click để chọn nhiều ảnh</p>
+                  </div>
                 </div>
-              )}
+                
+                {errors.additionalImages && (
+                  <p className="text-red-500 text-sm">{errors.additionalImages.message}</p>
+                )}
+
+                {/* Additional Images Preview Grid */}
+                {additionalImages.length > 0 && (
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-3 animate-fade-in">
+                    {additionalImages.map((img) => (
+                      <div key={img.id} className="relative group aspect-square rounded-xl overflow-hidden shadow-sm border border-white/20">
+                        <img 
+                          src={img.preview}
+                          alt="Additional preview"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => removeAdditionalImage(img.id)}
+                            className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition hover:scale-110"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="pt-6 border-t border-gray-100">
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/25 focus:ring-4 focus:ring-primary/20 transition transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                    <>
-                        <Loader className="w-5 h-5 animate-spin" />
-                        Đang xử lý...
-                    </>
-                ) : (
-                    <>
-                        <Plus className="w-5 h-5" />
-                        Tạo phiên đấu giá ngay
-                    </>
-                )}
-              </button>
+            {/* Action Buttons */}
+            <div className="pt-6 border-t border-white/10">
+              <div className="grid md:grid-cols-2 gap-4">
+                <button 
+                  type="button"
+                  onClick={() => handleAuctionTypeClick('now')}
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-green-500/25 focus:ring-4 focus:ring-green-500/20 transition transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  Đấu giá ngay
+                </button>
+                
+                <button 
+                  type="button"
+                  onClick={() => handleAuctionTypeClick('scheduled')}
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/25 focus:ring-4 focus:ring-primary/20 transition transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  Lên lịch đấu giá
+                </button>
+              </div>
             </div>
           </form>
         </div>
-      </div>
 
-      {(showSuccessModal || showErrorModal) && (
-         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
+        {/* Time Selection Modal */}
+        {showTimeModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
+            <div className="glass-card bg-[#1e293b] rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all scale-100 animate-slide-up border border-white/10">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2">
+                {auctionType === 'now' ? 'Đấu giá ngay' : 'Lên lịch đấu giá'}
+              </h3>
+              <p className="text-gray-400">
+                {auctionType === 'now' 
+                  ? 'Chọn thời gian kết thúc đấu giá' 
+                  : 'Chọn thời gian bắt đầu và kết thúc đấu giá'}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {auctionType === 'scheduled' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    Thời gian bắt đầu
+                  </label>
+                  <input 
+                    type="datetime-local"
+                    value={startTimeScheduled}
+                    onChange={(e) => setStartTimeScheduled(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-2xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 border-2 border-blue-500/30 text-white font-medium focus:ring-4 focus:ring-blue-500/30 focus:border-blue-400 hover:border-blue-400/50 transition-all outline-none cursor-pointer [color-scheme:dark] shadow-lg shadow-blue-900/10 backdrop-blur-sm"
+                    style={{
+                      backgroundImage: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%)'
+                    }}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-red-400" />
+                  Thời gian kết thúc
+                </label>
+                <input 
+                  type="datetime-local"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-2xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 border-2 border-purple-500/30 text-white font-medium focus:ring-4 focus:ring-purple-500/30 focus:border-purple-400 hover:border-purple-400/50 transition-all outline-none cursor-pointer [color-scheme:dark] shadow-lg shadow-purple-900/10 backdrop-blur-sm"
+                  style={{
+                    backgroundImage: 'linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%)'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTimeModal(false);
+                  setEndTime("");
+                  setStartTimeScheduled("");
+                }}
+                className="flex-1 py-3 px-6 rounded-xl font-bold text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleTimeSubmit}
+                disabled={isSubmitting}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 px-6 rounded-xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  'Xác nhận'
+                )}
+              </button>
+            </div>
+            </div>
+          </div>
+        )}
+
+        {(showSuccessModal || showErrorModal) && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
             <div className="glass-card bg-[#1e293b] rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all scale-100 animate-slide-up border border-white/10">
             <div className="flex flex-col items-center text-center">
                 <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${
@@ -587,9 +801,10 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                 {showSuccessModal ? 'Hoàn tất' : 'Thử lại'}
                 </button>
             </div>
-            </div>
-        </div>
-      )}
+          </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -14,17 +14,9 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
-// 1. Cấu hình Storage - Lưu file vào thư mục uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
-// Lưu ý: Đã chuyển từ memoryStorage sang diskStorage để lưu file và lấy URL
+// 1. Cấu hình Storage - Lưu file vào memory (base64)
+const storage = multer.memoryStorage();
+// Sử dụng memoryStorage để convert ảnh thành base64 và lưu URL trực tiếp vào MongoDB
 
 // 2. File Filter - Chỉ chấp nhận ảnh
 const fileFilter = (req, file, cb) => {
@@ -67,12 +59,17 @@ const upload = multer({
 
 /**
  * ============================================
- * MIDDLEWARE: Upload nhiều ảnh
+ * MIDDLEWARE: Upload ảnh sản phẩm (1 primary + nhiều additional)
  * ============================================
  * Sử dụng: uploadProductImages (đặt trước controller)
- * Field name: 'images' (phải match với form-data key)
+ * Field names: 
+ * - 'primaryImage' (1 file - ảnh chính)
+ * - 'images' (array - ảnh phụ)
  */
-export const uploadProductImages = upload.array("images", 10);
+export const uploadProductImages = upload.fields([
+  { name: 'primaryImage', maxCount: 1 },
+  { name: 'images', maxCount: 10 }
+]);
 
 /**
  * ============================================
@@ -86,47 +83,72 @@ export const uploadAvatarMiddleware = upload.single("avatar");
  * MIDDLEWARE: Validate số lượng ảnh
  * ============================================
  * Kiểm tra:
- * - Có files không?
- * - Ít nhất 3 ảnh
- * - Tối đa 10 ảnh
+ * - Có primaryImage không?
+ * - Có images không?
+ * - images ít nhất 3 ảnh
+ * - images tối đa 10 ảnh
  */
 export const validateProductImages = (req, res, next) => {
   console.log("[UPLOAD MIDDLEWARE] Validating uploaded images...");
 
-  if (!req.files || req.files.length === 0) {
+  // Kiểm tra có files không
+  if (!req.files) {
     console.log("[UPLOAD MIDDLEWARE] ✗ Không có file nào được upload");
     return res.status(400).json({
       success: false,
-      message: "Vui lòng tải lên ít nhất 3 ảnh sản phẩm",
+      message: "Vui lòng tải lên ảnh chính và ít nhất 3 ảnh phụ",
     });
   }
 
-  console.log(`[UPLOAD MIDDLEWARE] Số ảnh đã upload: ${req.files.length}`);
-
-  // Kiểm tra số lượng tối thiểu
-  if (req.files.length < 3) {
-    console.log("[UPLOAD MIDDLEWARE] ✗ Không đủ số lượng ảnh tối thiểu");
+  // Kiểm tra primaryImage
+  const primaryImage = req.files['primaryImage'];
+  if (!primaryImage || primaryImage.length === 0) {
+    console.log("[UPLOAD MIDDLEWARE] ✗ Thiếu ảnh chính");
     return res.status(400).json({
       success: false,
-      message: `Cần ít nhất 3 ảnh sản phẩm (bạn đã tải ${req.files.length} ảnh)`,
+      message: "Vui lòng tải lên ảnh chính cho sản phẩm",
+    });
+  }
+
+  console.log(`[UPLOAD MIDDLEWARE] ✓ Ảnh chính: ${primaryImage[0].originalname}`);
+
+  // Kiểm tra additional images
+  const additionalImages = req.files['images'];
+  if (!additionalImages || additionalImages.length === 0) {
+    console.log("[UPLOAD MIDDLEWARE] ✗ Không có ảnh phụ");
+    return res.status(400).json({
+      success: false,
+      message: "Vui lòng tải lên ít nhất 3 ảnh phụ",
+    });
+  }
+
+  console.log(`[UPLOAD MIDDLEWARE] Số ảnh phụ: ${additionalImages.length}`);
+
+  // Kiểm tra số lượng tối thiểu
+  if (additionalImages.length < 3) {
+    console.log("[UPLOAD MIDDLEWARE] ✗ Không đủ số lượng ảnh phụ tối thiểu");
+    return res.status(400).json({
+      success: false,
+      message: `Cần ít nhất 3 ảnh phụ (bạn đã tải ${additionalImages.length} ảnh)`,
     });
   }
 
   // Kiểm tra số lượng tối đa
-  if (req.files.length > 10) {
-    console.log("[UPLOAD MIDDLEWARE] ✗ Vượt quá số lượng ảnh tối đa");
+  if (additionalImages.length > 10) {
+    console.log("[UPLOAD MIDDLEWARE] ✗ Vượt quá số lượng ảnh phụ tối đa");
     return res.status(400).json({
       success: false,
-      message: `Tối đa 10 ảnh sản phẩm (bạn đã tải ${req.files.length} ảnh)`,
+      message: `Tối đa 10 ảnh phụ (bạn đã tải ${additionalImages.length} ảnh)`,
     });
   }
 
   console.log(
-    `[UPLOAD MIDDLEWARE] ✓ Validation passed: ${req.files.length} ảnh hợp lệ`
+    `[UPLOAD MIDDLEWARE] ✓ Validation passed: 1 ảnh chính + ${additionalImages.length} ảnh phụ`
   );
 
   // Log thông tin files
-  req.files.forEach((file, index) => {
+  console.log(`  [Primary] ${primaryImage[0].originalname} - ${(primaryImage[0].size / 1024).toFixed(2)} KB`);
+  additionalImages.forEach((file, index) => {
     console.log(
       `  [${index + 1}] ${file.originalname} - ${(file.size / 1024).toFixed(
         2

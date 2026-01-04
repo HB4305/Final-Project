@@ -129,9 +129,23 @@ export default function AdminCategoriesPage() {
           </div>
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-              <p className="text-gray-600 mt-4">Đang tải danh mục...</p>
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 border-4 border-blue-200 rounded-full"></div>
+                <div className="w-20 h-20 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-blue-600 rounded-lg animate-pulse shadow-lg"></div>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold text-gray-900 mb-2">Đang tải danh mục</p>
+                <p className="text-sm text-gray-500">Đang lấy dữ liệu danh mục...</p>
+                <div className="flex gap-1 justify-center mt-4">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -151,7 +165,7 @@ export default function AdminCategoriesPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {categories.map((category) => (
-                    <tr key={category.id} className="hover:bg-gray-50">
+                    <tr key={category._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {category._id}
                       </td>

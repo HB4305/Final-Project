@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Edit,
   AlertCircle,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Navigation from "../../components/navigation";
@@ -19,6 +20,7 @@ import watchlistService from "../services/watchlistService";
 import auctionService from "../services/auctionService";
 import transactionService from "../services/transactionService";
 import ratingService from "../services/ratingService";
+import { sellerDeleteProduct } from "../services/productService";
 import RatingComponent from "../../components/rating-component";
 import UpdateProductDescription from "../../components/update-product-description";
 import { useAuth } from "../context/AuthContext";
@@ -174,6 +176,37 @@ export default function DashboardPage() {
     } catch (err) {
       setToast({
         message: err.response?.data?.message || "Không thể hủy giao dịch",
+        type: "error",
+      });
+    }
+  };
+
+  const handleDeleteProduct = async (productId, productTitle) => {
+    if (
+      !confirm(
+        `Bạn có chắc chắn muốn xóa sản phẩm "${productTitle}"?\n\nTất cả người đặt giá sẽ nhận được email thông báo và cuộc đấu giá sẽ bị hủy.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const result = await sellerDeleteProduct(productId);
+      if (result.success) {
+        setToast({ 
+          message: result.message || "Xóa sản phẩm thành công", 
+          type: "success" 
+        });
+        fetchAllData(); // Refresh the data
+      } else {
+        setToast({
+          message: result.message || "Không thể xóa sản phẩm",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      setToast({
+        message: err.response?.data?.message || "Lỗi khi xóa sản phẩm",
         type: "error",
       });
     }

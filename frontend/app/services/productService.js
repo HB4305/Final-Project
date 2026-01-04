@@ -31,6 +31,28 @@ export const getProductById = async (productId) => {
 };
 
 /**
+ * Lấy chi tiết đầy đủ của sản phẩm cho admin
+ * @param {string} productId - ID của sản phẩm
+ * @returns {Promise}
+ */
+export const getProductAdminDetails = async (productId) => {
+  try {
+    const response = await api.get(`/products/${productId}/admin-details`);  
+    return {
+      success: true,
+      data: response.data.data,
+      message: response.data.message
+    };
+  } catch (error) {
+    console.error("Error fetching product admin details:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch product details",
+    };
+  }
+};
+
+/**
  * Lấy danh sách tất cả sản phẩm
  * @param {Object} params - { page, limit, sortBy, status }
  * @returns {Promise}
@@ -121,6 +143,28 @@ export const createProduct = async (productData) => {
 export const updateProduct = async (productId, productData) => {
   const response = await api.put(`/products/${productId}`, productData);
   return response.data;
+};
+
+/**
+ * Seller xóa sản phẩm của mình (gửi email cho bidders)
+ * @param {string} productId - ID sản phẩm
+ * @returns {Promise}
+ */
+export const sellerDeleteProduct = async (productId) => {
+  try {
+    const response = await api.delete(`/products/${productId}/seller`);
+    return {
+      success: true,
+      message: response.data.message || 'Xóa sản phẩm thành công',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể xóa sản phẩm'
+    };
+  }
 };
 
 /**

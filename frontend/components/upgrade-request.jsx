@@ -113,8 +113,8 @@ export default function UpgradeRequest({
               <ShieldCheck className="w-6 h-6 text-green-600" />
             </div>
             <div className="text-left">
-              <h3 className="text-xl font-bold text-green-800">Verified Seller Status</h3>
-              <p className="text-sm text-green-600">Click to view seller benefits and dashboard</p>
+              <h3 className="text-xl font-bold text-green-800">Người bán được xác thực</h3>
+              <p className="text-sm text-green-600">Nhấp để xem các lợi ích của người bán</p>
             </div>
           </div>
           <ChevronDown
@@ -128,52 +128,52 @@ export default function UpgradeRequest({
           <div className="px-6 pb-6 border-t border-border pt-6">
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
               <p className="text-green-700 mb-6 text-center">
-                Congratulations! You have full seller privileges on our platform.
+                Xin chúc mừng! Bạn hiện là một người bán được xác thực trên nền tảng của chúng tôi. Bạn có thể tận hưởng tất cả các lợi ích và tính năng dành riêng cho người bán.
               </p>
 
               {/* Seller Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-white rounded-lg shadow-sm">
                   <p className="text-2xl font-bold text-green-600">{currentUser.ratingSummary?.score}</p>
-                  <p className="text-xs text-gray-600">Your Rating</p>
+                  <p className="text-xs text-gray-600">Điểm đánh giá</p>
                 </div>
                 <div className="p-4 bg-white rounded-lg shadow-sm">
                   <p className="text-2xl font-bold text-green-600">
                     {currentUser.ratingSummary?.totalCount}
                   </p>
-                  <p className="text-xs text-gray-600">Total Ratings</p>
+                  <p className="text-xs text-gray-600">Tổng số đánh giá</p>
                 </div>
                 <div className="p-4 bg-white rounded-lg shadow-sm">
                   <p className="text-2xl font-bold text-green-600">
                     {currentUser.ratingSummary.countPositive}
                   </p>
-                  <p className="text-xs text-gray-600">Positive</p>
+                  <p className="text-xs text-gray-600">Tích cực</p>
                 </div>
               </div>
 
               {/* Active Benefits */}
               <div className="p-6 bg-white border border-green-200 rounded-lg mb-6">
-                <h4 className="font-semibold text-green-900 mb-4 text-center">Your Active Seller Benefits</h4>
+                <h4 className="font-semibold text-green-900 mb-4 text-center">Lợi ích người bán</h4>
                 <ul className="space-y-3 text-sm text-gray-700">
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>List unlimited items for auction</span>
+                    <span>Liệt kê số lượng sản phẩm không giới hạn để đấu giá</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>Access to seller dashboard and analytics</span>
+                    <span>Truy cập bảng điều khiển và phân tích người bán</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>Manage bids and communicate with buyers</span>
+                    <span>Quản lý các đấu giá và giao tiếp với người mua</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>Verified seller badge on all your listings</span>
+                    <span>Huy hiệu người bán được xác thực trên tất cả các danh sách của bạn</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>Priority customer support</span>
+                    <span>Hỗ trợ khách hàng ưu tiên</span>
                   </li>
                 </ul>
               </div>
@@ -212,7 +212,7 @@ export default function UpgradeRequest({
               <p className={`text-sm ${requestStatus === 'pending' ? 'text-yellow-600' :
                 requestStatus === 'approved' ? 'text-green-600' : 'text-red-600'
                 }`}>
-                Click to view details
+                Nhấp để xem chi tiết
               </p>
             </div>
           </div>
@@ -227,18 +227,18 @@ export default function UpgradeRequest({
           <div className="px-6 pb-6 border-t border-border pt-6">
             {requestStatus === 'pending' && (
               <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Request Submitted</h2>
+                <h2 className="text-2xl font-bold mb-2">Yêu cầu đã được gửi</h2>
                 <p className="text-muted-foreground mb-6">
-                  Your seller upgrade request has been submitted successfully.
-                  Our admin team will review it within 7 days.
+                  Yêu cầu nâng cấp người bán của bạn đã được gửi thành công.
+                  Nhóm quản trị của chúng tôi sẽ xem xét trong vòng 7 ngày.
                 </p>
 
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
-                  <h3 className="font-semibold mb-2">What happens next?</h3>
+                  <h3 className="font-semibold mb-2">Tiếp theo sẽ xảy ra gì?</h3>
                   <ul className="text-sm text-muted-foreground space-y-2">
-                    <li>✓ Admin will review your profile and bidding history</li>
-                    <li>✓ If approved, seller features will be activated immediately</li>
-                    <li>✓ Review typically takes 3-7 business days</li>
+                    <li>Quản trị viên sẽ xem xét hồ sơ và lịch sử đấu giá của bạn</li>
+                    <li>Nếu được chấp thuận, các tính năng người bán sẽ được kích hoạt ngay lập tức</li>
+                    <li>Quá trình xem xét thường mất từ 3-7 ngày làm việc</li>
                   </ul>
                 </div>
               </div>
@@ -246,13 +246,13 @@ export default function UpgradeRequest({
 
             {requestStatus === 'approved' && (
               <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2 text-green-700">Request Approved!</h2>
+                <h2 className="text-2xl font-bold mb-2 text-green-700">Yêu cầu đã được chấp thuận!</h2>
                 <p className="text-muted-foreground mb-6">
-                  Congratulations! You are now a verified seller on our platform.
+                  Chúc mừng! Bạn hiện là người bán được xác minh trên nền tảng của chúng tôi.
                 </p>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <p className="text-sm text-blue-900 mb-3">
-                    <strong>Important:</strong> To access seller features, please refresh your session.
+                    <strong>Quan trọng:</strong> Để truy cập các tính năng người bán, vui lòng làm mới phiên của bạn.
                   </p>
                   <button 
                     onClick={async () => {
@@ -278,13 +278,13 @@ export default function UpgradeRequest({
 
             {requestStatus === 'rejected' && (
               <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2 text-red-700">Request Denied</h2>
+                <h2 className="text-2xl font-bold mb-2 text-red-700">Yêu cầu bị từ chối</h2>
                 <p className="text-muted-foreground mb-6">
-                  Unfortunately, your seller upgrade request was not approved at this time.
+                  Rất tiếc, yêu cầu nâng cấp người bán của bạn không được chấp thuận vào thời điểm này.
                 </p>
                 {existingRequest?.rejectionReason && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-left mb-4">
-                    <p className="text-sm font-semibold text-red-900 mb-1">Reason:</p>
+                    <p className="text-sm font-semibold text-red-900 mb-1">Lý do:</p>
                     <p className="text-sm text-red-800">{existingRequest.rejectionReason}</p>
                   </div>
                 )}
@@ -336,10 +336,10 @@ export default function UpgradeRequest({
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-red-900 mb-1">Not Eligible</p>
+                  <p className="font-semibold text-red-900 mb-1">Không đủ điều kiện</p>
                   <p className="text-sm text-red-800">
-                    You need at least 80% positive ratings to become a seller.
-                    Current rating: {currentUser.ratingSummary?.totalCount > 0 ? ((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(1) : "0.0"}%
+                    Bạn cần ít nhất 80% đánh giá tích cực để trở thành người bán.
+                    Đánh giá hiện tại: {currentUser.ratingSummary?.totalCount > 0 ? ((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(1) : "0.0"}%
                   </p>
                 </div>
               </div>
@@ -350,11 +350,11 @@ export default function UpgradeRequest({
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-muted rounded-lg text-center">
                   <p className="text-2xl font-bold text-primary">{currentUser.rating || 0}</p>
-                  <p className="text-xs text-muted-foreground">Rating</p>
+                  <p className="text-xs text-muted-foreground">Đánh giá</p>
                 </div>
                 <div className="p-4 bg-muted rounded-lg text-center">
                   <p className="text-2xl font-bold text-primary">{currentUser.totalBids || 0}</p>
-                  <p className="text-xs text-muted-foreground">Total Bids</p>
+                  <p className="text-xs text-muted-foreground">Tổng số lần đặt giá</p>
                 </div>
                 <div className="p-4 bg-muted rounded-lg text-center">
                   <p className="text-2xl font-bold text-primary">
@@ -362,29 +362,29 @@ export default function UpgradeRequest({
                       ? `${((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(0)}%`
                       : '0%'}
                   </p>
-                  <p className="text-xs text-muted-foreground">Positive</p>
+                  <p className="text-xs text-muted-foreground">Tích cực</p>
                 </div>
               </div>
 
               {/* Benefits */}
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-6">
-                <h3 className="font-semibold text-green-900 mb-3">Seller Benefits</h3>
+                <h3 className="font-semibold text-green-900 mb-3">Lợi ích của người bán</h3>
                 <ul className="space-y-2 text-sm text-green-800">
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>List unlimited items for auction</span>
+                    <span>Đăng danh sách sản phẩm không giới hạn để đấu giá</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>Access to seller dashboard and analytics</span>
+                    <span>Truy cập bảng điều khiển và phân tích người bán</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>Manage bids and communicate with buyers</span>
+                    <span>Quản lý đặt giá và giao tiếp với người mua</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>Seller verification badge</span>
+                    <span>Huy hiệu xác minh người bán</span>
                   </li>
                 </ul>
               </div>
@@ -393,25 +393,25 @@ export default function UpgradeRequest({
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Why do you want to become a seller?
+                    Tại sao bạn muốn trở thành người bán?
                   </label>
                   <textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="Tell us about your plans, what you want to sell, your experience..."
+                    placeholder="Hãy cho chúng tôi biết về kế hoạch của bạn, bạn muốn bán gì, kinh nghiệm của bạn..."
                     rows="5"
                     className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                     required
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Minimum 50 characters. Be specific and genuine.
+                    Tối thiểu 50 ký tự. Hãy cụ thể và chân thành.
                   </p>
                 </div>
 
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Review Process</h4>
+                  <h4 className="font-semibold text-blue-900 mb-2">Quy trình xem xét</h4>
                   <p className="text-sm text-blue-800">
-                    Admin will review your profile within 7 days.
+                    Quản trị viên sẽ xem xét hồ sơ của bạn trong vòng 7 ngày.
                   </p>
                 </div>
 
@@ -419,7 +419,7 @@ export default function UpgradeRequest({
                   type="submit"
                   className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-semibold"
                 >
-                  Submit Upgrade Request
+                  Gửi Yêu Cầu Nâng Cấp
                 </button>
               </form>
             </>

@@ -116,3 +116,166 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* 4. REACTQUILL EDITOR STYLES - DARK THEME */
+.quill-dark-theme .ql-toolbar.ql-snow {
+  background: rgba(24, 30, 38, 0.8) !important;
+  border: none !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15) !important;
+  padding: 12px !important;
+}
+
+.quill-dark-theme .ql-container.ql-snow {
+  background: rgba(30, 41, 59, 0.6) !important;
+  border: none !important;
+}
+
+.quill-dark-theme .ql-editor {
+  color: #f1f5f9 !important;
+  min-height: 300px !important;
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  padding: 20px !important;
+}
+
+.quill-dark-theme .ql-editor.ql-blank::before {
+  color: rgba(148, 163, 184, 0.5) !important;
+  font-style: italic;
+  content: 'Nhập mô tả chi tiết cho sản phẩm của bạn...' !important;
+}
+
+.quill-dark-theme .ql-snow .ql-stroke {
+  stroke: #e2e8f0 !important;
+}
+
+.quill-dark-theme .ql-snow .ql-fill {
+  fill: #e2e8f0 !important;
+}
+
+.quill-dark-theme .ql-snow .ql-picker-label {
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(226, 232, 240, 0.2) !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  min-width: 100px !important;
+}
+
+.quill-dark-theme .ql-snow .ql-picker-label:hover {
+  background: rgba(96, 165, 250, 0.15) !important;
+  border-color: rgba(96, 165, 250, 0.4) !important;
+}
+
+.quill-dark-theme .ql-toolbar button {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s !important;
+}
+
+.quill-dark-theme .ql-toolbar button:hover {
+  background: rgba(96, 165, 250, 0.15) !important;
+}
+
+.quill-dark-theme .ql-toolbar button.ql-active {
+  background: rgba(96, 165, 250, 0.25) !important;
+}
+
+.quill-dark-theme .ql-toolbar button:hover .ql-stroke,
+.quill-dark-theme .ql-toolbar button:hover .ql-fill,
+.quill-dark-theme .ql-toolbar button.ql-active .ql-stroke,
+.quill-dark-theme .ql-toolbar button.ql-active .ql-fill {
+  stroke: #60a5fa !important;
+  fill: #60a5fa !important;
+}
+
+.quill-dark-theme .ql-snow .ql-picker-options {
+  background: #334155 !important;
+  border: 2px solid rgba(96, 165, 250, 0.3) !important;
+  border-radius: 10px !important;
+  padding: 8px !important;
+  max-height: 250px !important;
+  overflow-y: auto !important;
+  z-index: 9999 !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+  margin-top: 4px !important;
+  min-width: 150px !important;
+}
+
+.quill-dark-theme .ql-snow .ql-picker-item {
+  color: #f1f5f9 !important;
+  padding: 10px 14px !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  margin: 2px 0 !important;
+  font-size: 14px !important;
+}
+
+.quill-dark-theme .ql-snow .ql-picker-item:hover {
+  color: #60a5fa !important;
+  background: rgba(96, 165, 250, 0.2) !important;
+}
+
+.quill-dark-theme .ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  border-color: rgba(96, 165, 250, 0.6) !important;
+  background: rgba(96, 165, 250, 0.1) !important;
+}
+
+.quill-dark-theme .ql-snow .ql-picker.ql-expanded .ql-picker-options {
+  display: block !important;
+}
+
+.quill-dark-theme .ql-snow .ql-picker-label {
+  cursor: pointer !important;
+}
+
+.quill-dark-theme .ql-editor strong {
+  font-weight: 700 !important;
+  color: #fbbf24 !important;
+}
+
+.quill-dark-theme .ql-editor em {
+  font-style: italic !important;
+  color: #a78bfa !important;
+}
+
+.quill-dark-theme .ql-editor a {
+  color: #60a5fa !important;
+  text-decoration: underline !important;
+}
+
+.quill-dark-theme .ql-editor h1 {
+  font-size: 2em !important;
+  color: #3b82f6 !important;
+  font-weight: bold !important;
+}
+
+.quill-dark-theme .ql-editor h2 {
+  font-size: 1.5em !important;
+  color: #60a5fa !important;
+  font-weight: bold !important;
+}
+
+.quill-dark-theme .ql-editor h3 {
+  font-size: 1.25em !important;
+  color: #93c5fd !important;
+  font-weight: bold !important;
+}
+
+/* Scrollbar cho dropdown */
+.quill-dark-theme .ql-snow .ql-picker-options::-webkit-scrollbar {
+  width: 6px;
+}
+
+.quill-dark-theme .ql-snow .ql-picker-options::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.quill-dark-theme .ql-snow .ql-picker-options::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.4);
+  border-radius: 3px;
+}
+
+.quill-dark-theme .ql-snow .ql-picker-options::-webkit-scrollbar-thumb:hover {
+  background: rgba(96, 165, 250, 0.6);
+}
