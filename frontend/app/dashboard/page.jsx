@@ -31,7 +31,7 @@ import { useAuth } from "../context/AuthContext";
 import Toast from "../../components/Toast";
 
 const dashboardTabs = [
-  { key: "participating", label: "Đang tham gia", icon: Gavel, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { key: "participating", label: "Đang đấu giá", icon: Gavel, color: "text-blue-500", bg: "bg-blue-500/10" },
   { key: "watchlist", label: "Đang theo dõi", icon: Heart, color: "text-pink-500", bg: "bg-pink-500/10" },
   { key: "won", label: "Đã thắng", icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10" },
   { key: "selling", label: "Đang bán", icon: ShoppingBag, color: "text-orange-500", bg: "bg-orange-500/10" },
@@ -42,7 +42,13 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isLoggedIn, currentUser, loginWithToken, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState("participating");
+  /* 
+    derived state from URL 
+    activeTab is now controlled by the URL 'tab' query param.
+    Default to 'participating' if not present.
+  */
+  const activeTab = searchParams.get("tab") || "participating";
+
   const [toast, setToast] = useState(null);
 
   // Data states
@@ -203,9 +209,9 @@ export default function DashboardPage() {
     try {
       const result = await deleteProduct(productToDelete.id);
       if (result.success) {
-        setToast({ 
-          message: result.message || "Xóa sản phẩm thành công", 
-          type: "success" 
+        setToast({
+          message: result.message || "Xóa sản phẩm thành công",
+          type: "success"
         });
         fetchAllData(); // Refresh the data
         setShowDeleteModal(false);
@@ -426,7 +432,11 @@ export default function DashboardPage() {
                   return (
                     <button
                       key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
+                      onClick={() => {
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.set("tab", tab.key);
+                        setSearchParams(newParams);
+                      }}
                       className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-300 ${isActive
                         ? `bg-primary/20 text-primary shadow-sm border border-primary/20`
                         : "text-gray-400 hover:bg-white/5 hover:text-white"
@@ -467,7 +477,7 @@ export default function DashboardPage() {
                     <div className="space-y-4">
                       <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
                         <Gavel className="w-5 h-5 text-blue-500" />
-                        Đấu giá đang tham gia
+                        Đang tham gia đấu giá
                       </h2>
                       {participatingAuctions.length === 0 ? (
                         <EmptyState message="Bạn chưa tham gia đấu giá nào." />
@@ -541,64 +551,63 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {watchlist.map((item) => {
                             if (!item.productId) {
-                                return (
-                                    <div key={item._id} className="glass-card bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-center gap-4">
-                                        <div className="w-16 h-16 bg-red-500/10 rounded-lg flex items-center justify-center text-red-500">
-                                            <AlertCircle className="w-6 h-6" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-gray-400">Sản phẩm không tồn tại</h3>
-                                            <p className="text-sm text-muted-foreground">Sản phẩm này đã bị xóa khỏi hệ thống.</p>
-                                        </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handleRemoveFromWatchlist(item.productId?._id || item._id); // Handle removal even if product is gone
-                                            }}
-                                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-full transition"
-                                            title="Bỏ theo dõi"
-                                        >
-                                            <XCircle className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                )
+                              return (
+                                <div key={item._id} className="glass-card bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-center gap-4">
+                                  <div className="w-16 h-16 bg-red-500/10 rounded-lg flex items-center justify-center text-red-500">
+                                    <AlertCircle className="w-6 h-6" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <h3 className="font-bold text-gray-400">Sản phẩm không tồn tại</h3>
+                                    <p className="text-sm text-muted-foreground">Sản phẩm này đã bị xóa khỏi hệ thống.</p>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleRemoveFromWatchlist(item.productId?._id || item._id); // Handle removal even if product is gone
+                                    }}
+                                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-full transition"
+                                    title="Bỏ theo dõi"
+                                  >
+                                    <XCircle className="w-5 h-5" />
+                                  </button>
+                                </div>
+                              )
                             }
                             return (
-                            <div key={item._id} className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl overflow-hidden hover:bg-white/5 transition-all duration-300 group">
-                              <div className="relative h-48 overflow-hidden">
-                                <img
-                                  src={item.productId?.primaryImageUrl || "/placeholder.svg"}
-                                  alt={item.productId?.title}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                  onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
-                                />
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    handleRemoveFromWatchlist(item.productId?._id);
-                                  }}
-                                  className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-red-500 hover:bg-red-50 transition-colors"
-                                  title="Bỏ theo dõi"
-                                >
-                                  <Heart className="w-5 h-5 fill-current" />
-                                </button>
-                                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent p-4">
-                                  <h3 className="text-white font-bold truncate">{item.productId?.title}</h3>
+                              <div key={item._id} className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl overflow-hidden hover:bg-white/5 transition-all duration-300 group">
+                                <div className="relative h-48 overflow-hidden">
+                                  <img
+                                    src={item.productId?.primaryImageUrl || "/placeholder.svg"}
+                                    alt={item.productId?.title}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
+                                  />
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleRemoveFromWatchlist(item.productId?._id);
+                                    }}
+                                    className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-red-500 hover:bg-red-50 transition-colors"
+                                    title="Bỏ theo dõi"
+                                  >
+                                    <Heart className="w-5 h-5 fill-current" />
+                                  </button>
+                                  <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent p-4">
+                                    <h3 className="text-white font-bold truncate">{item.productId?.title}</h3>
+                                  </div>
+                                </div>
+                                <div className="p-4">
+                                  <div className="flex justify-between items-center mb-4">
+                                    <span className="text-sm text-muted-foreground">Ngày thêm: {new Date(item.watchedAt).toLocaleDateString('vi-VN')}</span>
+
+                                  </div>
+                                  <Link to={`/product/${item.productId?._id}`} className="block w-full text-center py-2 bg-white/5 hover:bg-primary hover:text-white rounded-lg transition-colors font-medium border border-white/10 hover:border-primary text-gray-300">
+                                    Xem chi tiết
+                                  </Link>
                                 </div>
                               </div>
-                              <div className="p-4">
-                                <div className="flex justify-between items-center mb-4">
-                                  <span className="text-sm text-muted-foreground">Ngày thêm: {new Date(item.watchedAt).toLocaleDateString('vi-VN')}</span>
-                                  <span className="text-primary font-bold">
-                                    {item.productId?.startingPrice?.toLocaleString()} ₫
-                                  </span>
-                                </div>
-                                <Link to={`/product/${item.productId?._id}`} className="block w-full text-center py-2 bg-white/5 hover:bg-primary hover:text-white rounded-lg transition-colors font-medium border border-white/10 hover:border-primary text-gray-300">
-                                  Xem chi tiết
-                                </Link>
-                              </div>
-                            </div>
-                          )})}
+                            )
+                          })}
                         </div>
                       )}
                     </div>

@@ -55,6 +55,34 @@ router.delete(
 );
 
 /**
+ * GET /api/ratings/me
+ * Lấy tất cả đánh giá của user đang đăng nhập
+ */
+router.get(
+  '/me',
+  authenticate,
+  (req, res, next) => {
+    req.params.userId = req.user._id.toString();
+    next();
+  },
+  getUserRatings
+);
+
+/**
+ * GET /api/ratings/me/stats
+ * Lấy thống kê đánh giá của user đang đăng nhập
+ */
+router.get(
+  '/me/stats',
+  authenticate,
+  (req, res, next) => {
+    req.params.userId = req.user._id.toString();
+    next();
+  },
+  getUserRatingStats
+);
+
+/**
  * GET /api/ratings/:userId
  * Lấy tất cả đánh giá của một user
  */
