@@ -60,6 +60,11 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // API 1.6: View Count
+  views: {
+    type: Number,
+    default: 0
+  },
   // API 4.2: Archive support
   isArchived: {
     type: Boolean,

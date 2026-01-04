@@ -149,7 +149,6 @@ export default function Navigation() {
                         { to: "/profile", icon: User, label: "Hồ sơ cá nhân" },
                         { to: "/dashboard", icon: Zap, label: "Bảng điều khiển" },
                         { to: "/profile/settings", icon: Settings, label: "Cài đặt" },
-                        { to: `/profile/ratings/me`, icon: Star, label: "Đánh giá của tôi" },
                       ].map((item) => (
                         <Link
                           key={item.to}

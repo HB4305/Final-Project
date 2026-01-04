@@ -277,10 +277,14 @@ export default function UpdateProductDescription({
           <button
             type="button"
             onClick={() => {
-              setIsEditing(false);
-              setAdditionalInfo("");
-              setError("");
-              setSuccess("");
+              if (onCancel) {
+                onCancel();
+              } else {
+                setIsEditing(false);
+                setAdditionalInfo("");
+                setError("");
+                setSuccess("");
+              }
             }}
             className="px-6 py-3 bg-white/5 text-gray-300 rounded-xl hover:bg-white/10 transition font-medium border border-white/10"
           >

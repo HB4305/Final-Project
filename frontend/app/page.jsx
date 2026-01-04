@@ -38,9 +38,20 @@ export default function Home() {
   useEffect(() => {
     const fetchHeroAuction = async () => {
       try {
-        const res = await import("./services/auctionService").then(m => m.getHighestPriceAuctions({ limit: 1 }));
+        const auctionService = await import("./services/auctionService");
+        let res = await auctionService.getMostViewedAuctions({ limit: 1 });
+        
+        // If no trending auctions, fallback to highest price active auctions
+        if (!res.data?.auctions?.length) {
+            res = await auctionService.getHighestPriceAuctions({ limit: 1 });
+        }
+
         if (res.data?.auctions?.length > 0) {
-           setHeroAuction(res.data.auctions[0]);
+           // Find the first auction that has a valid product
+           const validAuction = res.data.auctions.find(a => a.productId);
+           if (validAuction) {
+             setHeroAuction(validAuction);
+           }
         }
       } catch (error) {
         console.error("Failed to fetch hero auction", error);
@@ -121,43 +132,44 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative hidden lg:block animate-fade-in cursor-pointer" onClick={() => heroAuction && navigate(`/product/${heroAuction.productId?._id || heroAuction.productId}`)}>
-              <div className="relative z-10 glass rounded-3xl p-6 rotate-3 hover:rotate-0 transition-transform duration-500 bg-gradient-to-br from-white/10 to-transparent border border-white/20">
-                <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center relative group">
-                  <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
-                  <img 
-                    src={heroAuction?.productId?.primaryImageUrl || "https://images.unsplash.com/photo-1550009158-9ebf69173e03?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"} 
-                    alt="Premium Auction" 
-                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
-                  />
-                  <div className="absolute bottom-4 left-4 right-4 z-20">
-                    <div className="glass rounded-xl p-4 flex justify-between items-center">
-                      <div className="max-w-[60%]">
-                        <p className="text-xs text-gray-300">Đang đấu giá</p>
-                        <p className="font-bold text-white truncate">{heroAuction?.productId?.title || "Sony Electronics Set"}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-300">Giá hiện tại</p>
-                        <p className="font-bold text-green-400">{(heroAuction?.currentPrice || 12500000).toLocaleString()} ₫</p>
+            {heroAuction && (
+              <div className="relative hidden lg:block animate-fade-in cursor-pointer group" onClick={() => navigate(`/product/${heroAuction.productId?._id || heroAuction.productId}`)}>
+                {/* Main Image Card */}
+                <div className="relative z-10 glass rounded-3xl p-6 rotate-3 group-hover:rotate-0 transition-transform duration-500 bg-gradient-to-br from-white/10 to-transparent border border-white/20">
+                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center relative">
+                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
+                    
+                    {/* Image */}
+                    <img 
+                      src={heroAuction?.productId?.primaryImageUrl || "https://images.unsplash.com/photo-1550009158-9ebf69173e03?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"} 
+                      alt="Premium Auction" 
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
+                    />
+
+                    {/* Top Right "Trending" Badge */}
+                    <div className="absolute top-4 right-4 z-30">
+                       <div className="glass px-4 py-2 rounded-full border border-yellow-500/30 bg-black/40 backdrop-blur-md flex items-center gap-2 shadow-lg shadow-yellow-500/10 animate-pulse">
+                          <span className="text-xl">🔥</span>
+                          <span className="font-bold text-yellow-400 uppercase tracking-wider text-sm">Trending</span>
+                       </div>
+                    </div>
+
+                    {/* Bottom Info Card */}
+                    <div className="absolute bottom-4 left-4 right-4 z-20">
+                      <div className="glass rounded-xl p-4 flex justify-between items-center bg-black/40 backdrop-blur-md border border-white/10">
+                        <div className="max-w-[60%]">
+                          <p className="font-bold text-white truncate text-lg">{heroAuction?.productId?.title}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-300 mb-0.5">Giá hiện tại</p>
+                          <p className="font-bold text-green-400 text-lg">{(heroAuction?.currentPrice).toLocaleString('vi-VN')} VNĐ</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              {/* Decorative floating cards */}
-              <div className="absolute -top-6 -right-6 glass p-4 rounded-2xl animate-float" style={{ animationDelay: "1s" }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Vừa bán xong</p>
-                    <p className="font-bold text-sm">+ 2.5 Triệu</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </section>
 

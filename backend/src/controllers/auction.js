@@ -65,6 +65,26 @@ export const getMostBidsAuctions = async (req, res, next) => {
   }
 };
 
+
+
+/**
+ * Controller lấy danh sách cuộc đấu giá có lượt xem nhiều nhất
+ */
+export const getMostViewedAuctions = async (req, res, next) => {
+  try {
+    const { limit = 5 } = req.query;
+
+    const auctions = await auctionService.getMostViewedAuctions(parseInt(limit));
+
+    res.status(200).json({
+      status: 'success',
+      data: { auctions }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * Controller lấy danh sách cuộc đấu giá có giá cao nhất
  */

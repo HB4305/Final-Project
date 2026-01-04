@@ -401,7 +401,7 @@ export default function ProfilePage() {
                       className={`w-full px-4 py-3 rounded-xl border transition-all ${
                         isEditing
                           ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary placeholder-gray-500"
-                          : "bg-transparent border-transparent text-gray-400 px-0"
+                          : "bg-white/5 border-white/10 text-gray-300 shadow-sm"
                       }`}
                     />
                   </div>
@@ -426,7 +426,7 @@ export default function ProfilePage() {
                       className={`w-full px-4 py-3 rounded-xl border transition-all ${
                         isEditing
                           ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary [color-scheme:dark]"
-                          : "bg-transparent border-transparent text-gray-400 px-0"
+                          : "bg-white/5 border-white/10 text-gray-300 shadow-sm"
                       }`}
                     />
                   </div>
@@ -469,7 +469,8 @@ export default function ProfilePage() {
                             type="email"
                             disabled
                             value={profile?.email || ""}
-                            className="flex-1 px-4 py-3 bg-transparent border border-transparent rounded-xl text-gray-400 px-0"
+
+                            className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-gray-300 shadow-sm"
                           />
                           {isEditing && (
                             <button
@@ -504,7 +505,7 @@ export default function ProfilePage() {
                       className={`w-full px-4 py-3 rounded-xl border transition-all ${
                         isEditing
                           ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                          : "bg-transparent border-transparent text-gray-400 px-0"
+                          : "bg-white/5 border-white/10 text-gray-300 shadow-sm"
                       }`}
                     />
                   </div>
@@ -522,12 +523,21 @@ export default function ProfilePage() {
                         onChange={(newAddress) => setEditForm({...editForm, address: newAddress})}
                       />
                   ) : (
-                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-gray-300">
+                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-gray-300 shadow-sm">
                         {profile?.address ? (
-                            <p>
-                                {profile.address.street}, {profile.address.ward}, {profile.address.city}
-                            </p>
-                        ) : "Chưa cập nhật địa chỉ"}
+                          <p>
+                            {[
+                              profile.address.street,
+                              profile.address.ward,
+                              profile.address.district,
+                              profile.address.city,
+                            ]
+                              .filter(Boolean)
+                              .join(", ") || "Chưa cập nhật địa chỉ"}
+                          </p>
+                        ) : (
+                          "Chưa cập nhật địa chỉ"
+                        )}
                       </div>
                   )}
                 </div>
@@ -574,7 +584,7 @@ export default function ProfilePage() {
                   <Star className="w-5 h-5 text-yellow-500" /> Uy tín người dùng
                 </h2>
                 <Link
-                  to="/profile/ratings/me"
+                  to={`/profile/ratings/${profile?._id || profile?.id}` || "#"}
                   className="text-xs text-primary font-medium hover:underline flex items-center"
                 >
                   Chi tiết <ChevronRight className="w-3 h-3" />

@@ -705,7 +705,11 @@ export class ProductService {
     try {
       console.log(`[PRODUCT SERVICE] Lấy chi tiết sản phẩm: ${productId}`);
 
-      const product = await Product.findById(productId)
+      const product = await Product.findByIdAndUpdate(
+        productId,
+        { $inc: { views: 1 } },
+        { new: true }
+      )
         .populate("categoryId", "name slug")
         .populate("sellerId", "username email profileImageUrl ratingSummary createdAt address");
 

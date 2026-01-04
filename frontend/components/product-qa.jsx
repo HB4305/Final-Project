@@ -41,7 +41,7 @@ export default function ProductQA({ productId, sellerId }) {
         setError(result.error);
       }
     } catch (err) {
-      setError("Failed to load questions.");
+      setError("Không thể tải danh sách câu hỏi.");
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export default function ProductQA({ productId, sellerId }) {
     e.preventDefault();
 
     if (!isLoggedIn) {
-      setToast({ message: "Please log in to ask a question.", type: "error" });
+      setToast({ message: "Vui lòng đăng nhập để đặt câu hỏi.", type: "error" });
       return;
     }
 
@@ -59,7 +59,7 @@ export default function ProductQA({ productId, sellerId }) {
 
     if (isSeller) {
       setToast({
-        message: "Sellers cannot ask questions about their own products.",
+        message: "Người bán không thể tự đặt câu hỏi cho sản phẩm của mình.",
         type: "error",
       });
       return;
@@ -76,14 +76,14 @@ export default function ProductQA({ productId, sellerId }) {
         setNewQuestion("");
         await loadQuestions();
         setToast({
-          message: "Your question has been submitted.",
+          message: "Câu hỏi của bạn đã được gửi.",
           type: "success",
         });
       } else {
         setToast({ message: result.error, type: "error" });
       }
     } catch (err) {
-      setToast({ message: "Failed to submit question.", type: "error" });
+      setToast({ message: "Gửi câu hỏi thất bại.", type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -104,17 +104,17 @@ export default function ProductQA({ productId, sellerId }) {
         setReplyingTo(null);
         await loadQuestions();
         setToast({
-          message: "Your answer has been submitted.",
+          message: "Câu trả lời của bạn đã được gửi.",
           type: "success",
         });
       } else {
         setToast({
-          message: result.error || "Failed to submit answer.",
+          message: result.error || "Gửi câu trả lời thất bại.",
           type: "error",
         });
       }
     } catch (err) {
-      setToast({ message: "Failed to submit answer.", type: "error" });
+      setToast({ message: "Gửi câu trả lời thất bại.", type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -128,9 +128,9 @@ export default function ProductQA({ productId, sellerId }) {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 60) return `${diffMins} minutes ago`;
-    if (diffHours < 24) return `${diffHours} hours ago`;
-    return `${diffDays} days ago`;
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    return `${diffDays} ngày trước`;
   };
 
   if (loading) {
@@ -138,7 +138,7 @@ export default function ProductQA({ productId, sellerId }) {
       <div className="bg-background border border-border rounded-lg p-6">
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary">
-            <span className="ml-3 text-muted-foreground">Loading...</span>
+            <span className="ml-3 text-muted-foreground">Đang tải...</span>
           </div>
         </div>
       </div>
@@ -160,7 +160,7 @@ export default function ProductQA({ productId, sellerId }) {
     <div className="bg-background border border-border rounded-lg p-6">
       <div className="flex items-center gap-2 mb-6">
         <MessageSquare className="w-5 h-5 text-primary" />
-        <h2 className="text-xl font-bold">Questions & Answers</h2>
+        <h2 className="text-xl font-bold">Hỏi đáp về sản phẩm</h2>
         <span className="text-sm text-muted-foreground">
           ({questions.length})
         </span>
@@ -170,13 +170,13 @@ export default function ProductQA({ productId, sellerId }) {
       {isLoggedIn && !isSeller && (
         <form onSubmit={handleSubmitQuestion} className="mb-6">
           <label className="block text-sm font-medium mb-2">
-            Ask the seller a question
+            Đặt câu hỏi cho người bán
           </label>
           <div className="flex gap-2">
             <textarea
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
-              placeholder="Type your question here..."
+              placeholder="Nhập câu hỏi của bạn tại đây..."
               rows="3"
               disabled={submitting}
               className={`flex-1 px-4 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none ${
@@ -194,7 +194,7 @@ export default function ProductQA({ productId, sellerId }) {
             </button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            The seller will be notified via email
+            Người bán sẽ nhận được thông báo qua email
           </p>
         </form>
       )}
@@ -217,7 +217,7 @@ export default function ProductQA({ productId, sellerId }) {
         {questions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>No questions yet. Be the first to ask!</p>
+            <p>Chưa có câu hỏi nào. Hãy là người đầu tiên đặt câu hỏi!</p>
           </div>
         ) : (
           questions.map((q) => (
@@ -271,7 +271,7 @@ export default function ProductQA({ productId, sellerId }) {
                       <textarea
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Type your answer or reply..."
+                        placeholder="Nhập câu trả lời hoặc phản hồi..."
                         rows="2"
                         disabled={submitting}
                         className={`w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm ${
@@ -287,7 +287,7 @@ export default function ProductQA({ productId, sellerId }) {
                             submitting ? "cursor-wait" : ""
                           }`}
                         >
-                          {isSeller ? "Send Answer" : "Send Reply"}
+                          {isSeller ? "Gửi câu trả lời" : "Gửi phản hồi"}
                         </button>
                         <button
                           onClick={() => {
@@ -299,7 +299,7 @@ export default function ProductQA({ productId, sellerId }) {
                             submitting ? "cursor-wait opacity-50" : ""
                           }`}
                         >
-                          Cancel
+                          Hủy
                         </button>
                       </div>
                     </div>
@@ -309,15 +309,15 @@ export default function ProductQA({ productId, sellerId }) {
                       className="text-sm text-primary hover:underline font-medium"
                     >
                       {q.answers && q.answers.length > 0
-                        ? "Reply to thread"
-                        : "Answer this question"}
+                        ? "Phản hồi"
+                        : "Trả lời câu hỏi này"}
                     </button>
                   )}
                 </div>
               ) : (
                 (!q.answers || q.answers.length === 0) && (
                   <div className="ml-11 text-sm text-muted-foreground italic">
-                    Waiting for seller's response...
+                    Chờ phản hồi từ người bán...
                   </div>
                 )
               )}

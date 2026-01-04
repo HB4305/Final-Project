@@ -76,13 +76,14 @@ export const deleteRating = async (req, res, next) => {
 export const getUserRatings = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { page = 1, limit = 10, type = 'received' } = req.query;
+    const { page = 1, limit = 10, type = 'received', filter } = req.query;
 
     const result = await ratingService.getUserRatings(
       userId,
       parseInt(page),
       parseInt(limit),
-      type
+      type,
+      filter
     );
 
     res.status(200).json({

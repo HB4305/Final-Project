@@ -5,6 +5,7 @@ import {
   createAuction,
   getEndingSoonAuctions,
   getMostBidsAuctions,
+  getMostViewedAuctions,
   getHighestPriceAuctions,
   getAuctionDetail,
   endAuction,
@@ -44,6 +45,12 @@ router.get('/ending-soon', getEndingSoonAuctions);
  * Lấy danh sách cuộc đấu giá có nhiều bids nhất
  */
 router.get('/most-bids', getMostBidsAuctions);
+
+/**
+ * GET /api/auctions/most-viewed
+ * Lấy danh sách cuộc đấu giá có lượt xem nhiều nhất
+ */
+router.get('/most-viewed', getMostViewedAuctions);
 
 /**
  * GET /api/auctions/highest-price

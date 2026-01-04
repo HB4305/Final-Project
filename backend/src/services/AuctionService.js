@@ -196,6 +196,35 @@ export class AuctionService {
   }
 
   /**
+   * Lấy danh sách cuộc đấu giá có lượt xem nhiều nhất (Trending)
+   * @param {number} limit - Số lượng (mặc định 5)
+   * @returns {Array} Danh sách cuộc đấu giá
+   */
+  async getMostViewedAuctions(limit = 5) {
+    // 1. Lấy danh sách sản phẩm có views cao nhất
+    const products = await Product.find({ isActive: true })
+      .sort({ views: -1 })
+      .limit(limit * 2) // Lấy dư ra để filter auction
+      .select('_id');
+
+    const productIds = products.map(p => p._id);
+
+    // 2. Tìm active auction cho các sản phẩm này
+    const auctions = await Auction.find({
+      productId: { $in: productIds },
+      status: AUCTION_STATUS.ACTIVE
+    })
+      .populate('productId', 'title primaryImageUrl views')
+      .populate('currentHighestBidderId', 'username')
+      .limit(limit);
+
+    // Sắp xếp lại theo views của product (vì query $in không giữ thứ tự)
+    auctions.sort((a, b) => (b.productId?.views || 0) - (a.productId?.views || 0));
+
+    return auctions;
+  }
+
+  /**
    * Lấy danh sách cuộc đấu giá có giá cao nhất
    * @param {number} limit - Số lượng (mặc định 5)
    * @returns {Array} Danh sách cuộc đấu giá

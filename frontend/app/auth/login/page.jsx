@@ -223,7 +223,7 @@ export default function LoginPage() {
                 href={`${
                   import.meta.env.VITE_API_URL || "http://localhost:5001/api"
                 }/auth/google`}
-                className="flex items-center justify-center px-4 py-3 bg-white text-black rounded-xl hover:bg-gray-100 transition-all font-medium gap-2 w-full"
+                className="flex items-center justify-center px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all font-medium gap-2 w-full"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path

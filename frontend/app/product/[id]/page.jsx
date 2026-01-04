@@ -8,6 +8,7 @@ import {
   AlertCircle,
   TrendingUp,
   Eye,
+
   ChevronRight,
   Home,
   FileText,
@@ -192,17 +193,11 @@ export default function ProductDetailPage() {
       if (isWatchlisted) {
         await watchlistService.removeFromWatchlist(id);
         setIsWatchlisted(false);
-        setToast({
-          type: "success",
-          message: "Đã xóa khỏi danh sách theo dõi",
-        });
+
       } else {
         await watchlistService.addToWatchlist(id);
         setIsWatchlisted(true);
-        setToast({
-          type: "success",
-          message: "Đã thêm vào danh sách theo dõi",
-        });
+
       }
     } catch (err) {
       console.error("Watchlist error:", err);
@@ -357,12 +352,7 @@ export default function ProductDetailPage() {
               >
                 <Share2 className="w-5 h-5" />
               </button>
-              <button
-                className="p-3 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 hover:text-red-400 hover:shadow-md transition-all text-gray-400"
-                title="Báo cáo"
-              >
-                <Shield className="w-5 h-5" />
-              </button>
+
             </div>
           </div>
         </div>
@@ -453,24 +443,7 @@ export default function ProductDetailPage() {
               <SellerInfoCard seller={product.sellerId} />
 
               {/* Quick Actions */}
-              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6 space-y-3">
-                <button
-                  onClick={() => {
-                    if (!user) {
-                      navigate("/auth/login");
-                      return;
-                    }
-                    qaRef.current?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }}
-                  className="w-full py-3.5 bg-transparent border border-primary text-primary rounded-xl hover:bg-primary/10 transition font-bold flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <MessageSquare className="w-5 h-5" />
-                  Hỏi người bán
-                </button>
-              </div>
+
             </div>
           </div>
         </div>
@@ -478,10 +451,8 @@ export default function ProductDetailPage() {
         {/* Q&A Section */}
         <div ref={qaRef} className="mb-12 scroll-mt-24">
           <div className="glass-card bg-[#1e293b]/60 rounded-2xl p-6 md:p-8 shadow-xl border border-white/20 backdrop-blur-xl">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-white">
-              <MessageSquare className="w-6 h-6 text-primary" />
-              Hỏi đáp về sản phẩm
-            </h2>
+            {/* Header removed to avoid duplication with component's internal header */}
+
             <ProductQA productId={id} sellerId={product.sellerId?._id} />
           </div>
         </div>

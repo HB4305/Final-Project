@@ -298,6 +298,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.4);
 }
+
+/* 5. Hide native password reveal button in Edge/IE */
+::-ms-reveal,
+::-ms-clear {
+  display: none;
+}
 /* Force dark theme for dynamically added update sections */
 .prose [style*="background-color: #f8f9fa"],
 .prose [style*="background: #f8f9fa"],

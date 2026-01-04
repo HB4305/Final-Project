@@ -62,12 +62,24 @@ export const getHighestPriceAuctions = async (params = {}) => {
   return response.data;
 };
 
+/**
+ * Lấy danh sách sản phẩm có lượt xem cao nhất
+ * @param {Object} params - { limit }
+ * @returns {Promise}
+ */
+export const getMostViewedAuctions = async (params = {}) => {
+  const response = await api.get("/auctions/most-viewed", { params });
+  return response.data;
+};
+
 const auctionService = {
   getAuctions,
   getParticipatingAuctions,
   getWonAuctions,
   getSellingAuctions,
   getSoldAuctions,
+  getHighestPriceAuctions,
+  getMostViewedAuctions,
 };
 
 export default auctionService;

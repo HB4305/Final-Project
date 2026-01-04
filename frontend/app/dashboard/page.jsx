@@ -148,7 +148,7 @@ export default function DashboardPage() {
     try {
       await watchlistService.removeFromWatchlist(productId);
       fetchAllData();
-      setToast({ message: "Đã xoá khỏi danh sách theo dõi", type: "success" });
+
     } catch (err) {
       setToast({
         message: "Không thể xoá khỏi danh sách theo dõi",
@@ -504,10 +504,19 @@ export default function DashboardPage() {
                                     </p>
                                   </div>
                                   <div className="text-right flex-shrink-0 ml-4">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${auction.isWinning ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                        auction.isWinning 
+                                          ? "bg-green-100 text-green-800" 
+                                          : (auction.userHighestBid?.amount >= auction.currentPrice)
+                                            ? "bg-orange-100 text-orange-800" // Tied/Lost to auto-bid
+                                            : "bg-red-100 text-red-800" // Outbid
                                       }`}>
-                                      {auction.isWinning ? "Đang dẫn đầu" : "Bị vượt giá"}
-                                    </span>
+                                        {auction.isWinning 
+                                          ? "Đang dẫn đầu" 
+                                          : (auction.userHighestBid?.amount >= auction.currentPrice)
+                                            ? "Có người đặt trước" 
+                                            : "Bị vượt giá"}
+                                      </span>
                                   </div>
                                 </div>
 
@@ -758,13 +767,7 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                             </div>
-                            {/* Progress Bar for Time */}
-                            <div className="mt-4 w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
-                                style={{ width: '60%' }} // Note: This should be dynamic based on time
-                              ></div>
-                            </div>
+
                           </div>
                         ))
                       )}
@@ -909,6 +912,11 @@ export default function DashboardPage() {
                 productId={selectedProductForEdit.id}
                 currentDescription={selectedProductForEdit.description}
                 currentMetadata={selectedProductForEdit.metadata}
+                defaultEditing={true}
+                onCancel={() => {
+                  setShowEditDescModal(false);
+                  setSelectedProductForEdit(null);
+                }}
                 onUpdate={async (updatedProduct) => {
                   await fetchAllData();
                   setShowEditDescModal(false);
