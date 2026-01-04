@@ -15,7 +15,7 @@ import {
   Trophy,
   ShieldCheck,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import Navigation from "../../../components/navigation";
 import productService from "../../services/productService.js";
 import watchlistService from "../../services/watchlistService.js";
@@ -44,6 +44,7 @@ import {
 export default function ProductDetailPage() {
   const { id } = useParams();
   const { currentUser: user } = useAuth();
+  const navigate = useNavigate();
   const { product, loading, error, refetch } = useProductDetail(id);
 
   // State management
@@ -134,6 +135,10 @@ export default function ProductDetailPage() {
   }, [id]);
 
   const handlePlaceBid = async (amount) => {
+    if (!user) {
+      navigate("/auth/login");
+      return;
+    }
     try {
       const response = await productService.placeBid(id, { amount });
       if (response.status === "success") {
@@ -179,6 +184,10 @@ export default function ProductDetailPage() {
   };
 
   const toggleWatchlist = async () => {
+    if (!user) {
+      navigate("/auth/login");
+      return;
+    }
     try {
       if (isWatchlisted) {
         await watchlistService.removeFromWatchlist(id);
@@ -435,12 +444,16 @@ export default function ProductDetailPage() {
               {/* Quick Actions */}
               <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6 space-y-3">
                 <button
-                  onClick={() =>
+                  onClick={() => {
+                    if (!user) {
+                      navigate("/auth/login");
+                      return;
+                    }
                     qaRef.current?.scrollIntoView({
                       behavior: "smooth",
                       block: "start",
-                    })
-                  }
+                    });
+                  }}
                   className="w-full py-3.5 bg-transparent border border-primary text-primary rounded-xl hover:bg-primary/10 transition font-bold flex items-center justify-center gap-2 shadow-sm"
                 >
                   <MessageSquare className="w-5 h-5" />

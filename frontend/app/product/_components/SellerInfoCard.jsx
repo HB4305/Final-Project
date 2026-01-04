@@ -9,8 +9,11 @@ export default function SellerInfoCard({ seller }) {
   const rating = seller.ratingSummary || {};
   const positiveRate = calculatePositiveRate(seller);
   const avatarUrl = seller.profileImageUrl || seller.avatar || FALLBACK_IMAGE.AVATAR;
-  const averageRating = seller.rating ?? (typeof rating.score === 'number' ? Number((rating.score * 5).toFixed(1)) : (seller.averageRating ?? 0));
-  const ratingCount = rating.totalCount || rating.totalRatings || seller.ratingCount || 0;
+  // Calculate percentage dynamically
+  const total = rating.totalCount || rating.totalRatings || 0;
+  const positive = rating.countPositive || 0;
+  const averageRating = total > 0 ? (positive / total) * 100 : 0;
+  const ratingCount = total;
 
   return (
     <div className="glass-card border border-white/20 rounded-2xl p-6 space-y-5 bg-[#1e293b]/80 backdrop-blur-xl shadow-lg">
@@ -54,8 +57,8 @@ export default function SellerInfoCard({ seller }) {
            <div className="col-span-2 bg-white/5 p-3 rounded-xl border border-white/10 text-center hover:bg-white/10 transition-colors">
                 <p className="text-xs text-gray-400 mb-1">Đánh giá trung bình</p>
                 <div className="flex items-center justify-center gap-1 font-bold text-white text-lg">
-                    <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                    {averageRating.toFixed(1)}
+                    {/* <Star className="w-5 h-5 text-yellow-500 fill-current" /> */}
+                    {averageRating.toFixed(1)}%
                     <span className="text-gray-400 font-normal text-sm">({ratingCount} lượt)</span>
                 </div>
            </div>

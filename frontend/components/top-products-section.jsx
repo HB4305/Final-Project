@@ -183,13 +183,13 @@ function TopProductsGroup({
   onWatchlistChange,
 }) {
   return (
-    <div className="rounded-2xl overflow-hidden glass border border-white/10">
+    <div className="rounded-2xl overflow-hidden glass border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none bg-white/50 dark:bg-transparent">
       {/* Header */}
-      <div className="bg-white/5 border-b border-white/10 px-6 py-4 backdrop-blur-3xl">
-        <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+      <div className="bg-white/40 dark:bg-white/5 border-b border-gray-200 dark:border-white/10 px-6 py-4 backdrop-blur-3xl">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
           {title}
         </h2>
-        <p className="text-gray-400 text-sm">{subtitle}</p>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">{subtitle}</p>
       </div>
 
       {/* Products Grid */}
@@ -250,7 +250,7 @@ function ProductCard({
   };
 
   return (
-    <div className="group cursor-pointer glass-card rounded-2xl hover:bg-white/5 transition-all duration-300 overflow-hidden relative border border-white/10">
+    <div className="group cursor-pointer glass-card rounded-2xl bg-white dark:bg-white/[0.03] hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-300 overflow-hidden relative border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-lg">
       {/* Product Image */}
       <div className="relative h-48 overflow-hidden">
         <Link
@@ -265,18 +265,18 @@ function ProductCard({
               e.target.src = FALLBACK_IMAGE;
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </Link>
 
         {/* Favorite Button */}
         <button
           onClick={handleToggleWatchlist}
-          className="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur rounded-full hover:bg-black/60 transition z-10 border border-white/10"
+          className="absolute top-3 right-3 p-2 bg-white/80 dark:bg-black/40 backdrop-blur rounded-full hover:bg-white dark:hover:bg-black/60 transition z-10 border border-gray-200 dark:border-white/10 shadow-sm"
         >
           <Heart
             size={16}
             className={
-              isFavorite ? "fill-red-500 text-red-500" : "text-white"
+              isFavorite ? "fill-red-500 text-red-500" : "text-gray-600 dark:text-white"
             }
           />
         </button>
@@ -288,31 +288,31 @@ function ProductCard({
           to={`/product/${product.product?.productId}`}
         >
           {/* Title */}
-          <h3 className="font-bold text-gray-100 line-clamp-2 group-hover:text-primary transition mb-2 min-h-[3rem]">
+          <h3 className="font-bold text-gray-800 dark:text-gray-100 line-clamp-2 group-hover:text-primary transition mb-2 min-h-[3rem]">
             {product.product?.title}
           </h3>
 
           <div className="flex items-end justify-between mt-2">
             <div>
               {/* Current Price */}
-              <p className="text-xs text-gray-400 mb-0.5">Hiện tại</p>
-              <p className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Hiện tại</p>
+              <p className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
                 {productService.formatPrice(product.currentPrice)}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-white/5">
             {/* Bid Count */}
-            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
               <Gavel size={14} className="text-primary" />
               <span>{product.bidCount} lượt</span>
             </div>
 
             {/* Time Remaining */}
             <div className="flex items-center gap-1.5 text-xs font-medium">
-              <Clock size={14} className={time.isEnded ? "text-red-500" : "text-orange-400"} />
-              <span className={time.isEnded ? "text-red-500" : "text-orange-400"}>
+              <Clock size={14} className={time.isEnded ? "text-red-500" : "text-orange-500 dark:text-orange-400"} />
+              <span className={time.isEnded ? "text-red-500" : "text-orange-600 dark:text-orange-400"}>
                 {time.isEnded ? (
                   "Kết thúc"
                 ) : (

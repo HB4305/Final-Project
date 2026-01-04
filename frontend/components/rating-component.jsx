@@ -95,7 +95,7 @@ export default function RatingComponent({
         <div>
           <p className="font-semibold">{targetUser.name}</p>
           <p className="text-sm text-muted-foreground">
-            Đánh giá hiện tại: {targetUser.rating} ★ ({targetUser.totalRatings}{" "}
+            Đánh giá hiện tại: {targetUser.ratingSummary?.totalCount ? Math.round((targetUser.ratingSummary.countPositive / targetUser.ratingSummary.totalCount) * 100) : 0}% ({targetUser.ratingSummary?.totalCount || targetUser.totalRatings || 0}{" "}
             lượt)
           </p>
         </div>

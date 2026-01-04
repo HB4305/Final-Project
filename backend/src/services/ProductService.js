@@ -676,7 +676,7 @@ export class ProductService {
 
       const product = await Product.findById(productId)
         .populate("categoryId", "name slug")
-        .populate("sellerId", "username email profileImageUrl ratingSummary");
+        .populate("sellerId", "username email profileImageUrl ratingSummary createdAt address");
 
       if (!product) {
         throw new AppError("Sản phẩm không tồn tại", 404, "PRODUCT_NOT_FOUND");

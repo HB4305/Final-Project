@@ -3,6 +3,7 @@ import { Heart, Search, User, Menu, X, Bell, Zap, Settings, Star, LogOut, Gavel 
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../app/context/AuthContext";
 
+
 export default function Navigation() {
   const { isLoggedIn, currentUser, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -111,6 +112,7 @@ export default function Navigation() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-3">
+
 
 
             {isLoggedIn ? (

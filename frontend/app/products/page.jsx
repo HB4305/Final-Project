@@ -412,10 +412,10 @@ export default function ProductsPage() {
 
           <div className="lg:col-span-3">
             {/* Results Count */}
-            <div className="mb-6 flex justify-between items-center bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
-              <p className="text-gray-400 text-sm">
-                Hiển thị <span className="font-bold text-gray-200">{paginatedProducts.length}</span> / {' '}
-                <span className="font-bold text-gray-200">{totalItems}</span> sản phẩm
+            <div className="mb-6 flex justify-between items-center bg-white dark:bg-white/5 backdrop-blur rounded-xl p-4 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Hiển thị <span className="font-bold text-gray-900 dark:text-gray-200">{paginatedProducts.length}</span> / {' '}
+                <span className="font-bold text-gray-900 dark:text-gray-200">{totalItems}</span> sản phẩm
                 {selectedCategory !== 'All' && (
                   <span className="ml-2">
                     trong <span className="text-primary font-medium">"{selectedCategory}"</span>

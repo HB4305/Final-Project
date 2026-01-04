@@ -4,6 +4,7 @@ import { Eye, EyeOff, Loader2, ArrowLeft, CheckCircle, Gavel } from "lucide-reac
 import ReCAPTCHA from "react-google-recaptcha";
 import Toast from "../../../components/Toast";
 import authService from "../../services/authService";
+import AddressSelector from "../../../components/address-selector";
 
 export default function SignupPage() {
   const [step, setStep] = useState(1); // 1: Register Form, 2: OTP Form
@@ -11,7 +12,12 @@ export default function SignupPage() {
   const [formData, setFormData] = useState({
     username: "",
     fullName: "",
-    address: "",
+    address: {
+        city: "",
+        district: "",
+        ward: "",
+        street: ""
+    },
     email: "",
     password: "",
     confirmPassword: "",
@@ -38,7 +44,9 @@ export default function SignupPage() {
     if (formData.username.length < 3 || formData.username.length > 30)
       newErrors.username = "Tên đăng nhập phải từ 3-30 ký tự";
     if (!formData.fullName.trim()) newErrors.fullName = "Vui lòng nhập họ tên";
-    if (!formData.address.trim()) newErrors.address = "Vui lòng nhập địa chỉ";
+    if (!formData.address.city || !formData.address.ward || !formData.address.street) {
+        newErrors.address = "Vui lòng nhập đầy đủ địa chỉ";
+    }
 
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(formData.email))
@@ -242,7 +250,7 @@ export default function SignupPage() {
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
-                    placeholder="johndoe"
+                    placeholder="nguyenvana"
                     className={`w-full px-4 py-3 bg-white/5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-white placeholder-gray-500 transition-all ${
                       errors.username ? "border-red-500/50" : "border-white/10"
                     }`}
@@ -281,7 +289,7 @@ export default function SignupPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="you@example.com"
+                  placeholder="email@vidu.com"
                   className={`w-full px-4 py-3 bg-white/5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-white placeholder-gray-500 transition-all ${
                     errors.email ? "border-red-500/50" : "border-white/10"
                   }`}
@@ -292,22 +300,19 @@ export default function SignupPage() {
               </div>
 
               {/* Address */}
+              {/* Address Selector */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">
-                  Địa chỉ
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="123 Đường ABC, Quận 1, TP.HCM"
-                  className={`w-full px-4 py-3 bg-white/5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-white placeholder-gray-500 transition-all ${
-                    errors.address ? "border-red-500/50" : "border-white/10"
-                  }`}
+                <AddressSelector 
+                    value={formData.address} 
+                    onChange={(newAddress) => setFormData({...formData, address: newAddress})}
+                    disabled={isLoading}
                 />
-                {errors.address && (
-                  <p className="text-xs text-red-400 mt-1">{errors.address}</p>
+                
+                {/* Error handling for address fields */}
+                {(errors.address || errors['address.city'] || errors['address.ward']) && (
+                  <p className="text-xs text-red-400 mt-1">
+                    {errors.address || "Vui lòng hoàn thành địa chỉ (Tỉnh/Thành phố, Phường/Xã)"}
+                  </p>
                 )}
               </div>
 
@@ -375,6 +380,7 @@ export default function SignupPage() {
                   sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY} // Nhớ cấu hình trong .env frontend
                   onChange={onRecaptchaChange}
                   theme="dark"
+                  hl="vi"
                 />
               </div>
               {errors.recaptcha && (

@@ -86,7 +86,7 @@ export class BidService {
       throw new AppError("User not found", 404);
     }
 
-    const ratingPercentage = bidder.ratingSummary?.score * 100 || 0;
+    const ratingPercentage = bidder.ratingSummary?.score || 0;
     if (ratingPercentage < 80) {
       throw new AppError(
         `Your rating (${ratingPercentage}%) must be >= 80% to bid`,

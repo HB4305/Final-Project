@@ -25,6 +25,7 @@ import UpgradeRequest from "../../components/upgrade-request";
 import userService from "../services/userService";
 import { useAuth } from "../context/AuthContext";
 import Toast from "../../components/Toast";
+import AddressSelector from "../../components/address-selector";
 
 export default function ProfilePage() {
   const { updateUser, logout } = useAuth();
@@ -50,10 +51,9 @@ export default function ProfilePage() {
     contactPhone: "",
     address: {
       street: "",
+      ward: "",
+      district: "",
       city: "",
-      region: "",
-      postalCode: "",
-      country: "",
     },
   });
 
@@ -78,10 +78,9 @@ export default function ProfilePage() {
           contactPhone: userData.contactPhone || "",
           address: userData.address || {
             street: "",
+            ward: "",
+            district: "",
             city: "",
-            region: "",
-            postalCode: "",
-            country: "",
           },
         });
       }
@@ -172,10 +171,9 @@ export default function ProfilePage() {
         contactPhone: profile.contactPhone || "",
         address: profile.address || {
           street: "",
+          ward: "",
+          district: "",
           city: "",
-          region: "",
-          postalCode: "",
-          country: "",
         },
       });
     }
@@ -270,7 +268,7 @@ export default function ProfilePage() {
 
       <div className="pt-24 pb-12 max-w-6xl mx-auto px-4">
         {/* Banner Section */}
-        <div className="relative h-48 md:h-64 rounded-t-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 overflow-hidden mb-16 animate-fade-in shadow-lg">
+        <div className="relative h-48 md:h-64 rounded-t-3xl bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 overflow-hidden mb-16 animate-fade-in shadow-lg">
           <div className="absolute inset-0 bg-black/10"></div>
           {/* Decorative circles */}
           <div className="absolute top-[-50%] left-[-10%] w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl"></div>
@@ -517,56 +515,21 @@ export default function ProfilePage() {
                   <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
                     <MapPin className="w-4 h-4" /> Địa chỉ
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      disabled={!isEditing}
-                      placeholder="Số nhà, đường"
-                      value={
-                        isEditing
-                          ? editForm.address.street
-                          : profile?.address?.street || ""
-                      }
-                      onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          address: {
-                            ...editForm.address,
-                            street: e.target.value,
-                          },
-                        })
-                      }
-                      className={`w-full px-4 py-3 rounded-xl border transition-all ${
-                        isEditing
-                          ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                          : "bg-transparent border-transparent text-gray-400 px-0"
-                      }`}
-                    />
-                    <input
-                      type="text"
-                      disabled={!isEditing}
-                      placeholder="Thành phố / Tỉnh"
-                      value={
-                        isEditing
-                          ? editForm.address.city
-                          : profile?.address?.city || ""
-                      }
-                      onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          address: {
-                            ...editForm.address,
-                            city: e.target.value,
-                          },
-                        })
-                      }
-                      className={`w-full px-4 py-3 rounded-xl border transition-all ${
-                        isEditing
-                          ? "bg-white/5 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                          : "bg-transparent border-transparent text-gray-400 px-0"
-                      }`}
-                    />
-                  </div>
+                  
+                  {isEditing ? (
+                      <AddressSelector 
+                        value={editForm.address} 
+                        onChange={(newAddress) => setEditForm({...editForm, address: newAddress})}
+                      />
+                  ) : (
+                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-gray-300">
+                        {profile?.address ? (
+                            <p>
+                                {profile.address.street}, {profile.address.ward}, {profile.address.city}
+                            </p>
+                        ) : "Chưa cập nhật địa chỉ"}
+                      </div>
+                  )}
                 </div>
 
                 {/* Action Buttons */}
@@ -620,31 +583,12 @@ export default function ProfilePage() {
 
               <div className="text-center py-6 bg-gradient-to-b from-yellow-500/10 to-transparent rounded-xl border border-yellow-500/10 mb-6">
                 <div className="flex items-center justify-center gap-1 mb-2">
-                  {[...Array(5)].map((_, i) => {
-                    const score = profile?.ratingSummary?.score || 0;
-                    const isFull = i < Math.floor(score);
-                    const isHalf = i === Math.floor(score) && score % 1 >= 0.5;
-                    return (
-                      <Star
-                        key={i}
-                        className={`w-6 h-6 ${
-                          isFull || isHalf
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-700"
-                        }`}
-                      />
-                    );
-                  })}
+                    <span className="text-4xl font-bold text-white">
+                        {((profile?.ratingSummary?.countPositive || 0) / ((profile?.ratingSummary?.totalCount || 1)) * 100).toFixed(0)}%
+                    </span>
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">
-                  {(profile?.ratingSummary?.score || 0).toFixed(1)}{" "}
-                  <span className="text-sm text-gray-500 font-normal">
-                    / 5.0
-                  </span>
-                </p>
                 <p className="text-sm text-gray-400">
-                  Dựa trên {profile?.ratingSummary?.totalCount || 0} lượt đánh
-                  giá
+                  Dựa trên {profile?.ratingSummary?.totalCount || 0} lượt đánh giá
                 </p>
               </div>
 

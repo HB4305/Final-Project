@@ -128,11 +128,12 @@ export default function RatingsPage() {
             
              <div className="flex items-center gap-6 md:gap-12">
                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1 text-yellow-500 mb-1">
-                        <span className="text-3xl font-bold text-white">{(userInfo?.ratingSummary?.score || 0).toFixed(1)}</span>
-                        <Star className="w-6 h-6 fill-current" />
+                    <div className="flex items-center justify-center gap-1 text-primary mb-1">
+                        <span className="text-3xl font-bold text-white">
+                            {userInfo?.ratingSummary?.totalCount ? Math.round((userInfo.ratingSummary.countPositive / userInfo.ratingSummary.totalCount) * 100) : 0}%
+                        </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Điểm trung bình</p>
+                    <p className="text-sm text-muted-foreground">Độ uy tín</p>
                  </div>
                  <div className="text-center">
                     <p className="text-3xl font-bold text-white mb-1">{userInfo?.ratingSummary?.totalCount || 0}</p>

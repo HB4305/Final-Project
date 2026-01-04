@@ -1,5 +1,7 @@
-import { useState } from 'react';
+  import { useState } from 'react';
 import { Gavel, Clock, Zap, ArrowRight, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import CountdownTimer from './CountdownTimer';
 import { useCountdown } from './hooks';
 import { formatPrice } from './utils';
@@ -8,6 +10,8 @@ export default function AuctionSection({ auction, onPlaceBid }) {
   const time = useCountdown(auction?.endAt);
   const [bidAmount, setBidAmount] = useState('');
   const [showBidForm, setShowBidForm] = useState(false);
+  const { currentUser: user } = useAuth();
+  const navigate = useNavigate();
 
   const minBid = (auction?.currentPrice || 0) + (auction?.priceStep || 50000);
 
@@ -61,7 +65,15 @@ export default function AuctionSection({ auction, onPlaceBid }) {
               {formatPrice(auction.buyNowPrice)}
             </p>
           </div>
-          <button className="px-5 py-2.5 bg-green-600 text-white rounded-xl shadow-lg shadow-green-600/20 hover:bg-green-700 hover:scale-105 transition-all font-bold text-sm">
+          <button 
+            onClick={() => {
+              if (!user) {
+                navigate('/auth/login');
+                return;
+              }
+              // TODO: Implement Buy Now logic
+            }}
+            className="px-5 py-2.5 bg-green-600 text-white rounded-xl shadow-lg shadow-green-600/20 hover:bg-green-700 hover:scale-105 transition-all font-bold text-sm">
             Mua Ngay
           </button>
         </div>
@@ -106,7 +118,13 @@ export default function AuctionSection({ auction, onPlaceBid }) {
         <div className="space-y-3 pt-2">
           {!showBidForm ? (
             <button
-              onClick={() => setShowBidForm(true)}
+              onClick={() => {
+                if (!user) {
+                  navigate('/auth/login');
+                  return;
+                }
+                setShowBidForm(true);
+              }}
               className="w-full py-5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-2xl hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:scale-[1.02] active:scale-95 transition-all font-bold text-xl flex items-center justify-center gap-3 relative overflow-hidden group"
             >
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>

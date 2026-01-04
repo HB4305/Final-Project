@@ -9,7 +9,7 @@ import CategoryNav from "../components/category-nav";
 export default function Home() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { loginWithToken } = useAuth();
+  const { loginWithToken, isLoggedIn } = useAuth();
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -26,13 +26,31 @@ export default function Home() {
     }
   }, [searchParams]);
 
+  const [heroAuction, setHeroAuction] = React.useState(null);
+
+  useEffect(() => {
+    const fetchHeroAuction = async () => {
+      try {
+        const res = await import("./services/auctionService").then(m => m.default.getAuctions({ page: 1, limit: 10, status: 'active', sort: 'bidCount:desc' }));
+        if (res.data?.data?.auctions?.length > 0) {
+           // Try to find the Sony set first, otherwise take the first one (most popular)
+           const sonyAuction = res.data.data.auctions.find(a => a.productId?.title?.toLowerCase().includes("sony"));
+           setHeroAuction(sonyAuction || res.data.data.auctions[0]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch hero auction", error);
+      }
+    };
+    fetchHeroAuction();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden animate-fade-in">
       <Navigation />
 
       <main className="pt-20">
         {/* Category Nav - Static Top */}
-        <section className="py-2 border-b border-white/5 bg-[#0b1121]/90 backdrop-blur-md shadow-lg mb-8">
+        <section className="py-2 mb-8 transition-colors duration-300">
            <div className="max-w-7xl mx-auto px-4">
              <CategoryNav />
            </div>
@@ -72,12 +90,14 @@ export default function Home() {
                 >
                   Khám Phá Ngay
                 </button>
-                <button 
-                  onClick={() => navigate("/auth/signup")}
-                  className="px-8 py-4 bg-white/5 text-foreground border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all backdrop-blur-sm"
-                >
-                  Đăng Ký Miễn Phí
-                </button>
+                {!isLoggedIn && (
+                  <button 
+                    onClick={() => navigate("/auth/signup")}
+                    className="px-8 py-4 bg-white/5 text-foreground border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all backdrop-blur-sm"
+                  >
+                    Đăng Ký Miễn Phí
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-8 text-sm text-muted-foreground pt-4">
@@ -96,24 +116,24 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative hidden lg:block animate-fade-in">
+            <div className="relative hidden lg:block animate-fade-in cursor-pointer" onClick={() => heroAuction && navigate(`/product/${heroAuction.productId?._id || heroAuction.productId}`)}>
               <div className="relative z-10 glass rounded-3xl p-6 rotate-3 hover:rotate-0 transition-transform duration-500 bg-gradient-to-br from-white/10 to-transparent border border-white/20">
                 <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center relative group">
                   <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
                   <img 
-                    src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
+                    src={heroAuction?.productId?.primaryImageUrl || "https://images.unsplash.com/photo-1550009158-9ebf69173e03?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"} 
                     alt="Premium Auction" 
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
                   />
                   <div className="absolute bottom-4 left-4 right-4 z-20">
                     <div className="glass rounded-xl p-4 flex justify-between items-center">
-                      <div>
+                      <div className="max-w-[60%]">
                         <p className="text-xs text-gray-300">Đang đấu giá</p>
-                        <p className="font-bold text-white">Sony Electronics Set</p>
+                        <p className="font-bold text-white truncate">{heroAuction?.productId?.title || "Sony Electronics Set"}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-300">Giá hiện tại</p>
-                        <p className="font-bold text-green-400">12.500.000 ₫</p>
+                        <p className="font-bold text-green-400">{(heroAuction?.currentPrice || 12500000).toLocaleString()} ₫</p>
                       </div>
                     </div>
                   </div>
@@ -142,10 +162,10 @@ export default function Home() {
         <section className="max-w-7xl mx-auto px-4 py-20">
           <div className="flex items-center justify-between mb-10">
             <div>
-               <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+               <h2 className="text-3xl font-bold text-gray-900 dark:text-white dark:bg-clip-text dark:text-transparent dark:bg-gradient-to-r dark:from-white dark:to-gray-400">
                 Sản Phẩm Hot
               </h2>
-              <p className="text-muted-foreground mt-2">Các phiên đấu giá được quan tâm nhiều nhất</p>
+              <p className="text-gray-600 dark:text-muted-foreground mt-2">Các phiên đấu giá được quan tâm nhiều nhất</p>
             </div>
             <button 
               onClick={() => navigate('/products')}
@@ -160,25 +180,7 @@ export default function Home() {
         {/* Stats Section with Glass Effect */}
 
 
-        {/* CTA Section */}
-        <section className="py-20 px-4">
-          <div className="max-w-5xl mx-auto glass rounded-3xl p-8 md:p-16 text-center relative overflow-hidden border border-primary/20">
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/10 to-blue-600/10 -z-10" />
-            
-            <h3 className="text-3xl md:text-5xl font-bold mb-6">
-              Sẵn sàng săn 'vàng'?
-            </h3>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Đừng bỏ lỡ những món hời độc quyền chỉ có tại AuctionHub. Tham gia cộng đồng đấu giá sôi động ngay hôm nay!
-            </p>
-            <button
-              onClick={() => navigate("/auth/signup")}
-              className="px-10 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/40 transition-all hover:-translate-y-1"
-            >
-              Tạo tài khoản ngay
-            </button>
-          </div>
-        </section>
+
       </main>
 
       <footer className="bg-black/40 border-t border-white/10 py-12 px-4 mt-12 backdrop-blur-xl">

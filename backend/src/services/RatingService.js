@@ -167,8 +167,8 @@ export class RatingService {
       (r) => r.score === RATING_SCORE.NEGATIVE
     ).length;
     const totalCount = ratings.length;
-    // Score calculation: (positive / total) * 5
-    const score = totalCount === 0 ? 0 : (countPositive / totalCount) * 5;
+    // Score calculation: (positive / total) * 100
+    const score = totalCount === 0 ? 0 : (countPositive / totalCount) * 100;
 
     await User.updateOne(
       { _id: userId },

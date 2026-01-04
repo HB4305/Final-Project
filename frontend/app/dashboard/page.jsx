@@ -420,7 +420,31 @@ export default function DashboardPage() {
                         <EmptyState message="Danh sách theo dõi trống." />
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {watchlist.map((item) => (
+                          {watchlist.map((item) => {
+                            if (!item.productId) {
+                                return (
+                                    <div key={item._id} className="glass-card bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-center gap-4">
+                                        <div className="w-16 h-16 bg-red-500/10 rounded-lg flex items-center justify-center text-red-500">
+                                            <AlertCircle className="w-6 h-6" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-bold text-gray-400">Sản phẩm không tồn tại</h3>
+                                            <p className="text-sm text-muted-foreground">Sản phẩm này đã bị xóa khỏi hệ thống.</p>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                handleRemoveFromWatchlist(item.productId?._id || item._id); // Handle removal even if product is gone
+                                            }}
+                                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-full transition"
+                                            title="Bỏ theo dõi"
+                                        >
+                                            <XCircle className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                )
+                            }
+                            return (
                             <div key={item._id} className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl overflow-hidden hover:bg-white/5 transition-all duration-300 group">
                               <div className="relative h-48 overflow-hidden">
                                 <img
@@ -455,7 +479,7 @@ export default function DashboardPage() {
                                 </Link>
                               </div>
                             </div>
-                          ))}
+                          )})}
                         </div>
                       )}
                     </div>
@@ -689,7 +713,7 @@ export default function DashboardPage() {
                   await ratingService.createRating(selectedTransactionForRating.targetUser._id, {
                     score,
                     comment,
-                    orderId: selectedTransactionForRating.auction?._id,
+                    orderId: selectedTransactionForRating.auction?.orderId,
                     context: "post_transaction"
                   });
                 }}

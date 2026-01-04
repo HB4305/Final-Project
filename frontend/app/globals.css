@@ -8,43 +8,43 @@
 
 @layer base {
   :root {
-    /* Font family chính: Ưu tiên Be Vietnam Pro cho toàn bộ văn bản tiếng Việt */
-    --font-sans: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
+    /* Font family chính: Ưu tiên Roboto cho toàn bộ ứng dụng */
+    --font-sans: 'Roboto', 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
 
-    /* Hệ màu Dark Mode cao cấp: Độ sâu màu xanh đen (Deep Navy) giúp nổi bật sản phẩm */
-    --background: 222 47% 4%; 
-    --foreground: 210 40% 98%;
+    /* Enforced Dark Mode - Eye Comfort Optimized */
+    /* Background: Deep Slate (less harsh than pure black) */
+    --background: 222 47% 6%; 
+    --foreground: 210 40% 96%; /* Soft White */
 
-    --card: 222 47% 6%;
-    --card-foreground: 210 40% 98%;
+    /* Cards: Slightly lighter than bg */
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 222 47% 4%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 96%;
 
-    /* Màu Primary: Xanh Electric tạo cảm giác tin tưởng và hiện đại */
+    /* Primary: Adjusted to be less glaring */
     --primary: 217 91% 60%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 217 32% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 32% 12%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 217 32% 15%;
+    --muted-foreground: 215 20% 70%;
 
-    /* Accent & Warning: Sử dụng cho các trạng thái đấu giá (Sắp kết thúc, Giá cao nhất) */
-    --accent: 217 32% 17%;
+    --accent: 217 32% 20%;
     --accent-foreground: 210 40% 98%;
-    --warning: 38 92% 50%; 
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 224 76% 48%;
+    --border: 217 32% 15%;
+    --input: 217 32% 15%;
+    --ring: 217 91% 60%;
 
-    /* Bo góc hiện đại cho năm 2026 */
     --radius: 1rem;
+    --warning: 38 92% 50%; /* Keep warning visible */
   }
 }
 
@@ -61,7 +61,7 @@
   /* Đảm bảo tiêu đề không bao giờ bị lỗi font hệ thống */
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold tracking-tight;
-    font-family: 'Be Vietnam Pro', sans-serif !important;
+    font-family: 'Roboto', 'Be Vietnam Pro', sans-serif !important;
   }
 }
 
@@ -105,4 +105,14 @@
   :root {
     --radius: 0.75rem;
   }
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
