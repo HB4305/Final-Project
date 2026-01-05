@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { Auction, Bid, User } from './models/index.js';
+import SystemSetting from './models/SystemSetting.js';
 import { auctionService } from './services/AuctionService.js';
 import { AUCTION_STATUS } from './lib/constants.js';
 import { sendEmail } from './utils/email.js';
@@ -28,52 +29,60 @@ export const startScheduler = () => {
                 }
             }
 
-            // 2. Auto-extend auctions with bids in last 5 minutes
-            const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
-            const activeAuctions = await Auction.find({
-                status: AUCTION_STATUS.ACTIVE,
-                autoExtendEnabled: true,
-                endAt: { $gt: now, $lte: fiveMinutesFromNow },
-                autoExtendCount: { $lt: 3 } // Tối đa 3 lần
-            });
+            // 2. Auto-extend auctions with bids in last X minutes (from SystemSettings)
+            const autoExtendEnabled = await SystemSetting.getSetting('autoExtendEnabled', true);
+            const autoExtendThreshold = await SystemSetting.getSetting('autoExtendThreshold', 5); // phút
+            const autoExtendDuration = await SystemSetting.getSetting('autoExtendDuration', 10); // phút
+            
+            if (autoExtendEnabled) {
+                const thresholdTime = new Date(now.getTime() + autoExtendThreshold * 60 * 1000);
+                const activeAuctions = await Auction.find({
+                    status: AUCTION_STATUS.ACTIVE,
+                    autoExtendEnabled: true,
+                    endAt: { $gt: now, $lte: thresholdTime },
+                    autoExtendCount: { $lt: 3 } // Tối đa 3 lần
+                });
 
-            for (const auction of activeAuctions) {
-                try {
-                    // Kiểm tra có bid nào trong khoảng thời gian từ (endAt - 5 phút) đến hiện tại
-                    const fiveMinutesBeforeEnd = new Date(auction.endAt.getTime() - 5 * 60 * 1000);
-                    const recentBid = await Bid.findOne({
-                        auctionId: auction._id,
-                        isValid: true,
-                        createdAt: { $gte: fiveMinutesBeforeEnd }
-                    }).sort({ createdAt: -1 });
+                for (const auction of activeAuctions) {
+                    try {
+                        // Kiểm tra có bid nào trong khoảng thời gian từ (endAt - threshold) đến hiện tại
+                        const thresholdBeforeEnd = new Date(auction.endAt.getTime() - autoExtendThreshold * 60 * 1000);
+                        const recentBid = await Bid.findOne({
+                            auctionId: auction._id,
+                            isValid: true,
+                            createdAt: { $gte: thresholdBeforeEnd }
+                        }).sort({ createdAt: -1 });
 
-                    if (recentBid) {
-                        // Gia hạn thêm 10 phút
-                        const newEndTime = new Date(auction.endAt.getTime() + 10 * 60 * 1000);
-                        
-                        console.log(`Extending auction ${auction._id} from ${auction.endAt} to ${newEndTime} (extension #${auction.autoExtendCount + 1})`);
-                        
-                        auction.endAt = newEndTime;
-                        auction.autoExtendCount = (auction.autoExtendCount || 0) + 1;
-                        auction.lastExtendedAt = now;
-                        
-                        // Lưu lịch sử gia hạn
-                        if (!auction.autoExtendHistory) {
-                            auction.autoExtendHistory = [];
+                        if (recentBid) {
+                            // Gia hạn thêm X phút
+                            const newEndTime = new Date(auction.endAt.getTime() + autoExtendDuration * 60 * 1000);
+                            
+                            console.log(`Extending auction ${auction._id} from ${auction.endAt} to ${newEndTime} (extension #${auction.autoExtendCount + 1}) - Threshold: ${autoExtendThreshold}min, Duration: ${autoExtendDuration}min`);
+                            
+                            auction.endAt = newEndTime;
+                            auction.autoExtendCount = (auction.autoExtendCount || 0) + 1;
+                            auction.lastExtendedAt = now;
+                            
+                            // Lưu lịch sử gia hạn
+                            if (!auction.autoExtendHistory) {
+                                auction.autoExtendHistory = [];
+                            }
+                            auction.autoExtendHistory.push({
+                                extendedAt: now,
+                                oldEndTime: new Date(auction.endAt.getTime() - autoExtendDuration * 60 * 1000),
+                                newEndTime: newEndTime,
+                                triggeredByBidId: recentBid._id
+                            });
+                            
+                            await auction.save();
+                            console.log(`✓ Auction ${auction._id} extended successfully`);
                         }
-                        auction.autoExtendHistory.push({
-                            extendedAt: now,
-                            oldEndTime: new Date(auction.endAt.getTime() - 10 * 60 * 1000),
-                            newEndTime: newEndTime,
-                            triggeredByBidId: recentBid._id
-                        });
-                        
-                        await auction.save();
-                        console.log(`✓ Auction ${auction._id} extended successfully`);
+                    } catch (err) {
+                        console.error(`Failed to extend auction ${auction._id}:`, err);
                     }
-                } catch (err) {
-                    console.error(`Failed to extend auction ${auction._id}:`, err);
                 }
+            } else {
+                console.log('[SCHEDULER] Auto-extend is disabled');
             }
 
             // 3. Convert ACTIVE -> ENDED

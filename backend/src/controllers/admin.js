@@ -17,14 +17,12 @@ import AutoBid from '../models/AutoBid.js';
  */
 export const getAutoExtendSettings = async (req, res, next) => {
   try {
-    const enabled = await SystemSetting.getSetting('autoExtendEnabled', true);
     const threshold = await SystemSetting.getSetting('autoExtendThreshold', 5);
     const duration = await SystemSetting.getSetting('autoExtendDuration', 10);
 
     res.json({
       success: true,
       data: {
-        autoExtendEnabled: enabled,
         autoExtendThreshold: threshold,
         autoExtendDuration: duration
       }
@@ -40,41 +38,30 @@ export const getAutoExtendSettings = async (req, res, next) => {
  */
 export const updateAutoExtendSettings = async (req, res, next) => {
   try {
-    const { autoExtendEnabled, autoExtendThreshold, autoExtendDuration } = req.body;
+    const { autoExtendThreshold, autoExtendDuration } = req.body;
     const adminId = req.user._id;
 
     // Validate inputs
-    if (typeof autoExtendEnabled !== 'undefined' && typeof autoExtendEnabled !== 'boolean') {
-      return res.status(400).json({
-        success: false,
-        message: 'autoExtendEnabled must be a boolean'
-      });
-    }
-
     if (autoExtendThreshold !== undefined) {
-      if (typeof autoExtendThreshold !== 'number' || autoExtendThreshold < 0) {
+      if (typeof autoExtendThreshold !== 'number' || autoExtendThreshold < 1 || autoExtendThreshold > 60) {
         return res.status(400).json({
           success: false,
-          message: 'autoExtendThreshold must be a positive number'
+          message: 'autoExtendThreshold must be between 1 and 60 minutes'
         });
       }
     }
 
     if (autoExtendDuration !== undefined) {
-      if (typeof autoExtendDuration !== 'number' || autoExtendDuration <= 0) {
+      if (typeof autoExtendDuration !== 'number' || autoExtendDuration < 1 || autoExtendDuration > 120) {
         return res.status(400).json({
           success: false,
-          message: 'autoExtendDuration must be a positive number'
+          message: 'autoExtendDuration must be between 1 and 120 minutes'
         });
       }
     }
 
     // Update settings
     const updates = {};
-    if (typeof autoExtendEnabled !== 'undefined') {
-      await SystemSetting.updateSetting('autoExtendEnabled', autoExtendEnabled, adminId);
-      updates.autoExtendEnabled = autoExtendEnabled;
-    }
     if (typeof autoExtendThreshold !== 'undefined') {
       await SystemSetting.updateSetting('autoExtendThreshold', autoExtendThreshold, adminId);
       updates.autoExtendThreshold = autoExtendThreshold;
@@ -228,9 +215,9 @@ export const deleteUser = async (req, res, next) => {
 
     // 1. Handle active auctions where user is seller - Cancel and notify
     const activeSellerAuctions = await Auction.find({ 
-      seller: userId,
+      sellerId: userId,
       status: 'active'
-    }).populate('product');
+    }).populate('productId');
 
     for (const auction of activeSellerAuctions) {
       // Get all unique bidders for this auction to notify them
@@ -247,14 +234,14 @@ export const deleteUser = async (req, res, next) => {
           try {
             await sendEmail({
               to: bidder.email,
-              subject: 'Auction Cancelled - Seller Account Deleted',
+              subject: 'Đấu giá bị hủy - Tài khoản người bán đã bị xóa',
               html: `
-                <h2>Auction Cancelled</h2>
-                <p>Dear ${bidder.fullName || 'Bidder'},</p>
-                <p>The auction for <strong>${auction.product?.title || 'product'}</strong> has been cancelled because the seller's account was deleted by an administrator.</p>
-                <p>Any bids you placed on this auction have been invalidated and will not be processed.</p>
-                <p>We apologize for any inconvenience.</p>
-                <p>Best regards,<br>AuctionHub Team</p>
+                <h2>Đấu giá bị hủy</h2>
+                <p>Xin chào ${bidder.fullName || 'người dùng'},</p>
+                <p>Cuộc đấu giá cho sản phẩm <strong>${auction.productId?.title || 'product'}</strong> đã bị hủy vì tài khoản người bán đã bị quản trị viên xóa.</p>
+                <p>Tất cả các lượt đặt giá của bạn trong cuộc đấu giá này đã bị vô hiệu và sẽ không được xử lý.</p>
+                <p>Chúng tôi xin lỗi vì sự bất tiện này.</p>
+                <p>Trân trọng,<br/>Đội ngũ Auction Platform</p>
               `
             });
             deletionSummary.emailsSent++;
@@ -267,28 +254,41 @@ export const deleteUser = async (req, res, next) => {
       deletionSummary.auctionsCancelled++;
     }
 
-    // 2. Delete ALL auctions by this seller (active, scheduled, ended, cancelled)
+    // 2. Get all products by this seller to delete associated auctions and bids
+    const userProducts = await Product.find({ sellerId: userId }).select('_id');
+    const productIds = userProducts.map(p => p._id);
+
+    // 3. Delete ALL auctions associated with user's products
     const auctionsDeleteResult = await Auction.deleteMany({
-      seller: userId
+      productId: { $in: productIds }
     });
     deletionSummary.auctionsDeleted = auctionsDeleteResult.deletedCount || 0;
 
-    // 3. Delete all products by this seller
-    const productsDeleted = await Product.deleteMany({ seller: userId });
+    // Get all auction IDs that were deleted to remove associated bids
+    const auctionIds = await Auction.find({
+      productId: { $in: productIds }
+    }).distinct('_id');
+
+    // 4. Delete all bids on auctions of this seller's products
+    await Bid.deleteMany({ auctionId: { $in: auctionIds } });
+    await AutoBid.deleteMany({ auctionId: { $in: auctionIds } });
+
+    // 5. Delete all products by this seller
+    const productsDeleted = await Product.deleteMany({ sellerId: userId });
     deletionSummary.productsDeleted = productsDeleted.deletedCount || 0;
 
-    // 4. Handle bids where user is the bidder
+    // 6. Handle bids where user is the bidder
     const userBids = await Bid.find({ 
       bidderId: userId,
       isValid: true 
     });
 
     for (const bid of userBids) {
-      const auction = await Auction.findById(bid.auctionId).populate('product');
+      const auction = await Auction.findById(bid.auctionId).populate('productId');
       
       if (auction && auction.status === 'active') {
         // Check if this user is the highest bidder
-        if (auction.currentBidder?.toString() === userId.toString()) {
+        if (auction.currentHighestBidderId?.toString() === userId.toString()) {
           // Find the second highest valid bid
           const secondHighestBid = await Bid.findOne({
             auctionId: auction._id,
@@ -308,14 +308,14 @@ export const deleteUser = async (req, res, next) => {
               try {
                 await sendEmail({
                   to: newHighestBidder.email,
-                  subject: 'You are now the highest bidder!',
+                  subject: 'Bạn hiện là người đặt giá cao nhất!',
                   html: `
-                    <h2>Bid Status Update</h2>
-                    <p>Dear ${newHighestBidder.fullName || 'Bidder'},</p>
-                    <p>You are now the highest bidder on the auction for <strong>${auction.product?.title || 'product'}</strong>.</p>
-                    <p>Current bid: ${auction.currentPrice?.toLocaleString('vi-VN')} VND</p>
-                    <p>The previous highest bidder's account was deleted.</p>
-                    <p>Best regards,<br>AuctionHub Team</p>
+                    <h2>Cập nhật trạng thái đặt giá</h2>
+                    <p>Xin chào ${newHighestBidder.fullName || 'người dùng'},</p>
+                    <p>Bạn hiện là người đặt giá cao nhất trong cuộc đấu giá cho sản phẩm <strong>${auction.productId?.title || 'product'}</strong>.</p>
+                    <p>Giá hiện tại: ${auction.currentPrice?.toLocaleString('vi-VN')} VND</p>
+                    <p>Người đặt giá cao nhất trước đó đã bị xóa tài khoản.</p>
+                    <p>Trân trọng,<br/>Đội ngũ Auction Platform</p>
                   `
                 });
                 deletionSummary.emailsSent++;
@@ -325,7 +325,7 @@ export const deleteUser = async (req, res, next) => {
             }
           } else {
             // No other bids, reset auction to starting price
-            auction.currentBidder = null;
+            auction.currentHighestBidderId = null;
             auction.currentPrice = auction.startPrice;
             auction.bidCount = 0;
             await auction.save();
@@ -335,28 +335,31 @@ export const deleteUser = async (req, res, next) => {
         // Invalidate user's bid
         bid.isValid = false;
         bid.invalidatedAt = new Date();
-        bid.invalidatedReason = 'User account deleted by admin';
+        bid.invalidatedReason = 'Tài khoản người dùng bị xóa bởi admin';
         await bid.save();
         deletionSummary.bidsInvalidated++;
       }
     }
 
-    // 5. Delete user's auto-bids
+    // 7. Delete all user's bids (including invalid ones)
+    await Bid.deleteMany({ bidderId: userId });
+
+    // 8. Delete user's auto-bids
     await AutoBid.deleteMany({ userId });
 
-    // 6. Remove user from watchlists
+    // 9. Remove user from watchlists
     await Watchlist.deleteMany({ userId });
 
-    // 7. Delete user's questions
+    // 10. Delete user's questions
     await Question.deleteMany({ askedBy: userId });
 
-    // 8. Delete upgrade requests
+    // 11. Delete upgrade requests
     await UpgradeRequest.deleteMany({ user: userId });
 
-    // 9. Finally, delete the user
+    // 12. Finally, delete the user
     await User.findByIdAndDelete(userId);
 
-    // 10. Create audit log
+    // 13. Create audit log
     await AuditLog.create({
       entityType: 'User',
       entityId: userId,

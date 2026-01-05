@@ -12,6 +12,8 @@ import Bid from '../models/Bid.js';
 import AutoBid from '../models/AutoBid.js';
 import Watchlist from '../models/Watchlist.js';
 import Question from '../models/Question.js';
+import User from '../models/User.js';
+import { sendEmail } from '../utils/email.js';
 import { AppError } from '../utils/errors.js';
 import { isValidObjectId } from '../utils/validators.js';
 
@@ -223,6 +225,72 @@ export const updateCategory = async (req, res, next) => {
     // Update fields
     if (name) category.name = name;
     if (slug) category.slug = slug;
+    
+    // If deactivating category, notify affected users
+    if (typeof isActive === 'boolean' && isActive === false && category.isActive === true) {
+      // Find all products in this category
+      const products = await Product.find({ categoryId: categoryId }).populate('sellerId', 'email fullName');
+      
+      if (products.length > 0) {
+        console.log(`[CATEGORY CONTROLLER] Danh mục bị vô hiệu hóa, thông báo cho ${products.length} sellers`);
+        
+        // Get unique sellers
+        const sellers = [...new Map(products.map(p => [p.sellerId._id.toString(), p.sellerId])).values()];
+        
+        // Send email to sellers
+        for (const seller of sellers) {
+          if (seller && seller.email) {
+            try {
+              await sendEmail({
+                to: seller.email,
+                subject: `Thông báo: Danh mục "${category.name}" đã bị vô hiệu hóa`,
+                html: `
+                  <h2>Danh mục bị vô hiệu hóa</h2>
+                  <p>Xin chào ${seller.fullName || 'người dùng'},</p>
+                  <p>Danh mục <strong>"${category.name}"</strong> mà bạn có sản phẩm đang bán đã bị quản trị viên vô hiệu hóa.</p>
+                  <p>Sản phẩm của bạn vẫn tồn tại nhưng sẽ không hiển thị trong danh mục này nữa.</p>
+                  <p>Vui lòng liên hệ quản trị viên để biết thêm chi tiết.</p>
+                  <p>Trân trọng,<br/>Đội ngũ Auction Platform</p>
+                `
+              });
+            } catch (emailError) {
+              console.error(`Failed to send email to ${seller.email}:`, emailError);
+            }
+          }
+        }
+        
+        // Get all auctions for products in this category
+        const productIds = products.map(p => p._id);
+        const auctions = await Auction.find({ productId: { $in: productIds } });
+        const auctionIds = auctions.map(a => a._id);
+        
+        // Get all bidders
+        const bids = await Bid.find({ auctionId: { $in: auctionIds } }).populate('bidderId', 'email fullName');
+        const uniqueBidders = [...new Map(bids.map(b => [b.bidderId._id.toString(), b.bidderId])).values()];
+        
+        // Send email to bidders
+        for (const bidder of uniqueBidders) {
+          if (bidder && bidder.email) {
+            try {
+              await sendEmail({
+                to: bidder.email,
+                subject: `Thông báo: Danh mục "${category.name}" đã bị vô hiệu hóa`,
+                html: `
+                  <h2>Danh mục bị vô hiệu hóa</h2>
+                  <p>Xin chào ${bidder.fullName || 'người dùng'},</p>
+                  <p>Danh mục <strong>"${category.name}"</strong> có chứa sản phẩm mà bạn đang tham gia đấu giá đã bị quản trị viên vô hiệu hóa.</p>
+                  <p>Các cuộc đấu giá của bạn vẫn tiếp tục nhưng danh mục sẽ không hiển thị công khai.</p>
+                  <p>Trân trọng,<br/>Đội ngũ Auction Platform</p>
+                `
+              });
+            } catch (emailError) {
+              console.error(`Failed to send email to ${bidder.email}:`, emailError);
+            }
+          }
+        }
+      }
+    }
+    
     if (typeof isActive === 'boolean') category.isActive = isActive;
     category.updatedAt = Date.now();
 
@@ -245,13 +313,9 @@ export const updateCategory = async (req, res, next) => {
  * 
  * Logic:
  * 1. Kiểm tra danh mục có tồn tại không
- * 2. Tìm tất cả sản phẩm thuộc danh mục này
- * 3. Với mỗi sản phẩm, kiểm tra auction:
- *    - Nếu auction đang active (status = 'active') và có bids: KHÔNG XÓA
- *    - Nếu auction chưa có bids hoặc không active: XÓA
- * 4. Nếu có auction đang active với bids, trả về lỗi
- * 5. Xóa tất cả products và related data (auctions, bids, watchlists, questions)
- * 6. Xóa danh mục
+ * 2. Kiểm tra danh mục có sản phẩm không → nếu có thì throw error
+ * 3. Nếu là parent category, kiểm tra child categories có sản phẩm không
+ * 4. Xóa danh mục (chỉ nếu không có sản phẩm)
  */
 export const deleteCategory = async (req, res, next) => {
   try {
@@ -275,110 +339,35 @@ export const deleteCategory = async (req, res, next) => {
       throw new AppError('Không tìm thấy danh mục', 404, 'CATEGORY_NOT_FOUND');
     }
 
-    // Find all products in this category
-    const products = await Product.find({ categoryId: categoryId });
-    
-    if (products.length > 0) {
-      // Check each product's auction status
-      const productIds = products.map(p => p._id);
-      const auctions = await Auction.find({ productId: { $in: productIds } });
-
-      // Check for active auctions with bids
-      const activeAuctionsWithBids = [];
-      
-      for (const auction of auctions) {
-        if (auction.status === 'active' && auction.bidCount > 0) {
-          const product = products.find(p => p._id.toString() === auction.productId.toString());
-          activeAuctionsWithBids.push({
-            productId: auction.productId,
-            productTitle: product?.title || 'Unknown',
-            bidCount: auction.bidCount
-          });
-        }
-      }
-
-      // If there are active auctions with bids, cannot delete
-      if (activeAuctionsWithBids.length > 0) {
-        throw new AppError(
-          `Không thể xóa danh mục vì có ${activeAuctionsWithBids.length} sản phẩm đang được đấu giá với lượt đặt cược. Vui lòng chờ đấu giá kết thúc.`,
-          400,
-          'CATEGORY_HAS_ACTIVE_AUCTIONS',
-          { activeAuctions: activeAuctionsWithBids }
-        );
-      }
-
-
-      for (const product of products) {
-        const auction = auctions.find(a => a.productId.toString() === product._id.toString());
-        
-        const deletePromises = [];
-
-        // Delete auction and auto bids if exists
-        if (auction) {
-          deletePromises.push(Auction.findByIdAndDelete(auction._id));
-          deletePromises.push(AutoBid.deleteMany({ auctionId: auction._id }));
-        }
-
-        // Delete all related data
-        deletePromises.push(Bid.deleteMany({ productId: product._id }));
-        deletePromises.push(Watchlist.deleteMany({ productId: product._id }));
-        deletePromises.push(Question.deleteMany({ productId: product._id }));
-        deletePromises.push(Product.findByIdAndDelete(product._id));
-
-        await Promise.all(deletePromises);
-      }
+    // Check if category has products
+    const productCount = await Product.countDocuments({ categoryId: categoryId });
+    if (productCount > 0) {
+      throw new AppError(
+        `Không thể xóa danh mục "${category.name}" vì còn ${productCount} sản phẩm đang thuộc danh mục này`,
+        400,
+        'CATEGORY_HAS_PRODUCTS'
+      );
     }
 
-    // If this is a parent category (level 1), also delete child categories
+    // If this is a parent category (level 1), check child categories
     if (category.level === 1) {
       const childCategories = await Category.find({ parentId: categoryId });
       if (childCategories.length > 0) {
-        // Check if child categories have products with active auctions
+        // Check if any child category has products
         for (const childCat of childCategories) {
-          const childProducts = await Product.find({ categoryId: childCat._id });
-          if (childProducts.length > 0) {
-            const childProductIds = childProducts.map(p => p._id);
-            const childAuctions = await Auction.find({ 
-              productId: { $in: childProductIds },
-              status: 'active',
-              bidCount: { $gt: 0 }
-            });
-
-            if (childAuctions.length > 0) {
-              throw new AppError(
-                `Không thể xóa danh mục cha vì danh mục con "${childCat.name}" có sản phẩm đang được đấu giá`,
-                400,
-                'CHILD_CATEGORY_HAS_ACTIVE_AUCTIONS'
-              );
-            }
+          const childProductCount = await Product.countDocuments({ categoryId: childCat._id });
+          if (childProductCount > 0) {
+            throw new AppError(
+              `Không thể xóa danh mục cha "${category.name}" vì danh mục con "${childCat.name}" còn ${childProductCount} sản phẩm`,
+              400,
+              'CHILD_CATEGORY_HAS_PRODUCTS'
+            );
           }
         }
 
-        // Delete all child categories and their products
-        for (const childCat of childCategories) {
-          // Delete products in child category (same logic as above)
-          const childProducts = await Product.find({ categoryId: childCat._id });
-          for (const product of childProducts) {
-            const auction = await Auction.findOne({ productId: product._id });
-            const deletePromises = [];
-
-            if (auction) {
-              deletePromises.push(Auction.findByIdAndDelete(auction._id));
-              deletePromises.push(AutoBid.deleteMany({ auctionId: auction._id }));
-            }
-
-            deletePromises.push(Bid.deleteMany({ productId: product._id }));
-            deletePromises.push(Watchlist.deleteMany({ productId: product._id }));
-            deletePromises.push(Question.deleteMany({ productId: product._id }));
-            deletePromises.push(Product.findByIdAndDelete(product._id));
-
-            await Promise.all(deletePromises);
-          }
-
-          // Delete child category
-          await Category.findByIdAndDelete(childCat._id);
-        }
-
+        // Delete all child categories (they have no products)
+        await Category.deleteMany({ parentId: categoryId });
+        console.log(`[CATEGORY CONTROLLER] Đã xóa ${childCategories.length} danh mục con`);
       }
     }
 
@@ -391,8 +380,7 @@ export const deleteCategory = async (req, res, next) => {
       message: 'Xóa danh mục thành công',
       data: {
         categoryId: category._id,
-        name: category.name,
-        productsDeleted: products.length
+        name: category.name
       }
     });
   } catch (error) {

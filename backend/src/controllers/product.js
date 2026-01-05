@@ -246,24 +246,16 @@ export const deleteProduct = async (req, res, next) => {
     // Find associated auction
     const auction = await Auction.findOne({ productId: productId });
 
-    // Admin restrictions: cannot delete if auction is active or has bids
-    if (isAdmin && !isSeller && auction) {
-      if (auction.status === "active") {
-        throw new AppError(
-          "Không thể xóa sản phẩm có phiên đấu giá đang hoạt động. Vui lòng chờ đấu giá kết thúc.",
-          400,
-          "AUCTION_ACTIVE"
-        );
-      }
-
-      if (auction.bidCount > 0) {
-        throw new AppError(
-          `Không thể xóa sản phẩm có ${auction.bidCount} lượt đặt cược. Vui lòng chờ đấu giá kết thúc.`,
-          400,
-          "AUCTION_HAS_BIDS"
-        );
-      }
-    }
+    // Admin restrictions: cannot delete if auction is active (regardless of bid count)
+    // if (isAdmin && !isSeller && auction) {
+    //   if (auction.status === "active" || auction.status === "pending") {
+    //     throw new AppError(
+    //       "Admin không thể xóa sản phẩm đang có phiên đấu giá hoạt động. Chỉ người bán mới có quyền xóa sản phẩm của mình.",
+    //       403,
+    //       "ADMIN_CANNOT_DELETE_ACTIVE_PRODUCT"
+    //     );
+    //   }
+    // }
 
     // Get all bidders and send notifications (for seller deletion)
     let notifiedBidders = [];

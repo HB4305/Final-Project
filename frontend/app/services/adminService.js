@@ -21,10 +21,20 @@ const deleteUser = (userId) => {
   return api.delete(`/admin/users/${userId}`);
 };
 
+const getAutoExtendSettings = () => {
+  return api.get("/admin/settings/auto-extend");
+};
+
+const updateAutoExtendSettings = (settings) => {
+  return api.put("/admin/settings/auto-extend", settings);
+};
+
 export default {
     getAllUsers,
     getUpgradeRequests,
     approveUpgradeRequest,
     rejectUpgradeRequest,
     deleteUser,
+    getAutoExtendSettings,
+    updateAutoExtendSettings,
 };

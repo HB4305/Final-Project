@@ -20,6 +20,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from '../app/context/AuthContext';
 import categoryService from '../app/services/categoryService';
 import productService from '../app/services/productService';
+import adminService from '../app/services/adminService';
 import Navigation from './navigation';
 
 export default function ProductListingForm({ onSubmit, initialData = null }) {
@@ -31,6 +32,10 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [autoExtendSettings, setAutoExtendSettings] = useState({
+    autoExtendThreshold: 5,
+    autoExtendDuration: 10
+  });
 
   // Fetch categories from API
   useEffect(() => {
@@ -51,6 +56,22 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
       }
     };
     fetchCategories();
+  }, []);
+
+  // Fetch auto-extend settings
+  useEffect(() => {
+    const fetchAutoExtendSettings = async () => {
+      try {
+        const response = await adminService.getAutoExtendSettings();
+        if (response.data.success) {
+          setAutoExtendSettings(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching auto-extend settings:', error);
+        // Giữ giá trị mặc định nếu không lấy được
+      }
+    };
+    fetchAutoExtendSettings();
   }, []);
 
   const schema = z.object({
@@ -521,7 +542,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                      <span className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-6"></span>
                  </div>
                 <label htmlFor="autoExtend" className="text-sm font-medium text-gray-300 cursor-pointer select-none">
-                    Kích hoạt tự động gia hạn (thêm 10 phút nếu có bid phút chót)
+                    Kích hoạt tự động gia hạn (thêm {autoExtendSettings.autoExtendDuration} phút nếu có bid trong {autoExtendSettings.autoExtendThreshold} phút cuối)
                 </label>
             </div>
 

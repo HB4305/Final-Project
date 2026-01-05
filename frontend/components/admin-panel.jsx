@@ -8,6 +8,10 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
+  Settings,
+  Clock,
+  Timer,
+  Power,
 } from "lucide-react";
 import adminService from "../app/services/adminService";
 import Toast from "./Toast";
@@ -56,6 +60,17 @@ export default function AdminPanel() {
             <Shield className="w-5 h-5" />
             Yêu cầu nâng cấp
           </button>
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`flex items-center gap-2 px-4 py-3 font-medium border-b-2 transition ${
+              activeTab === "settings"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            Cài đặt
+          </button>
         </div>
 
         {/* Content */}
@@ -67,6 +82,7 @@ export default function AdminPanel() {
             />
           )}
           {activeTab === "upgrades" && <UpgradeRequests />}
+          {activeTab === "settings" && <SettingsManagement />}
         </div>
       </div>
     </div>
@@ -1144,6 +1160,191 @@ function UpgradeRequests() {
           </div>
         </div>
       )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Settings Management Sub-component
+function SettingsManagement() {
+  const [settings, setSettings] = useState({
+    autoExtendThreshold: 5,
+    autoExtendDuration: 10
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalSettings, setOriginalSettings] = useState(null);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      setLoading(true);
+      const response = await adminService.getAutoExtendSettings();
+      if (response.data.success) {
+        const data = response.data.data;
+        setSettings(data);
+        setOriginalSettings(data);
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      setToast({
+        type: "error",
+        message: "Không thể tải cài đặt"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (field, value) => {
+    const newSettings = { ...settings, [field]: value };
+    setSettings(newSettings);
+    
+    // Check if there are changes
+    const changed = JSON.stringify(newSettings) !== JSON.stringify(originalSettings);
+    setHasChanges(changed);
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const response = await adminService.updateAutoExtendSettings(settings);
+      if (response.data.success) {
+        setToast({
+          type: "success",
+          message: "Đã lưu cài đặt thành công"
+        });
+        setOriginalSettings(settings);
+        setHasChanges(false);
+      }
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      setToast({
+        type: "error",
+        message: error.response?.data?.message || "Không thể lưu cài đặt"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setSettings(originalSettings);
+    setHasChanges(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-950 to-indigo-950 rounded-lg px-4 py-3 border border-blue-700 inline-block">
+        <h2 className="text-xl font-bold text-white">Cài đặt tham số tự động gia hạn</h2>
+      </div>
+
+      {/* Settings Card */}
+      <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-sm">
+        <div className="p-6 space-y-6">
+
+          {/* Threshold Setting */}
+          <div className="space-y-3 bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-400" />
+              <label className="font-semibold text-gray-100">
+                Ngưỡng thời gian kích hoạt
+              </label>
+            </div>
+            <p className="text-sm text-gray-300 ml-7">
+              Nếu có bid mới trong khoảng X phút trước khi kết thúc, hệ thống sẽ tự động gia hạn (nếu seller đã bật)
+            </p>
+            <div className="ml-7 flex items-center gap-4">
+              <input
+                type="number"
+                min="1"
+                max="60"
+                value={settings.autoExtendThreshold}
+                onChange={(e) => handleChange('autoExtendThreshold', parseInt(e.target.value) || 5)}
+                className="w-24 px-4 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-900/50 text-white"
+              />
+              <span className="text-gray-200 font-medium">phút</span>
+              <span className="text-sm text-gray-400">
+                (Mặc định: 5 phút, giới hạn: 1-60)
+              </span>
+            </div>
+          </div>
+
+          {/* Duration Setting */}
+          <div className="space-y-3 bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+            <div className="flex items-center gap-2">
+              <Timer className="w-5 h-5 text-blue-400" />
+              <label className="font-semibold text-gray-100">
+                Thời gian gia hạn
+              </label>
+            </div>
+            <p className="text-sm text-gray-300 ml-7">
+              Số phút được thêm vào thời gian kết thúc khi có bid mới trong ngưỡng thời gian
+            </p>
+            <div className="ml-7 flex items-center gap-4">
+              <input
+                type="number"
+                min="1"
+                max="120"
+                value={settings.autoExtendDuration}
+                onChange={(e) => handleChange('autoExtendDuration', parseInt(e.target.value) || 10)}
+                className="w-24 px-4 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-900/50 text-white"
+              />
+              <span className="text-gray-200 font-medium">phút</span>
+              <span className="text-sm text-gray-400">
+                (Mặc định: 10 phút, giới hạn: 1-120)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="bg-gray-900 px-6 py-4 border-t border-gray-700 flex justify-end gap-3">
+          <button
+            onClick={handleReset}
+            disabled={!hasChanges || saving}
+            className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed text-gray-200"
+          >
+            Hủy thay đổi
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!hasChanges || saving}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {saving ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Đang lưu...
+              </>
+            ) : (
+              'Lưu cài đặt'
+            )}
+          </button>
+        </div>
+      </div>
 
       {/* Toast Notification */}
       {toast && (
