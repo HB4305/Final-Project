@@ -492,12 +492,15 @@ export class ProductService {
   }
 
   /**
-   * API 1.4: Full-text search sản phẩm (API nặng)
-   * Hỗ trợ:
-   * - Tìm kiếm theo tên sản phẩm
-   * - Lọc theo danh mục
+   * API 1.4: Full-text search sản phẩm (IMPROVED VERSION)
+   * Hỗ trợ tìm kiếm đa tiêu chí:
+   * - Tên sản phẩm (title)
+   * - Mô tả (description)
+   * - Tên danh mục (category name) ← MỚI
+   * - Metadata (brand, model, condition)
+   * - Lọc theo danh mục (bao gồm cả child categories)
    * - Lọc theo khoảng giá
-   * - Sắp xếp theo giá, thời gian kết thúc, số bids
+   * - Sắp xếp linh hoạt
    *
    * @param {String} searchQuery - Từ khóa tìm kiếm
    * @param {Object} filters - Các bộ lọc (categoryId, minPrice, maxPrice, sortBy)
@@ -506,33 +509,88 @@ export class ProductService {
    */
   async searchProducts(searchQuery, filters = {}, page = 1, limit = 12) {
     try {
-      console.log(`[PRODUCT SERVICE] Tìm kiếm sản phẩm: "${searchQuery}"`);
 
       const skip = (page - 1) * limit;
-      let query = { isActive: true };
+      const searchTerm = searchQuery?.trim();
 
-      // Full-text search - yêu cầu text index trên trường title
-      if (searchQuery && searchQuery.trim()) {
-        query.$text = { $search: searchQuery };
+      // 1. Resolve categoryIds (including children if parent category)
+      let categoryIds = [];
+      if (filters.categoryId && mongoose.Types.ObjectId.isValid(filters.categoryId)) {
+        const categoryObjId = new mongoose.Types.ObjectId(filters.categoryId);
+        const category = await Category.findById(categoryObjId);
+        
+        if (category) {
+          categoryIds = [categoryObjId];
+          // Nếu là parent category (level 1), lấy tất cả child categories
+          if (category.level === 1) {
+            const childCategories = await Category.find({ parentId: categoryObjId });
+            categoryIds = [...categoryIds, ...childCategories.map(c => c._id)];
+            console.log(`[PRODUCT SERVICE] 📦 Parent category "${category.name}" - Included ${childCategories.length} child categories`);
+          }
+        }
       }
 
-      // Lọc theo danh mục
-      if (filters.categoryId) {
-        query.categoryId = filters.categoryId;
+      // 2. Build initial match query
+      let initialMatch = { isActive: true };
+
+      // 3. Build regex pattern cho tiếng Việt
+      let searchPattern = null;
+      if (searchTerm) {
+        // Escape special regex characters và tách từ
+        const words = searchTerm.split(/\s+/);
+        searchPattern = words.map(word => 
+          word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        ).join('|'); // OR operator between words
+        
+        console.log(`[PRODUCT SERVICE] 🔎 Search pattern: /${searchPattern}/i`);
       }
 
-      // Xác định sắp xếp
+      // 4. Xác định sort order
       let sortQuery = { _id: -1 };
-      if (filters.sortBy === "price_asc")
-        sortQuery = { "auction.currentPrice": 1 };
-      if (filters.sortBy === "price_desc")
-        sortQuery = { "auction.currentPrice": -1 };
-      if (filters.sortBy === "ending_soon") sortQuery = { "auction.endAt": 1 };
-      if (filters.sortBy === "most_bids")
-        sortQuery = { "auction.bidCount": -1 };
+      
+      if (filters.sortBy === "price_asc") {
+        sortQuery = { "auction.currentPrice": 1, _id: -1 };
+      } else if (filters.sortBy === "price_desc") {
+        sortQuery = { "auction.currentPrice": -1, _id: -1 };
+      } else if (filters.sortBy === "ending_soon") {
+        sortQuery = { "auction.endAt": 1, _id: -1 };
+      } else if (filters.sortBy === "most_bids") {
+        sortQuery = { "auction.bidCount": -1, _id: -1 };
+      } else if (filters.sortBy === "newest") {
+        sortQuery = { "createdAt": -1, _id: -1 };
+      }
 
+      // 5. Build main aggregation pipeline
       const pipeline = [
-        { $match: query },
+        // Stage 1: Initial match (active products)
+        { $match: initialMatch },
+
+        // Stage 2: Lookup category ĐỂ TÌM KIẾM THEO TÊN DANH MỤC
+        {
+          $lookup: {
+            from: "categories",
+            localField: "categoryId",
+            foreignField: "_id",
+            as: "category"
+          }
+        },
+        { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+
+        // Stage 3: REGEX SEARCH cho title, description, category name, metadata
+        ...(searchPattern ? [{
+          $match: {
+            $or: [
+              { title: { $regex: searchPattern, $options: 'i' } },
+              { 'descriptionHistory.text': { $regex: searchPattern, $options: 'i' } },
+              { 'category.name': { $regex: searchPattern, $options: 'i' } }, // ← TÌM THEO TÊN DANH MỤC
+              { 'metadata.brand': { $regex: searchPattern, $options: 'i' } },
+              { 'metadata.model': { $regex: searchPattern, $options: 'i' } },
+              { 'metadata.condition': { $regex: searchPattern, $options: 'i' } }
+            ]
+          }
+        }] : []),
+
+        // Stage 4: Lookup auction
         {
           $lookup: {
             from: "auctions",
@@ -542,29 +600,35 @@ export class ProductService {
           },
         },
         { $unwind: "$auction" },
+        
+        // Stage 5: Match active auctions
         { $match: { "auction.status": "active" } },
 
-        // Lọc theo khoảng giá (nếu có)
-        ...(filters.minPrice || filters.maxPrice
-          ? [
-              {
-                $match: {
-                  ...(filters.minPrice && {
-                    "auction.currentPrice": { $gte: filters.minPrice },
-                  }),
-                  ...(filters.maxPrice && {
-                    "auction.currentPrice": { $lte: filters.maxPrice },
-                  }),
-                },
-              },
-            ]
-          : []),
+        // Stage 6: Filter by category (including children)
+        ...(categoryIds.length > 0 ? [{
+          $match: { categoryId: { $in: categoryIds } }
+        }] : []),
 
+        // Stage 7: Filter by price range
+        ...(filters.minPrice || filters.maxPrice ? [{
+          $match: {
+            ...(filters.minPrice && {
+              "auction.currentPrice": { $gte: parseInt(filters.minPrice) },
+            }),
+            ...(filters.maxPrice && {
+              "auction.currentPrice": { $lte: parseInt(filters.maxPrice) },
+            }),
+          },
+        }] : []),
+
+        // Stage 8: Sort
         { $sort: sortQuery },
-        { $skip: skip },
-        { $limit: limit },
 
-        // Lookup highest bidder username for this auction
+        // Stage 9: Pagination
+        { $skip: skip },
+        { $limit: parseInt(limit) },
+
+        // Stage 10: Lookup bidder & seller
         {
           $lookup: {
             from: "users",
@@ -573,7 +637,6 @@ export class ProductService {
             as: "auction_highestBidder",
           },
         },
-        // Lookup seller
         {
           $lookup: {
             from: "users",
@@ -589,11 +652,17 @@ export class ProductService {
           },
         },
 
+        // Stage 11: Project final fields
         {
           $project: {
             _id: 1,
             title: 1,
             primaryImageUrl: 1,
+            createdAt: 1,
+            category: {
+              _id: "$category._id",
+              name: "$category.name"
+            },
             auction: {
               _id: "$auction._id",
               currentPrice: "$auction.currentPrice",
@@ -623,19 +692,36 @@ export class ProductService {
                 ],
               },
             },
-            ...(searchQuery && { score: { $meta: "textScore" } }),
           },
         },
       ];
 
-      // Nếu có text search, sắp xếp lại theo relevance score
-      if (searchQuery && searchQuery.trim()) {
-        pipeline.push({ $sort: { score: -1 } });
-      }
-
-      // Đếm tổng số sản phẩm từ aggregation pipeline (để khớp với dữ liệu thực tế)
+      // 6. Count pipeline (khớp với main pipeline)
       const countPipeline = [
-        { $match: query },
+        { $match: initialMatch },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "categoryId",
+            foreignField: "_id",
+            as: "category"
+          }
+        },
+        { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+        
+        ...(searchPattern ? [{
+          $match: {
+            $or: [
+              { title: { $regex: searchPattern, $options: 'i' } },
+              { 'descriptionHistory.text': { $regex: searchPattern, $options: 'i' } },
+              { 'category.name': { $regex: searchPattern, $options: 'i' } },
+              { 'metadata.brand': { $regex: searchPattern, $options: 'i' } },
+              { 'metadata.model': { $regex: searchPattern, $options: 'i' } },
+              { 'metadata.condition': { $regex: searchPattern, $options: 'i' } }
+            ]
+          }
+        }] : []),
+
         {
           $lookup: {
             from: "auctions",
@@ -647,45 +733,61 @@ export class ProductService {
         { $unwind: "$auction" },
         { $match: { "auction.status": "active" } },
 
-        // Lọc theo khoảng giá (phải khớp với pipeline lấy dữ liệu)
-        ...(filters.minPrice || filters.maxPrice
-          ? [
-              {
-                $match: {
-                  ...(filters.minPrice && {
-                    "auction.currentPrice": { $gte: filters.minPrice },
-                  }),
-                  ...(filters.maxPrice && {
-                    "auction.currentPrice": { $lte: filters.maxPrice },
-                  }),
-                },
-              },
-            ]
-          : []),
+        ...(categoryIds.length > 0 ? [{
+          $match: { categoryId: { $in: categoryIds } }
+        }] : []),
+
+        ...(filters.minPrice || filters.maxPrice ? [{
+          $match: {
+            ...(filters.minPrice && {
+              "auction.currentPrice": { $gte: parseInt(filters.minPrice) },
+            }),
+            ...(filters.maxPrice && {
+              "auction.currentPrice": { $lte: parseInt(filters.maxPrice) },
+            }),
+          },
+        }] : []),
 
         { $count: "total" },
       ];
 
-      const products = await Product.aggregate(pipeline);
-      const totalResult = await Product.aggregate(countPipeline);
+      // 7. Execute pipelines
+      console.log(`[PRODUCT SERVICE] 🚀 Executing search aggregation...`);
+      const [products, totalResult] = await Promise.all([
+        Product.aggregate(pipeline),
+        Product.aggregate(countPipeline)
+      ]);
+
       const total = totalResult.length > 0 ? totalResult[0].total : 0;
 
-      console.log(
-        `[PRODUCT SERVICE] Tìm kiếm hoàn tất, tìm được ${products.length}/${total} kết quả`
-      );
+      console.log(`[PRODUCT SERVICE] ✅ Search complete: Found ${products.length}/${total} results`);
+      if (products.length > 0) {
+        console.log(`[PRODUCT SERVICE] 📝 Sample result:`, {
+          title: products[0].title,
+          category: products[0].category?.name
+        });
+      }
 
       return {
         data: products,
         pagination: {
-          page,
-          limit,
+          page: parseInt(page),
+          limit: parseInt(limit),
           total,
           pages: Math.ceil(total / limit),
         },
         query: searchQuery,
+        appliedFilters: {
+          categoryIds: categoryIds.map(id => id.toString()),
+          priceRange: {
+            min: filters.minPrice || null,
+            max: filters.maxPrice || null
+          },
+          sortBy: filters.sortBy || 'newest'
+        }
       };
     } catch (error) {
-      console.error("[PRODUCT SERVICE] Lỗi khi tìm kiếm sản phẩm:", error);
+      console.error("[PRODUCT SERVICE] ❌ Search error:", error);
       throw error;
     }
   }

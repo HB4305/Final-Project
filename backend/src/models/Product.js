@@ -125,8 +125,13 @@ const productSchema = new mongoose.Schema({
 // ========================================
 // INDEXES (Quan trọng cho performance)
 // ========================================
-// API 1.4: Text index cho full-text search
-productSchema.index({ title: 'text', 'metadata.brand': 'text' });
+// API 1.4: Text index cho full-text search - bao gồm title, brand, model, condition
+productSchema.index({ 
+  title: 'text', 
+  'metadata.brand': 'text',
+  'metadata.model': 'text',
+  'metadata.condition': 'text'
+});
 // API 1.3: Query theo danh mục + thời gian
 productSchema.index({ categoryId: 1, createdAt: -1 });
 // Lọc theo người bán
