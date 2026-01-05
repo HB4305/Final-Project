@@ -15,6 +15,8 @@ import Bid from "../models/Bid.js";
 import AutoBid from "../models/AutoBid.js";
 import Watchlist from "../models/Watchlist.js";
 import Question from "../models/Question.js";
+import RejectedBidder from "../models/RejectedBidder.js";
+import User from "../models/User.js";
 import {
   PRODUCT_VALIDATION,
   AUCTION_VALIDATION,
@@ -48,6 +50,11 @@ export const getAllProducts = async (req, res, next) => {
       limit = PAGINATION.DEFAULT_LIMIT,
       sortBy = "newest",
       status = AUCTION_STATUS.ACTIVE,
+      minPrice,
+      maxPrice,
+      categoryId,
+      search,
+      q
     } = req.query;
 
     // Validate sort options
@@ -75,11 +82,19 @@ export const getAllProducts = async (req, res, next) => {
       `[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}, status=${status}`
     );
 
+    const filters = {
+        minPrice, 
+        maxPrice, 
+        categoryId, 
+        search: search || q // Support both 'search' and 'q' params
+    };
+
     const result = await productService.getAllProducts(
       parseInt(page),
       parseInt(limit),
       sortBy,
-      status
+      status,
+      filters
     );
 
     res.status(200).json({
@@ -96,14 +111,123 @@ export const getAllProducts = async (req, res, next) => {
 };
 
 /**
- * API: Xóa sản phẩm (Admin only)
+ * API: Seller xóa sản phẩm của mình (gửi email cho bidders)
+ * DELETE /api/products/:productId/seller
+ * Seller có thể xóa sản phẩm của mình và gửi thông báo cho tất cả bidders
+ */
+export const sellerDeleteProduct = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.user._id;
+
+    // Validate productId
+    if (!isValidObjectId(productId)) {
+      throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
+    }
+
+    console.log(
+      `[PRODUCT CONTROLLER] DELETE /api/products/${productId}/seller - Seller: ${userId}`
+    );
+
+    // Find product
+    const product = await Product.findById(productId);
+    if (!product) {
+      throw new AppError("Không tìm thấy sản phẩm", 404, "PRODUCT_NOT_FOUND");
+    }
+
+    // Check if user is the seller
+    if (product.sellerId.toString() !== userId.toString()) {
+      throw new AppError("Bạn không có quyền xóa sản phẩm này", 403, "FORBIDDEN");
+    }
+
+    // Find associated auction
+    const auction = await Auction.findOne({ productId: productId });
+
+    // Get all bidders who participated
+    let bidders = [];
+    if (auction) {
+      const bids = await Bid.find({ auctionId: auction._id })
+        .populate('bidderId', 'email username fullName')
+        .lean();
+      
+      // Get unique bidders
+      const uniqueBidderIds = [...new Set(bids.map(bid => bid.bidderId._id.toString()))];
+      bidders = bids
+        .filter(bid => uniqueBidderIds.includes(bid.bidderId._id.toString()))
+        .map(bid => bid.bidderId)
+        .filter((bidder, index, self) => 
+          index === self.findIndex(b => b._id.toString() === bidder._id.toString())
+        );
+    }
+
+    // Delete all related data
+    const deletePromises = [];
+
+    if (auction) {
+      deletePromises.push(Auction.findByIdAndDelete(auction._id));
+      deletePromises.push(AutoBid.deleteMany({ auctionId: auction._id }));
+      deletePromises.push(Bid.deleteMany({ auctionId: auction._id }));
+      console.log(`[PRODUCT CONTROLLER] Xóa auction và related data: ${auction._id}`);
+    }
+
+    deletePromises.push(Watchlist.deleteMany({ productId: productId }));
+    deletePromises.push(Question.deleteMany({ productId: productId }));
+    deletePromises.push(Product.findByIdAndDelete(productId));
+
+    await Promise.all(deletePromises);
+
+    // Send email notifications to all bidders
+    if (bidders.length > 0) {
+      const { sendEmail } = await import('../utils/email.js');
+      const emailPromises = bidders.map(bidder => 
+        sendEmail({
+          to: bidder.email,
+          subject: `Thông báo: Sản phẩm "${product.title}" đã bị xóa`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #dc2626;">Sản phẩm đã bị người bán xóa</h2>
+              <p>Xin chào <strong>${bidder.fullName || bidder.username}</strong>,</p>
+              <p>Chúng tôi rất tiếc phải thông báo rằng sản phẩm <strong>"${product.title}"</strong> mà bạn đã tham gia đặt giá đã bị người bán xóa khỏi hệ thống.</p>
+              <div style="background-color: #fee2e2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; color: #991b1b;"><strong>Thông tin sản phẩm:</strong></p>
+                <p style="margin: 5px 0;">Tên sản phẩm: ${product.title}</p>
+                <p style="margin: 5px 0;">Giá khởi điểm: ${product.startPrice?.toLocaleString('vi-VN')} VND</p>
+              </div>
+              <p>Cuộc đấu giá đã bị hủy và tất cả các lượt đặt giá đã được xóa khỏi hệ thống.</p>
+              <p>Chúng tôi xin lỗi vì sự bất tiện này và mong bạn tiếp tục tham gia các cuộc đấu giá khác trên nền tảng của chúng tôi.</p>
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <p style="color: #6b7280; font-size: 12px;">Trân trọng,<br/>Đội ngũ Auction Platform</p>
+              </div>
+            </div>
+          `
+        }).catch(err => {
+          console.error(`Lỗi khi gửi email cho ${bidder.email}:`, err);
+        })
+      );
+
+      await Promise.all(emailPromises);
+      console.log(`[PRODUCT CONTROLLER] Đã gửi email thông báo cho ${bidders.length} bidder(s)`);
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: `Xóa sản phẩm thành công. Đã gửi thông báo cho ${bidders.length} người đặt giá.`,
+      data: {
+        productId,
+        notifiedBidders: bidders.length
+      },
+    });
+  } catch (error) {
+    console.error("[PRODUCT CONTROLLER] Lỗi trong sellerDeleteProduct:", error);
+    next(error);
+  }
+};
+
+/**
+ * API: Xóa sản phẩm
  * DELETE /api/products/:productId
- * Xóa sản phẩm và tất cả dữ liệu liên quan:
- * - Auction
- * - Bids
- * - AutoBids
- * - Watchlist entries
- * - Questions
+ * - Seller (owner): Có thể xóa bất kể trạng thái, gửi email thông báo cho bidders
+ * - Admin: Chỉ xóa được khi auction không active và không có bids
  */
 export const deleteProduct = async (req, res, next) => {
   try {
@@ -115,29 +239,29 @@ export const deleteProduct = async (req, res, next) => {
       throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
     }
 
-    console.log(
-      `[PRODUCT CONTROLLER] DELETE /api/products/${productId} - Admin: ${userId}`
-    );
-
     // Find product
     const product = await Product.findById(productId);
     if (!product) {
       throw new AppError("Không tìm thấy sản phẩm", 404, "PRODUCT_NOT_FOUND");
     }
 
-    // Only admin or superadmin can delete products
-    if (
-      !["admin", "superadmin"].some((role) => req.user.roles.includes(role))
-    ) {
-      throw new AppError("Bạn không có quyền xóa sản phẩm", 403, "FORBIDDEN");
+    // Check permissions: seller (owner) or admin
+    const isSeller = product.sellerId && product.sellerId.toString() === userId.toString();
+    const isAdmin = ["admin", "superadmin"].some((role) => req.user.roles.includes(role));
+
+    if (!isSeller && !isAdmin) {
+      throw new AppError("Bạn không có quyền xóa sản phẩm này", 403, "FORBIDDEN");
     }
+
+    console.log(
+      `[PRODUCT CONTROLLER] DELETE /api/products/${productId} - User: ${userId} (${isSeller ? 'Seller' : 'Admin'})`
+    );
 
     // Find associated auction
     const auction = await Auction.findOne({ productId: productId });
 
-    // Check if auction exists and has active bids
-    if (auction) {
-      // Cannot delete if auction is active
+    // Admin restrictions: cannot delete if auction is active or has bids
+    if (isAdmin && !isSeller && auction) {
       if (auction.status === "active") {
         throw new AppError(
           "Không thể xóa sản phẩm có phiên đấu giá đang hoạt động. Vui lòng chờ đấu giá kết thúc.",
@@ -146,7 +270,6 @@ export const deleteProduct = async (req, res, next) => {
         );
       }
 
-      // Cannot delete if auction has bids
       if (auction.bidCount > 0) {
         throw new AppError(
           `Không thể xóa sản phẩm có ${auction.bidCount} lượt đặt cược. Vui lòng chờ đấu giá kết thúc.`,
@@ -156,21 +279,62 @@ export const deleteProduct = async (req, res, next) => {
       }
     }
 
+    // Get all bidders and send notifications (for seller deletion)
+    let notifiedBidders = [];
+    if (isSeller && auction) {
+      const bids = await Bid.find({ 
+        auctionId: auction._id 
+      })
+      .populate('bidderId', 'email name')
+      .select('bidderId');
+
+      // Get unique bidders
+      const uniqueBidderIds = [...new Set(bids.map(b => b.bidderId?._id?.toString()).filter(Boolean))];
+      const uniqueBidders = bids
+        .filter((bid) => 
+          bid.bidderId && uniqueBidderIds.includes(bid.bidderId._id.toString())
+        )
+        .reduce((acc, bid) => {
+          if (!acc.find(b => b._id.toString() === bid.bidderId._id.toString())) {
+            acc.push(bid.bidderId);
+          }
+          return acc;
+        }, []);
+
+      notifiedBidders = uniqueBidders;
+
+      // Send email notifications to bidders
+      if (notifiedBidders.length > 0) {
+        const { sendEmail } = await import('../utils/email.js');
+        
+        for (const bidder of notifiedBidders) {
+          await sendEmail({
+            to: bidder.email,
+            subject: `Sản phẩm "${product.title}" đã bị xóa`,
+            html: `
+              <h2>Thông báo xóa sản phẩm</h2>
+              <p>Xin chào ${bidder.name},</p>
+              <p>Sản phẩm <strong>${product.title}</strong> mà bạn đã đặt giá đã bị người bán xóa.</p>
+              <p>Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>
+              <p>Trân trọng,<br/>Đội ngũ hỗ trợ</p>
+            `
+          });
+        }
+      }
+    }
+
     // Delete all related data
     const deletePromises = [];
 
     // Delete auction if exists
     if (auction) {
       deletePromises.push(Auction.findByIdAndDelete(auction._id));
-      // Delete all auto bids for this auction
       deletePromises.push(AutoBid.deleteMany({ auctionId: auction._id }));
+      deletePromises.push(Bid.deleteMany({ auctionId: auction._id }));
       console.log(
-        `[PRODUCT CONTROLLER] Xóa auction và auto bids: ${auction._id}`
+        `[PRODUCT CONTROLLER] Xóa auction, bids và auto bids: ${auction._id}`
       );
     }
-
-    // Delete all bids for this product
-    deletePromises.push(Bid.deleteMany({ productId: productId }));
 
     // Delete all watchlist entries for this product
     deletePromises.push(Watchlist.deleteMany({ productId: productId }));
@@ -178,26 +342,30 @@ export const deleteProduct = async (req, res, next) => {
     // Delete all questions for this product
     deletePromises.push(Question.deleteMany({ productId: productId }));
 
+    // Delete rejected bidders
+    deletePromises.push(RejectedBidder.deleteMany({ product: productId }));
+
     // Delete the product itself
     deletePromises.push(Product.findByIdAndDelete(productId));
 
-    // Execute all deletions
     await Promise.all(deletePromises);
 
     console.log(
-      `[PRODUCT CONTROLLER] Đã xóa sản phẩm và tất cả dữ liệu liên quan: ${productId}`
+      `[PRODUCT CONTROLLER] Đã xóa sản phẩm ${productId} và tất cả dữ liệu liên quan`
     );
 
     res.status(200).json({
-      success: true,
+      status: "success",
       message: "Xóa sản phẩm thành công",
       data: {
-        productId: product._id,
-        title: product.title,
+        productId,
+        productName: product.title,
+        deletedBy: isSeller ? 'seller' : 'admin',
+        notifiedBidders: notifiedBidders.length
       },
     });
   } catch (error) {
-    console.error("[PRODUCT CONTROLLER] Error in deleteProduct:", error);
+    console.error("[PRODUCT CONTROLLER] Lỗi trong deleteProduct:", error);
     next(error);
   }
 };
@@ -423,6 +591,35 @@ export const getProductDetail = async (req, res, next) => {
 };
 
 /**
+ * API: Lấy thông tin chi tiết đầy đủ của sản phẩm cho admin
+ * GET /api/products/:productId/admin-details
+ */
+export const getProductAdminDetails = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+
+    console.log(`[PRODUCT CONTROLLER] GET /api/products/${productId}/admin-details`);
+
+    // Validate productId
+    if (!isValidObjectId(productId)) {
+      throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
+    }
+
+    const result = await productService.getProductAdminDetails(productId);
+
+    res.status(200).json({
+      status: "success",
+      message: "Lấy chi tiết sản phẩm (admin) thành công",
+      data: result,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("[PRODUCT CONTROLLER] Lỗi trong getProductAdminDetails:", error);
+    next(error);
+  }
+};
+
+/**
  * ============================================
  * API 3.1: Đăng sản phẩm đấu giá
  * ============================================
@@ -448,8 +645,13 @@ export const postProduct = async (req, res) => {
     const uploadedFiles = req.files;
 
     console.log(
-      `[PRODUCT CONTROLLER] Số ảnh đã upload: ${uploadedFiles?.length || 0}`
+      `[PRODUCT CONTROLLER] Files uploaded:`,
+      uploadedFiles ? Object.keys(uploadedFiles) : 'none'
     );
+
+    // Lấy primaryImage và additional images
+    const primaryImageFile = uploadedFiles?.['primaryImage']?.[0];
+    const additionalImageFiles = uploadedFiles?.['images'] || [];
 
     // ========================================
     // 3. VALIDATE CÁC TRƯỜNG TEXT
@@ -684,29 +886,30 @@ export const postProduct = async (req, res) => {
     }
 
     // ========================================
-    // 6. XỬ LÝ ẢNH - Convert to Base64 và lưu vào MongoDB
+    // 6. XỬ LÝ ẢNH - Convert thành base64 URL và lưu vào MongoDB
     // ========================================
 
     let imageUrls;
     let primaryImageUrl;
 
     // Nếu có middleware upload
-    if (uploadedFiles && uploadedFiles.length > 0) {
+    if (primaryImageFile && additionalImageFiles.length > 0) {
       console.log(
-        `[PRODUCT CONTROLLER] Converting ${uploadedFiles.length} ảnh sang base64...`
+        `[PRODUCT CONTROLLER] Processing 1 primary + ${additionalImageFiles.length} additional images...`
       );
 
-      // Convert mỗi file buffer sang base64 data URI
-      imageUrls = uploadedFiles.map((file) => {
-        const b64 = Buffer.from(file.buffer).toString("base64");
-        return `data:${file.mimetype};base64,${b64}`;
+      // Convert primary image to base64
+      const primaryB64 = Buffer.from(primaryImageFile.buffer).toString('base64');
+      primaryImageUrl = "data:" + primaryImageFile.mimetype + ";base64," + primaryB64;
+      console.log(`[PRODUCT CONTROLLER] ✓ Primary image converted to base64`);
+
+      // Convert additional images to base64 URLs
+      imageUrls = additionalImageFiles.map((file) => {
+        const b64 = Buffer.from(file.buffer).toString('base64');
+        return "data:" + file.mimetype + ";base64," + b64;
       });
 
-      primaryImageUrl = imageUrls[0];
-
-      console.log(
-        `[PRODUCT CONTROLLER] ✓ Đã chuyển đổi ${imageUrls.length} ảnh sang base64`
-      );
+      console.log(`[PRODUCT CONTROLLER] ✓ Đã convert ${imageUrls.length} ảnh phụ sang base64`);
     }
     // Nếu không có middleware (test mode)
     else {
@@ -781,6 +984,12 @@ export const postProduct = async (req, res) => {
     // ========================================
     // 9. TẠO AUCTION SESSION
     // ========================================
+    
+    // Nếu auction bắt đầu trong vòng 1 phút (60 giây), coi như đấu giá ngay
+    // và set status = ACTIVE để hiển thị trên trang auction ngay lập tức
+    const timeUntilStart = startDate - now;
+    const isImmediateAuction = timeUntilStart <= 60000; // 60 seconds
+    
     const auctionData = {
       productId: savedProduct._id,
       sellerId,
@@ -789,8 +998,7 @@ export const postProduct = async (req, res) => {
       currentPrice: numStartPrice,
       startAt: startDate,
       endAt: endDate,
-      status:
-        startDate > now ? AUCTION_STATUS.SCHEDULED : AUCTION_STATUS.ACTIVE,
+      status: isImmediateAuction ? AUCTION_STATUS.ACTIVE : AUCTION_STATUS.SCHEDULED,
       bidCount: 0,
       autoExtendEnabled: true,
     };
@@ -810,7 +1018,7 @@ export const postProduct = async (req, res) => {
     // ========================================
     await savedProduct.populate("categoryId", "name slug");
 
-    const isTestMode = !uploadedFiles || uploadedFiles.length === 0;
+    const isTestMode = !primaryImageFile || additionalImageFiles.length === 0;
 
     return res.status(201).json({
       success: true,
@@ -1167,17 +1375,27 @@ export const rejectBidder = async (req, res, next) => {
     const result = await bidService.rejectBidder(
       productId,
       bidderId,
-      userId,
       reason
     );
 
     res.json({
       success: true,
       message: "Từ chối bidder thành công",
-      data: result,
+      data: {
+        rejection: result.rejection,
+        bidsRemoved: result.bidsRemoved,
+        newHighestBidder: result.newHighestBidder
+      },
     });
   } catch (error) {
     console.error("[PRODUCT CONTROLLER] Error in rejectBidder:", error);
+
+    if (error.code === 'BIDDER_ALREADY_REJECTED') {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Bidder này đã bị từ chối trước đó",
+      });
+    }
 
     if (error.message === "Auction not found") {
       return res.status(404).json({
@@ -1260,6 +1478,161 @@ export const withdrawBid = async (req, res, next) => {
       });
     }
 
+    next(error);
+  }
+};
+
+/**
+ * POST Approve First-Time Bidder
+ * POST /api/products/:productId/approve-bidder
+ * Auth: Seller (product owner)
+ */
+/**
+ * POST Toggle Bidder Approval Requirement
+ * POST /api/products/:productId/toggle-approval
+ * Auth: Seller (product owner)
+ */
+export const toggleBidderApproval = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.user._id;
+
+    // Validate
+    if (!isValidObjectId(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: "ID không hợp lệ"
+      });
+    }
+
+    // Find product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy sản phẩm"
+      });
+    }
+
+    // Check ownership
+    if (product.sellerId.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn không có quyền thay đổi cấu hình sản phẩm này"
+      });
+    }
+
+    // Toggle the approval requirement
+    product.requireBidderApproval = !product.requireBidderApproval;
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: product.requireBidderApproval 
+        ? "Đã bật yêu cầu phê duyệt bidder" 
+        : "Đã tắt yêu cầu phê duyệt bidder",
+      data: {
+        productId: product._id,
+        requireBidderApproval: product.requireBidderApproval
+      }
+    });
+
+  } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in toggleBidderApproval:', error);
+    next(error);
+  }
+};
+
+export const approveFirstTimeBidder = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const { bidderId } = req.body;
+    const userId = req.user._id;
+
+    // Validate
+    if (!isValidObjectId(productId) || !isValidObjectId(bidderId)) {
+      return res.status(400).json({
+        success: false,
+        message: "ID không hợp lệ"
+      });
+    }
+
+    // Find product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy sản phẩm"
+      });
+    }
+
+    // Check ownership
+    if (product.sellerId.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn không có quyền duyệt bidder cho sản phẩm này"
+      });
+    }
+
+    // Check if bidder exists
+    const bidder = await User.findById(bidderId);
+    if (!bidder) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy người dùng"
+      });
+    }
+
+    // Initialize approvedBidders array if not exists
+    if (!product.approvedBidders) {
+      product.approvedBidders = [];
+    }
+
+    // Check if already approved
+    if (product.approvedBidders.some(id => id.toString() === bidderId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Người dùng này đã được duyệt trước đó"
+      });
+    }
+
+    // Add to approved bidders
+    product.approvedBidders.push(bidderId);
+    await product.save();
+
+    // Send email notification
+    const { sendEmail } = await import('../utils/email.js');
+    await sendEmail({
+      to: bidder.email,
+      subject: `Bạn đã được duyệt tham gia đấu giá "${product.name}"`,
+      html: `
+        <h2>Chúc mừng! Bạn đã được duyệt</h2>
+        <p>Xin chào ${bidder.name},</p>
+        <p>Bạn đã được người bán duyệt để tham gia đấu giá sản phẩm <strong>${product.name}</strong>.</p>
+        <p>Giờ đây bạn có thể đặt giá cho sản phẩm này.</p>
+        <p>Chúc bạn may mắn!</p>
+        <p>Trân trọng,<br/>Đội ngũ hỗ trợ</p>
+      `
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Đã duyệt bidder thành công",
+      data: {
+        product: {
+          id: product._id,
+          name: product.name
+        },
+        approvedBidder: {
+          id: bidder._id,
+          name: bidder.name,
+          email: bidder.email
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('[PRODUCT CONTROLLER] Error in approveFirstTimeBidder:', error);
     next(error);
   }
 };

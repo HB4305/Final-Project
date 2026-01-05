@@ -30,13 +30,13 @@ export const getUserWatchlist = async (req, res, next) => {
       Watchlist.countDocuments({ userId: req.user._id }),
     ]);
 
-    // Filter out any watchlist items where product was deleted
-    const validItems = watchlistItems.filter((item) => item.productId);
+    // Do NOT filter out orphans. Frontend needs to handle them (show as unavailable).
+    // const validItems = watchlistItems.filter((item) => item.productId);
 
     res.status(200).json({
       status: "success",
       data: {
-        watchlist: validItems,
+        watchlist: watchlistItems, // Return all items
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -93,14 +93,18 @@ export const addToWatchlist = async (req, res, next) => {
 /**
  * DELETE /api/watchlist/:productId
  * Xoá sản phẩm khỏi danh sách yêu thích
+ * Supports deleting by ProductID or WatchlistID (for orphans)
  */
 export const removeFromWatchlist = async (req, res, next) => {
   try {
-    const { productId } = req.params;
+    const { productId } = req.params; // This might be productId OR watchlistItemId
 
     const result = await Watchlist.findOneAndDelete({
       userId: req.user._id,
-      productId,
+      $or: [
+        { productId: productId },
+        { _id: productId }
+      ]
     });
 
     if (!result) {

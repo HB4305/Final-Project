@@ -3,6 +3,16 @@
 import api from "./api";
 
 /**
+ * Lấy danh sách đấu giá (public)
+ * @param {Object} params - { page, limit, status, sort }
+ * @returns {Promise}
+ */
+export const getAuctions = async (params = {}) => {
+  const response = await api.get("/auctions", { params });
+  return response;
+};
+
+/**
  * Lấy danh sách sản phẩm đang tham gia đấu giá
  * @param {Object} params - { page, limit }
  * @returns {Promise}
@@ -42,11 +52,34 @@ export const getSoldAuctions = async (params = {}) => {
   return response.data;
 };
 
+/**
+ * Lấy danh sách sản phẩm có giá cao nhất
+ * @param {Object} params - { limit }
+ * @returns {Promise}
+ */
+export const getHighestPriceAuctions = async (params = {}) => {
+  const response = await api.get("/auctions/highest-price", { params });
+  return response.data;
+};
+
+/**
+ * Lấy danh sách sản phẩm có lượt xem cao nhất
+ * @param {Object} params - { limit }
+ * @returns {Promise}
+ */
+export const getMostViewedAuctions = async (params = {}) => {
+  const response = await api.get("/auctions/most-viewed", { params });
+  return response.data;
+};
+
 const auctionService = {
+  getAuctions,
   getParticipatingAuctions,
   getWonAuctions,
   getSellingAuctions,
   getSoldAuctions,
+  getHighestPriceAuctions,
+  getMostViewedAuctions,
 };
 
 export default auctionService;

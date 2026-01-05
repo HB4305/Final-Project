@@ -138,6 +138,31 @@ export const submitUpgradeRequest = async (req, res, next) => {
       });
     }
 
+    // Check if user has recently rejected request (within 3 days)
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const recentRejectedRequest = await UpgradeRequest.findOne({
+      user: userId,
+      status: 'rejected',
+      reviewedAt: { $gte: threeDaysAgo }
+    }).sort({ reviewedAt: -1 });
+
+    if (recentRejectedRequest) {
+      const nextAllowedDate = new Date(recentRejectedRequest.reviewedAt);
+      nextAllowedDate.setDate(nextAllowedDate.getDate() + 3);
+      
+      return res.status(400).json({
+        success: false,
+        message: 'You can only submit a new request 3 days after rejection',
+        data: {
+          lastRejectedAt: recentRejectedRequest.reviewedAt,
+          nextAllowedDate: nextAllowedDate,
+          reviewNote: recentRejectedRequest.reviewNote
+        }
+      });
+    }
+
     // Create new upgrade request
     const upgradeRequest = new UpgradeRequest({
       user: userId,

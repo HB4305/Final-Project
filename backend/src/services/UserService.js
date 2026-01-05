@@ -11,18 +11,41 @@ export class UserService {
    * @param {string} userId - ID của user
    * @returns {Object} Rating summary
    */
+  /**
+   * Resolve user ID from ID or Username
+   * @private
+   */
+  async _resolveUserId(idOrUsername) {
+    let query = {};
+    const mongoose = (await import("mongoose")).default;
+    
+    if (mongoose.Types.ObjectId.isValid(idOrUsername)) {
+        query = { _id: idOrUsername };
+    } else {
+        query = { username: idOrUsername };
+    }
+
+    const user = await User.findOne(query).select("_id");
+    if (!user) {
+         throw new AppError(
+            "Người dùng không tồn tại",
+            404,
+            ERROR_CODES.USER_NOT_FOUND
+          );
+    }
+    return user._id;
+  }
+
+  /**
+   * Lấy thông tin tổng quan đánh giá của user
+   * @param {string} userId - ID hoặc username của user
+   * @returns {Object} Rating summary
+   */
   async getUserRatingSummary(userId) {
-    const user = await User.findById(userId).select(
+    const resolvedId = await this._resolveUserId(userId);
+    const user = await User.findById(resolvedId).select(
       "ratingSummary username fullName"
     );
-
-    if (!user) {
-      throw new AppError(
-        "Người dùng không tồn tại",
-        404,
-        ERROR_CODES.USER_NOT_FOUND
-      );
-    }
 
     return {
       userId: user._id,
@@ -34,26 +57,17 @@ export class UserService {
 
   /**
    * Lấy danh sách đánh giá chi tiết của user
-   * @param {string} userId - ID của user
+   * @param {string} userId - ID hoặc username của user
    * @param {Object} options - { page, limit, context }
    * @returns {Object} { ratings, pagination }
    */
   async getUserRatings(userId, options = {}) {
+    const resolvedId = await this._resolveUserId(userId);
     const { page = 1, limit = 10, context } = options;
     const skip = (page - 1) * limit;
 
-    // Kiểm tra user tồn tại
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new AppError(
-        "Người dùng không tồn tại",
-        404,
-        ERROR_CODES.USER_NOT_FOUND
-      );
-    }
-
     // Build query
-    const query = { rateeId: userId };
+    const query = { rateeId: resolvedId };
     if (context) {
       query.context = context;
     }
@@ -83,22 +97,15 @@ export class UserService {
 
   /**
    * Lấy thông tin profile đầy đủ của user (bao gồm ratings)
-   * @param {string} userId - ID của user
+   * @param {string} userId - ID hoặc username của user
    * @returns {Object} Full profile info
    */
   async getUserProfile(userId) {
-    const user = await User.findById(userId).select("-passwordHash -otp");
-
-    if (!user) {
-      throw new AppError(
-        "Người dùng không tồn tại",
-        404,
-        ERROR_CODES.USER_NOT_FOUND
-      );
-    }
+    const resolvedId = await this._resolveUserId(userId);
+    const user = await User.findById(resolvedId).select("-passwordHash -otp");
 
     // Lấy một số ratings gần nhất
-    const recentRatings = await Rating.find({ rateeId: userId })
+    const recentRatings = await Rating.find({ rateeId: resolvedId })
       .sort({ createdAt: -1 })
       .limit(5)
       .populate("raterId", "username fullName profileImageUrl")

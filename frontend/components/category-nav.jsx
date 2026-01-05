@@ -11,6 +11,12 @@ export default function CategoryNav() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef(null);
 
+  // Drag to scroll logic state
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const sliderRef = useRef(null);
+
   // Fetch categories từ API
   useEffect(() => {
     const fetchCategories = async () => {
@@ -85,17 +91,46 @@ export default function CategoryNav() {
 
   const activeCategory = categories.find((c) => c._id === openDropdown);
 
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - sliderRef.current.offsetLeft);
+    setScrollLeft(sliderRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - sliderRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Scroll-fast
+    sliderRef.current.scrollLeft = scrollLeft - walk;
+  };
+
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 py-2" ref={dropdownRef}>
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div 
+          ref={sliderRef}
+          className="flex gap-2 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing select-none"
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+        >
           {/* Link tất cả sản phẩm */}
           <Link
             to="/products"
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all duration-300 whitespace-nowrap shrink-0 group border border-white/10 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-blue-100/50 dark:bg-white/5 border border-blue-200 dark:border-white/10 hover:bg-blue-200 dark:hover:bg-blue-500/10 hover:border-blue-300 dark:hover:border-blue-500/30 transition-all duration-300 whitespace-nowrap shrink-0 group hover:shadow-lg"
           >
-            <Grid3X3 className="w-5 h-5 text-blue-400 group-hover:text-blue-300 transition-colors" />
-            <span className="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">Tất cả</span>
+            <Grid3X3 className="w-5 h-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors" />
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-blue-700 dark:group-hover:text-white transition-colors">Tất cả</span>
           </Link>
 
           {/* Categories với dropdown */}
@@ -105,8 +140,8 @@ export default function CategoryNav() {
                 onClick={(e) => handleToggleDropdown(e, cat._id)}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all duration-300 whitespace-nowrap shrink-0 border group ${
                   openDropdown === cat._id
-                    ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-105"
-                    : "bg-white/5 border-white/10 text-gray-300 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-white hover:shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+                    ? "bg-blue-600 border-blue-400 text-white shadow-lg scale-105"
+                    : "bg-blue-50/50 dark:bg-white/5 border-blue-100 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-500/10 hover:border-blue-200 dark:hover:border-blue-500/30 hover:text-blue-700 dark:hover:text-white"
                 }`}
               >
                 <Tag className="w-4 h-4" />

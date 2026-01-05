@@ -1,7 +1,8 @@
 import { History } from 'lucide-react';
 import { formatDateTime } from './utils';
+import RejectBidder from '../../../components/reject-bidder';
 
-export default function DescriptionTab({ description, descriptionHistory = [], bidHistory = [] }) {
+export default function DescriptionTab({ description, descriptionHistory = [], bidHistory = [], productId, isSeller, onReject }) {
   // Get current description - either from description prop or latest from history
   const currentDescription = description || 
     (descriptionHistory.length > 0 ? descriptionHistory[descriptionHistory.length - 1]?.text : null);
@@ -83,19 +84,34 @@ export default function DescriptionTab({ description, descriptionHistory = [], b
                 {/* Bid Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="font-semibold">
-                        {bid.username || `Người dùng ${bid.userId}`}
+                        {bid.bidderUsername || bid.username || `Người dùng ${bid.bidderId}`}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {formatDateTime(bid.createdAt)}
                       </p>
                     </div>
-                    <p className={`font-bold text-lg shrink-0 ${
-                      index === 0 ? 'text-primary' : 'text-foreground'
-                    }`}>
-                      {(bid.amount || 0).toLocaleString('vi-VN')} ₫
-                    </p>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <p className={`font-bold text-lg ${
+                        index === 0 ? 'text-primary' : 'text-foreground'
+                      }`}>
+                        {(bid.amount || 0).toLocaleString('vi-VN')} ₫
+                      </p>
+                      
+                      {/* Reject Button - Only visible to seller */}
+                      {isSeller && productId && bid.bidderId && (
+                        <RejectBidder
+                          productId={productId}
+                          bidder={{
+                            _id: bid.bidderId,
+                            username: bid.bidderUsername || bid.username,
+                            currentBid: bid.amount
+                          }}
+                          onReject={onReject}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

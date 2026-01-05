@@ -73,8 +73,8 @@ export default function UpgradeRequest({
   // Show loading state
   if (isLoading || !currentUser) {
     return (
-      <div className="bg-background border border-border rounded-lg p-6 mb-8 text-center">
-        <p className="text-muted-foreground">Đang tải dữ liệu người dùng...</p>
+      <div className="bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-lg p-6 mb-8 text-center">
+        <p className="text-gray-400">Đang tải dữ liệu người dùng...</p>
       </div>
     );
   }
@@ -102,78 +102,78 @@ export default function UpgradeRequest({
   // If user is already a seller, show seller status component
   if (isSeller) {
     return (
-      <div className="bg-background border border-border rounded-lg mb-8">
+      <div className="bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-lg mb-8 shadow-xl">
         {/* Dropdown Header */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between p-6 hover:bg-muted/50 transition rounded-lg"
+          className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition rounded-lg"
         >
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6 text-green-600" />
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full flex items-center justify-center border border-green-500/30">
+              <ShieldCheck className="w-6 h-6 text-green-400" />
             </div>
             <div className="text-left">
-              <h3 className="text-xl font-bold text-green-800">Verified Seller Status</h3>
-              <p className="text-sm text-green-600">Click to view seller benefits and dashboard</p>
+              <h3 className="text-xl font-bold text-green-400">Người bán được xác thực</h3>
+              <p className="text-sm text-green-300/70">Nhấp để xem các lợi ích của người bán</p>
             </div>
           </div>
           <ChevronDown
-            className={`w-6 h-6 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+            className={`w-6 h-6 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
               }`}
           />
         </button>
 
         {/* Collapsible Content */}
         {isExpanded && (
-          <div className="px-6 pb-6 border-t border-border pt-6">
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
-              <p className="text-green-700 mb-6 text-center">
-                Congratulations! You have full seller privileges on our platform.
+          <div className="px-6 pb-6 border-t border-white/10 pt-6">
+            <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-6">
+              <p className="text-green-300 mb-6 text-center">
+                Xin chúc mừng! Bạn hiện là một người bán được xác thực trên nền tảng của chúng tôi. Bạn có thể tận hưởng tất cả các lợi ích và tính năng dành riêng cho người bán.
               </p>
 
               {/* Seller Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="p-4 bg-white rounded-lg shadow-sm">
-                  <p className="text-2xl font-bold text-green-600">{currentUser.ratingSummary?.score}</p>
-                  <p className="text-xs text-gray-600">Your Rating</p>
+                <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-sm">
+                  <p className="text-2xl font-bold text-green-400">{currentUser.ratingSummary?.score}</p>
+                  <p className="text-xs text-gray-400">Điểm đánh giá</p>
                 </div>
-                <div className="p-4 bg-white rounded-lg shadow-sm">
-                  <p className="text-2xl font-bold text-green-600">
+                <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-sm">
+                  <p className="text-2xl font-bold text-green-400">
                     {currentUser.ratingSummary?.totalCount}
                   </p>
-                  <p className="text-xs text-gray-600">Total Ratings</p>
+                  <p className="text-xs text-gray-400">Tổng số đánh giá</p>
                 </div>
-                <div className="p-4 bg-white rounded-lg shadow-sm">
-                  <p className="text-2xl font-bold text-green-600">
+                <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg shadow-sm">
+                  <p className="text-2xl font-bold text-green-400">
                     {currentUser.ratingSummary.countPositive}
                   </p>
-                  <p className="text-xs text-gray-600">Positive</p>
+                  <p className="text-xs text-gray-400">Tích cực</p>
                 </div>
               </div>
 
               {/* Active Benefits */}
-              <div className="p-6 bg-white border border-green-200 rounded-lg mb-6">
-                <h4 className="font-semibold text-green-900 mb-4 text-center">Your Active Seller Benefits</h4>
-                <ul className="space-y-3 text-sm text-gray-700">
+              <div className="p-6 bg-slate-800/50 backdrop-blur-sm border border-green-500/30 rounded-lg mb-6">
+                <h4 className="font-semibold text-green-400 mb-4 text-center">Lợi ích người bán</h4>
+                <ul className="space-y-3 text-sm text-gray-300">
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>List unlimited items for auction</span>
+                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-400" />
+                    <span>Liệt kê số lượng sản phẩm không giới hạn để đấu giá</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>Access to seller dashboard and analytics</span>
+                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-400" />
+                    <span>Truy cập bảng điều khiển và phân tích người bán</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>Manage bids and communicate with buyers</span>
+                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-400" />
+                    <span>Quản lý các đấu giá và giao tiếp với người mua</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>Verified seller badge on all your listings</span>
+                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-400" />
+                    <span>Huy hiệu người bán được xác thực trên tất cả các danh sách của bạn</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-600" />
-                    <span>Priority customer support</span>
+                    <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-green-400" />
+                    <span>Hỗ trợ khách hàng ưu tiên</span>
                   </li>
                 </ul>
               </div>
@@ -187,58 +187,58 @@ export default function UpgradeRequest({
 
   if (isSubmitted) {
     return (
-      <div className="bg-background border border-border rounded-lg mb-8">
+      <div className="bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-lg mb-8 shadow-xl">
         {/* Dropdown Header */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between p-6 hover:bg-muted/50 transition rounded-lg"
+          className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition rounded-lg"
         >
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${requestStatus === 'pending' ? 'bg-yellow-100' :
-              requestStatus === 'approved' ? 'bg-green-100' : 'bg-red-100'
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center border ${requestStatus === 'pending' ? 'bg-yellow-500/20 border-yellow-500/30' :
+              requestStatus === 'approved' ? 'bg-green-500/20 border-green-500/30' : 'bg-red-500/20 border-red-500/30'
               }`}>
-              {requestStatus === 'pending' && <AlertCircle className="w-6 h-6 text-yellow-600" />}
-              {requestStatus === 'approved' && <CheckCircle className="w-6 h-6 text-green-600" />}
-              {requestStatus === 'rejected' && <AlertCircle className="w-6 h-6 text-red-600" />}
+              {requestStatus === 'pending' && <AlertCircle className="w-6 h-6 text-yellow-400" />}
+              {requestStatus === 'approved' && <CheckCircle className="w-6 h-6 text-green-400" />}
+              {requestStatus === 'rejected' && <AlertCircle className="w-6 h-6 text-red-400" />}
             </div>
             <div className="text-left">
-              <h3 className={`text-xl font-bold ${requestStatus === 'pending' ? 'text-yellow-800' :
-                requestStatus === 'approved' ? 'text-green-800' : 'text-red-800'
+              <h3 className={`text-xl font-bold ${requestStatus === 'pending' ? 'text-yellow-400' :
+                requestStatus === 'approved' ? 'text-green-400' : 'text-red-400'
                 }`}>
-                {requestStatus === 'pending' && 'Upgrade Request Pending'}
-                {requestStatus === 'approved' && 'Upgrade Request Approved'}
-                {requestStatus === 'rejected' && 'Upgrade Request Rejected'}
+                {requestStatus === 'pending' && 'Yêu cầu đang chờ xử lý'}
+                {requestStatus === 'approved' && 'Yêu cầu đã được chấp thuận'}
+                {requestStatus === 'rejected' && 'Yêu cầu bị từ chối'}
               </h3>
-              <p className={`text-sm ${requestStatus === 'pending' ? 'text-yellow-600' :
-                requestStatus === 'approved' ? 'text-green-600' : 'text-red-600'
+              <p className={`text-sm ${requestStatus === 'pending' ? 'text-yellow-300/70' :
+                requestStatus === 'approved' ? 'text-green-300/70' : 'text-red-300/70'
                 }`}>
-                Click to view details
+                Nhấp để xem chi tiết
               </p>
             </div>
           </div>
           <ChevronDown
-            className={`w-6 h-6 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+            className={`w-6 h-6 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
               }`}
           />
         </button>
 
         {/* Collapsible Content */}
         {isExpanded && (
-          <div className="px-6 pb-6 border-t border-border pt-6">
+          <div className="px-6 pb-6 border-t border-white/10 pt-6">
             {requestStatus === 'pending' && (
               <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Request Submitted</h2>
-                <p className="text-muted-foreground mb-6">
-                  Your seller upgrade request has been submitted successfully.
-                  Our admin team will review it within 7 days.
+                <h2 className="text-2xl font-bold mb-2 text-white">Yêu cầu đã được gửi</h2>
+                <p className="text-gray-400 mb-6">
+                  Yêu cầu nâng cấp người bán của bạn đã được gửi thành công.
+                  Nhóm quản trị của chúng tôi sẽ xem xét trong vòng 7 ngày.
                 </p>
 
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
-                  <h3 className="font-semibold mb-2">What happens next?</h3>
-                  <ul className="text-sm text-muted-foreground space-y-2">
-                    <li>✓ Admin will review your profile and bidding history</li>
-                    <li>✓ If approved, seller features will be activated immediately</li>
-                    <li>✓ Review typically takes 3-7 business days</li>
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg text-left">
+                  <h3 className="font-semibold mb-2 text-blue-400">Tiếp theo sẽ xảy ra gì?</h3>
+                  <ul className="text-sm text-gray-400 space-y-2">
+                    <li>Quản trị viên sẽ xem xét hồ sơ và lịch sử đấu giá của bạn</li>
+                    <li>Nếu được chấp thuận, các tính năng người bán sẽ được kích hoạt ngay lập tức</li>
+                    <li>Quá trình xem xét thường mất từ 3-7 ngày làm việc</li>
                   </ul>
                 </div>
               </div>
@@ -246,13 +246,13 @@ export default function UpgradeRequest({
 
             {requestStatus === 'approved' && (
               <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2 text-green-700">Request Approved!</h2>
-                <p className="text-muted-foreground mb-6">
-                  Congratulations! You are now a verified seller on our platform.
+                <h2 className="text-2xl font-bold mb-2 text-green-400">Yêu cầu đã được chấp thuận!</h2>
+                <p className="text-gray-400 mb-6">
+                  Chúc mừng! Bạn hiện là người bán được xác minh trên nền tảng của chúng tôi.
                 </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-blue-900 mb-3">
-                    <strong>Important:</strong> To access seller features, please refresh your session.
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-blue-300 mb-3">
+                    <strong>Quan trọng:</strong> Để truy cập các tính năng người bán, vui lòng làm mới phiên của bạn.
                   </p>
                   <button 
                     onClick={async () => {
@@ -267,10 +267,10 @@ export default function UpgradeRequest({
                       }
                     }}
                     disabled={isRefreshing}
-                    className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition font-semibold mx-auto disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                   >
                     <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    {isRefreshing ? 'Refreshing...' : 'Refresh & Start Selling'}
+                    {isRefreshing ? 'Đang làm mới...' : 'Làm mới & Bắt đầu bán'}
                   </button>
                 </div>
               </div>
@@ -278,14 +278,14 @@ export default function UpgradeRequest({
 
             {requestStatus === 'rejected' && (
               <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2 text-red-700">Request Denied</h2>
-                <p className="text-muted-foreground mb-6">
-                  Unfortunately, your seller upgrade request was not approved at this time.
+                <h2 className="text-2xl font-bold mb-2 text-red-400">Yêu cầu bị từ chối</h2>
+                <p className="text-gray-400 mb-6">
+                  Rất tiếc, yêu cầu nâng cấp người bán của bạn không được chấp thuận vào thời điểm này.
                 </p>
                 {existingRequest?.rejectionReason && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-left mb-4">
-                    <p className="text-sm font-semibold text-red-900 mb-1">Reason:</p>
-                    <p className="text-sm text-red-800">{existingRequest.rejectionReason}</p>
+                  <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-left mb-4">
+                    <p className="text-sm font-semibold text-red-400 mb-1">Lý do:</p>
+                    <p className="text-sm text-red-300">{existingRequest.rejectionReason}</p>
                   </div>
                 )}
               </div>
@@ -297,49 +297,49 @@ export default function UpgradeRequest({
   }
 
   return (
-    <div className="bg-background border border-border rounded-lg mb-8">
+    <div className="bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-lg mb-8 shadow-xl">
       {/* Dropdown Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-6 hover:bg-muted/50 transition rounded-lg"
+        className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition rounded-lg"
       >
         <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isEligible ? 'bg-primary/10' : 'bg-red-100'
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center border ${isEligible ? 'bg-blue-500/20 border-blue-500/30' : 'bg-red-500/20 border-red-500/30'
             }`}>
             {isEligible ? (
-              <ShieldCheck className="w-6 h-6 text-primary" />
+              <ShieldCheck className="w-6 h-6 text-blue-400" />
             ) : (
-              <AlertCircle className="w-6 h-6 text-red-600" />
+              <AlertCircle className="w-6 h-6 text-red-400" />
             )}
           </div>
           <div className="text-left">
-            <h3 className="text-xl font-bold">
-              {isEligible ? 'Upgrade to Seller' : 'Seller Upgrade (Not Eligible)'}
+            <h3 className="text-xl font-bold text-white">
+              {isEligible ? 'Nâng cấp lên Người bán' : 'Nâng cấp Người bán (Chưa đủ điều kiện)'}
             </h3>
-            <p className={`text-sm ${isEligible ? 'text-primary' : 'text-red-600'}`}>
-              {isEligible ? 'Click to submit upgrade request' : 'Click to view requirements'}
+            <p className={`text-sm ${isEligible ? 'text-blue-300/70' : 'text-red-300/70'}`}>
+              {isEligible ? 'Nhấp để gửi yêu cầu nâng cấp' : 'Nhấp để xem yêu cầu'}
             </p>
           </div>
         </div>
         <ChevronDown
-          className={`w-6 h-6 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+          className={`w-6 h-6 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
             }`}
         />
       </button>
 
       {/* Collapsible Content */}
       {isExpanded && (
-        <div className="px-6 pb-6 border-t border-border pt-6">
+        <div className="px-6 pb-6 border-t border-white/10 pt-6">
           {/* Eligibility Check */}
           {!isEligible ? (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg mb-6">
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-red-900 mb-1">Not Eligible</p>
-                  <p className="text-sm text-red-800">
-                    You need at least 80% positive ratings to become a seller.
-                    Current rating: {currentUser.ratingSummary?.totalCount > 0 ? ((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(1) : "0.0"}%
+                  <p className="font-semibold text-red-400 mb-1">Không đủ điều kiện</p>
+                  <p className="text-sm text-red-300">
+                    Bạn cần ít nhất 80% đánh giá tích cực để trở thành người bán.
+                    Đánh giá hiện tại: {currentUser.ratingSummary?.totalCount > 0 ? ((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(1) : "0.0"}%
                   </p>
                 </div>
               </div>
@@ -348,43 +348,43 @@ export default function UpgradeRequest({
             <>
               {/* User Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-2xl font-bold text-primary">{currentUser.rating || 0}</p>
-                  <p className="text-xs text-muted-foreground">Rating</p>
+                <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-blue-400">{currentUser.rating || 0}</p>
+                  <p className="text-xs text-gray-400">Đánh giá</p>
                 </div>
-                <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-2xl font-bold text-primary">{currentUser.totalBids || 0}</p>
-                  <p className="text-xs text-muted-foreground">Total Bids</p>
+                <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-blue-400">{currentUser.totalBids || 0}</p>
+                  <p className="text-xs text-gray-400">Tổng số lần đặt giá</p>
                 </div>
-                <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-2xl font-bold text-primary">
+                <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-blue-400">
                     {currentUser.ratingSummary.totalCount 
                       ? `${((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(0)}%`
                       : '0%'}
                   </p>
-                  <p className="text-xs text-muted-foreground">Positive</p>
+                  <p className="text-xs text-gray-400">Tích cực</p>
                 </div>
               </div>
 
               {/* Benefits */}
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-6">
-                <h3 className="font-semibold text-green-900 mb-3">Seller Benefits</h3>
-                <ul className="space-y-2 text-sm text-green-800">
+              <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg mb-6">
+                <h3 className="font-semibold text-green-400 mb-3">Lợi ích của người bán</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>List unlimited items for auction</span>
+                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />
+                    <span>Đăng danh sách sản phẩm không giới hạn để đấu giá</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>Access to seller dashboard and analytics</span>
+                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />
+                    <span>Truy cập bảng điều khiển và phân tích người bán</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>Manage bids and communicate with buyers</span>
+                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />
+                    <span>Quản lý đặt giá và giao tiếp với người mua</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>Seller verification badge</span>
+                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />
+                    <span>Huy hiệu xác minh người bán</span>
                   </li>
                 </ul>
               </div>
@@ -392,34 +392,34 @@ export default function UpgradeRequest({
               {/* Request Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Why do you want to become a seller?
+                  <label className="block text-sm font-medium mb-2 text-white">
+                    Tại sao bạn muốn trở thành người bán?
                   </label>
                   <textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="Tell us about your plans, what you want to sell, your experience..."
+                    placeholder="Hãy cho chúng tôi biết về kế hoạch của bạn, bạn muốn bán gì, kinh nghiệm của bạn..."
                     rows="5"
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                    className="w-full px-3 py-2 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                     required
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Minimum 50 characters. Be specific and genuine.
+                  <p className="text-xs text-gray-400 mt-1">
+                    Tối thiểu 50 ký tự. Hãy cụ thể và chân thành.
                   </p>
                 </div>
 
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Review Process</h4>
-                  <p className="text-sm text-blue-800">
-                    Admin will review your profile within 7 days.
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <h4 className="font-semibold text-blue-400 mb-2">Quy trình xem xét</h4>
+                  <p className="text-sm text-blue-300">
+                    Quản trị viên sẽ xem xét hồ sơ của bạn trong vòng 7 ngày.
                   </p>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-semibold"
+                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition font-semibold shadow-lg"
                 >
-                  Submit Upgrade Request
+                  Gửi Yêu Cầu Nâng Cấp
                 </button>
               </form>
             </>

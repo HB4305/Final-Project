@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import path from 'path';
@@ -30,6 +31,8 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
+app.use(compression());
 
 // CORS configuration
 app.use(cors({

@@ -3,6 +3,7 @@ import { Heart, Search, User, Menu, X, Bell, Zap, Settings, Star, LogOut, Gavel 
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../app/context/AuthContext";
 
+
 export default function Navigation() {
   const { isLoggedIn, currentUser, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -77,11 +78,10 @@ export default function Navigation() {
               <Link
                 key={path}
                 to={path}
-                className={`text-sm font-medium transition-all duration-200 relative py-1 ${
-                  isActive(path)
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-primary"
-                }`}
+                className={`text-sm font-medium transition-all duration-200 relative py-1 ${isActive(path)
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-primary"
+                  }`}
               >
                 {path === "/" ? "Trang chủ" : path === "/products" ? "Đấu giá" : "Danh mục"}
                 {isActive(path) && (
@@ -113,6 +113,7 @@ export default function Navigation() {
           <div className="flex items-center gap-3">
 
 
+
             {isLoggedIn ? (
               <div className="relative" ref={userMenuRef}>
                 <button
@@ -127,7 +128,7 @@ export default function Navigation() {
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                        <User className="w-5 h-5" />
+                      <User className="w-5 h-5" />
                     </div>
                   )}
                   <span className="text-sm font-semibold hidden sm:inline text-foreground">
@@ -142,13 +143,12 @@ export default function Navigation() {
                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tài khoản</p>
                       <p className="truncate font-medium text-foreground">{currentUser?.email}</p>
                     </div>
-                    
+
                     <div className="space-y-1">
                       {[
                         { to: "/profile", icon: User, label: "Hồ sơ cá nhân" },
                         { to: "/dashboard", icon: Zap, label: "Bảng điều khiển" },
                         { to: "/profile/settings", icon: Settings, label: "Cài đặt" },
-                        { to: `/profile/ratings/${currentUser?._id}`, icon: Star, label: "Đánh giá của tôi" },
                       ].map((item) => (
                         <Link
                           key={item.to}
@@ -168,11 +168,11 @@ export default function Navigation() {
                             onClick={() => setIsUserMenuOpen(false)}
                             className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-orange-400 hover:bg-orange-500/10 rounded-xl transition-colors"
                           >
-                             🛡️ Trang quản trị
+                            🛡️ Trang quản trị
                           </Link>
                         </>
                       )}
-                      
+
                       <div className="h-px bg-white/10 my-2 mx-2"></div>
                       <button
                         onClick={() => {
@@ -188,12 +188,12 @@ export default function Navigation() {
                 )}
               </div>
             ) : (
-                <button
-                  onClick={handleLogin}
-                  className="px-6 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-full shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95"
-                >
-                  Đăng nhập
-                </button>
+              <button
+                onClick={handleLogin}
+                className="px-6 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-full shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95"
+              >
+                Đăng nhập
+              </button>
             )}
 
             {/* Mobile Menu Button */}
@@ -230,17 +230,16 @@ export default function Navigation() {
                 <Search className="w-5 h-5" />
               </button>
             </form>
-            
+
             {["/", "/products", "/categories"].map((path) => (
               <Link
                 key={path}
                 to={path}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`py-3 px-4 rounded-lg transition-colors font-medium ${
-                  isActive(path) 
-                  ? "bg-primary/20 text-primary" 
+                className={`py-3 px-4 rounded-lg transition-colors font-medium ${isActive(path)
+                  ? "bg-primary/20 text-primary"
                   : "text-muted-foreground hover:bg-white/5 hover:text-white"
-                }`}
+                  }`}
               >
                 {path === "/" ? "Trang chủ" : path === "/products" ? "Đấu giá" : "Danh mục"}
               </Link>
@@ -257,7 +256,7 @@ export default function Navigation() {
                 >
                   <Heart className="w-5 h-5" /> Danh sách theo dõi
                 </Link>
-               
+
                 <button
                   onClick={handleLogout}
                   className="mt-2 w-full py-3 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition font-bold text-sm"
@@ -266,12 +265,12 @@ export default function Navigation() {
                 </button>
               </>
             ) : (
-                 <button
-                  onClick={handleLogin}
-                  className="w-full py-3 mt-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/25 transition-all"
-                >
-                  Đăng nhập
-                </button>
+              <button
+                onClick={handleLogin}
+                className="w-full py-3 mt-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/25 transition-all"
+              >
+                Đăng nhập
+              </button>
             )}
           </div>
         </div>

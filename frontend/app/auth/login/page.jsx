@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, Loader2, ArrowLeft, Gavel } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useAuth } from "../../context/AuthContext";
 import Toast from "../../../components/Toast";
@@ -59,10 +59,13 @@ export default function LoginPage() {
       setIsLoading(false);
 
       const user = response.data.data.user;
-      const isAdmin = user?.roles?.includes("admin") || user?.roles?.includes("superadmin");
+      const isAdmin =
+        user?.roles?.includes("admin") || user?.roles?.includes("superadmin");
 
       setToast({
-        message: `Đăng nhập thành công! ${isAdmin ? "Đang chuyển hướng quản trị..." : "Đang chuyển hướng..."}`,
+        message: `Đăng nhập thành công! ${
+          isAdmin ? "Đang chuyển hướng quản trị..." : "Đang chuyển hướng..."
+        }`,
         type: "success",
       });
 
@@ -80,12 +83,16 @@ export default function LoginPage() {
       if (err.response && err.response.data && err.response.data.errors) {
         errorMessage = err.response.data.errors[0].msg;
       } else if (err.response && err.response.data) {
-        errorMessage = err.response.data.message || err.response.data.msg || errorMessage;
+        errorMessage =
+          err.response.data.message || err.response.data.msg || errorMessage;
       }
 
-      if (errorMessage === "Invalid credentials" || errorMessage === "Email hoặc mật khẩu không chính xác")
+      if (
+        errorMessage === "Invalid credentials" ||
+        errorMessage === "Email hoặc mật khẩu không chính xác"
+      )
         errorMessage = "Email hoặc mật khẩu không đúng.";
-      
+
       setError(errorMessage);
       setToast({ message: errorMessage, type: "error" });
     }
@@ -95,8 +102,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px]" />
-          <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px]" />
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-cyan-600/20 rounded-full blur-[100px]" />
       </div>
 
       {toast && (
@@ -110,23 +117,18 @@ export default function LoginPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col justify-center items-center p-4 relative z-10">
         <div className="w-full max-w-md animate-fade-in">
-          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-6 transition">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-6 transition"
+          >
             <ArrowLeft className="w-4 h-4" /> Về trang chủ
           </Link>
-          
-          <div className="glass-card bg-[#1e293b]/40 rounded-2xl p-8 md:p-10 border border-white/10 shadow-2xl">
-            <div className="flex justify-center mb-8">
-               <Link to="/" className="flex items-center gap-3 shrink-0 group">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-all duration-300 border border-white/10">
-                    <Gavel className="w-6 h-6 fill-white/20" />
-                </div>
-                <span className="font-extrabold text-3xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
-                    AuctionHub
-                </span>
-                </Link>
-            </div>
+
+          <div className="glass rounded-2xl p-8 md:p-10 border border-white/10 shadow-2xl">
             <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-white mb-2">Chào mừng trở lại!</h1>
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-400 mb-2">
+                Chào mừng trở lại!
+              </h1>
               <p className="text-muted-foreground">
                 Đăng nhập để tiếp tục phiên đấu giá
               </p>
@@ -140,22 +142,29 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Email</label>
+                <label className="text-sm font-medium text-gray-300">
+                  Email
+                </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
+                  placeholder="email@vidu.com"
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-white placeholder-gray-500 transition-all"
                 />
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                   <label className="text-sm font-medium text-gray-300">Mật khẩu</label>
-                   <Link to="/auth/forgot-password" className="text-xs text-primary hover:text-primary/80 transition font-medium">
-                      Quên mật khẩu?
-                   </Link>
+                  <label className="text-sm font-medium text-gray-300">
+                    Mật khẩu
+                  </label>
+                  <Link
+                    to="/auth/forgot-password"
+                    className="text-xs text-primary hover:text-primary/80 transition font-medium"
+                  >
+                    Quên mật khẩu?
+                  </Link>
                 </div>
                 <div className="relative">
                   <input
@@ -170,7 +179,11 @@ export default function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -180,13 +193,14 @@ export default function LoginPage() {
                   sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
                   onChange={(token) => setRecaptchaToken(token)}
                   theme="dark"
+                  hl="vi"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:shadow-lg hover:shadow-primary/25 focus:ring-4 focus:ring-primary/20 transition transform hover:-translate-y-1 active:scale-[0.98] font-bold flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 flex justify-center items-center gap-2"
               >
                 {isLoading && <Loader2 className="animate-spin w-4 h-4" />}
                 {isLoading ? "Đang xử lý..." : "Đăng nhập ngay"}
@@ -199,28 +213,46 @@ export default function LoginPage() {
                   <div className="w-full border-t border-white/10"></div>
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="px-2 bg-[#0f172a] text-muted-foreground rounded">
+                  <span className="px-2 bg-[#1a1a2e] text-muted-foreground rounded">
                     Hoặc đăng nhập với
                   </span>
                 </div>
               </div>
 
               <a
-                href={`${import.meta.env.VITE_API_URL || "http://localhost:5001/api"}/auth/google`}
-                className="flex items-center justify-center px-4 py-3 bg-white text-black rounded-xl hover:bg-gray-100 transition-all font-medium gap-2 w-full"
+                href={`${
+                  import.meta.env.VITE_API_URL || "http://localhost:5001/api"
+                }/auth/google`}
+                className="flex items-center justify-center px-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all font-medium gap-2 w-full"
               >
-                <img
-                  src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  alt="Google"
-                  className="h-5 w-5"
-                />
+                <svg className="h-5 w-5" viewBox="0 0 24 24">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.26.81-.58z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335"
+                  />
+                </svg>
                 Google
               </a>
             </div>
 
             <div className="mt-8 text-center text-sm text-gray-400">
               Chưa có tài khoản?{" "}
-              <Link to="/auth/signup" className="text-primary hover:text-primary/80 font-bold transition">
+              <Link
+                to="/auth/signup"
+                className="text-primary hover:text-primary/80 font-bold transition"
+              >
                 Đăng ký miễn phí
               </Link>
             </div>

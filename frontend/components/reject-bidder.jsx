@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { UserX, AlertTriangle, User, TrendingUp } from "lucide-react";
 import * as productService from "../app/services/productService";
 import Toast from "./Toast";
@@ -30,9 +31,20 @@ export default function RejectBidder({ productId, bidder, onReject }) {
     setError("");
 
     try {
+      console.log('[REJECT BIDDER] Bidder object:', bidder);
+      console.log('[REJECT BIDDER] Bidder ID:', bidder._id || bidder.id);
+      
+      const bidderId = bidder._id || bidder.id || bidder.bidderId;
+      
+      if (!bidderId) {
+        setError("Không tìm thấy ID của bidder");
+        setLoading(false);
+        return;
+      }
+      
       const response = await productService.rejectBidder(
         productId,
-        bidder._id || bidder.id,
+        bidderId,
         reason
       );
 
@@ -83,21 +95,21 @@ export default function RejectBidder({ productId, bidder, onReject }) {
         Từ chối
       </button>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full p-6 shadow-xl">
+      {showModal && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" style={{ zIndex: 99999 }}>
+          <div className="bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-xl border border-white/10 relative animate-slide-up max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/30">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-white">
                   Từ chối Bidder
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-400">
                   Bạn có chắc muốn từ chối{" "}
-                  <strong className="text-gray-900">
+                  <strong className="text-white">
                     {bidder.username || bidder.name}
                   </strong>
                   ?
@@ -107,17 +119,17 @@ export default function RejectBidder({ productId, bidder, onReject }) {
 
             {/* Bidder Info */}
             {bidder.currentBid && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-900">
+                    <User className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-medium text-blue-300">
                       {bidder.username || bidder.name}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-semibold text-blue-900">
+                    <TrendingUp className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-semibold text-blue-300">
                       {bidder.currentBid?.toLocaleString("vi-VN")} VND
                     </span>
                   </div>
@@ -126,31 +138,31 @@ export default function RejectBidder({ productId, bidder, onReject }) {
             )}
 
             {/* Warning */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <p className="text-sm font-semibold text-yellow-900 mb-2">
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+              <p className="text-sm font-semibold text-yellow-400 mb-2">
                 ⚠️ Hành động này sẽ:
               </p>
-              <ul className="list-disc list-inside text-sm text-yellow-800 space-y-1">
+              <ul className="list-disc list-inside text-sm text-yellow-300/90 space-y-1">
                 <li>Vô hiệu hóa tất cả bids của bidder này</li>
                 <li>Xóa các auto-bids đã đặt</li>
                 <li>Chuyển người thắng sang bidder thứ 2 (nếu đang thắng)</li>
                 <li>Chặn không cho bidder này đặt giá lại</li>
                 <li>
-                  <strong>Không thể hoàn tác</strong>
+                  <strong className="text-yellow-400">Không thể hoàn tác</strong>
                 </li>
               </ul>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-red-700 text-sm">{error}</p>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+                <p className="text-red-400 text-sm">{error}</p>
               </div>
             )}
 
             {/* Reason Input */}
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Lý do từ chối <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Lý do từ chối <span className="text-red-400">*</span>
               </label>
               <textarea
                 value={reason}
@@ -159,7 +171,7 @@ export default function RejectBidder({ productId, bidder, onReject }) {
                   setError("");
                 }}
                 placeholder="Ví dụ: Lịch sử giao dịch không tốt, nhiều lần không thanh toán sau khi thắng đấu giá..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition resize-none"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition resize-none outline-none"
                 rows={4}
                 required
               />
@@ -173,7 +185,7 @@ export default function RejectBidder({ productId, bidder, onReject }) {
               <button
                 onClick={handleReject}
                 disabled={loading || reason.trim().length < 10}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed transition font-medium"
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:shadow-lg hover:shadow-red-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
               >
                 <UserX className="w-4 h-4" />
                 {loading ? "Đang xử lý..." : "Xác nhận từ chối"}
@@ -185,13 +197,14 @@ export default function RejectBidder({ productId, bidder, onReject }) {
                   setError("");
                 }}
                 disabled={loading}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 transition font-medium"
+                className="px-6 py-3 bg-white/5 text-gray-300 rounded-xl hover:bg-white/10 disabled:opacity-50 transition font-medium border border-white/10"
               >
                 Hủy
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

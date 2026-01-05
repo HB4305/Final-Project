@@ -17,9 +17,14 @@ const rejectUpgradeRequest = (requestId, reason) => {
   return api.put(`/admin/upgrade-requests/${requestId}/reject`, { reason });
 };
 
+const deleteUser = (userId) => {
+  return api.delete(`/admin/users/${userId}`);
+};
+
 export default {
     getAllUsers,
     getUpgradeRequests,
     approveUpgradeRequest,
     rejectUpgradeRequest,
+    deleteUser,
 };

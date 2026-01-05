@@ -42,6 +42,8 @@ const userSchema = new mongoose.Schema({
   },
   address: {
     street: String,
+    ward: String,
+    district: String,
     city: String,
     region: String,
     postalCode: String,
@@ -74,7 +76,7 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 0,
       min: 0,
-      max: 5,
+      max: 100,
     },
     _id: false,
   },

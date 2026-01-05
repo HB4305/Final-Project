@@ -144,7 +144,7 @@ export class AuthService {
       email: pendingUser.email,
       passwordHash: pendingUser.passwordHash,
       fullName: pendingUser.fullName,
-      address: { street: pendingUser.address || "" },
+      address: pendingUser.address || {},
       roles: [USER_ROLES.BIDDER],
       status: USER_STATUS.ACTIVE,
       emailVerified: true,

@@ -13,9 +13,9 @@ const ratingService = {
         return await api.delete(`/ratings/${ratingId}`);
     },
 
-    getUserRatings: async (userId, page = 1, limit = 10, type = 'received') => {
+    getUserRatings: async (userId, page = 1, limit = 10, type = 'received', filter = null) => {
         return await api.get(`/ratings/${userId}`, {
-            params: { page, limit, type }
+            params: { page, limit, type, filter }
         });
     },
 

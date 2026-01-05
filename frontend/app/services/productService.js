@@ -31,6 +31,28 @@ export const getProductById = async (productId) => {
 };
 
 /**
+ * Lấy chi tiết đầy đủ của sản phẩm cho admin
+ * @param {string} productId - ID của sản phẩm
+ * @returns {Promise}
+ */
+export const getProductAdminDetails = async (productId) => {
+  try {
+    const response = await api.get(`/products/${productId}/admin-details`);  
+    return {
+      success: true,
+      data: response.data.data,
+      message: response.data.message
+    };
+  } catch (error) {
+    console.error("Error fetching product admin details:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch product details",
+    };
+  }
+};
+
+/**
  * Lấy danh sách tất cả sản phẩm
  * @param {Object} params - { page, limit, sortBy, status }
  * @returns {Promise}
@@ -67,19 +89,35 @@ export const getAllProducts = async (params = {}) => {
   try {
     const {
       sortBy = "newest",
-      status = null, // Không filter theo status để lấy tất cả
+      status = null,
+      page = 1,
+      limit = 12,
+      searchQuery,
+      q,
+      priceRange,
+      categoryId,
+      minPrice,
+      maxPrice
     } = params;
 
     const queryParams = { 
-      page: 1, 
-      limit: 999999, // Lấy tất cả sản phẩm (set limit rất lớn)
+      page, 
+      limit,
       sortBy
     };
 
-    // Chỉ thêm status vào params nếu được chỉ định
-    if (status) {
-      queryParams.status = status;
+    if (status) queryParams.status = status;
+    if (categoryId) queryParams.categoryId = categoryId;
+    if (searchQuery || q) queryParams.search = searchQuery || q;
+    
+    // Handle price range array [min, max]
+    if (Array.isArray(priceRange) && priceRange.length === 2) {
+        if (priceRange[0] !== null && priceRange[0] !== undefined) queryParams.minPrice = priceRange[0];
+        if (priceRange[1] !== null && priceRange[1] !== undefined && priceRange[1] !== Infinity) queryParams.maxPrice = priceRange[1];
     }
+    // Handle separate minPrice/maxPrice
+    if (minPrice !== undefined) queryParams.minPrice = minPrice;
+    if (maxPrice !== undefined) queryParams.maxPrice = maxPrice;
 
     const response = await api.get("/products", {
       params: queryParams,
@@ -124,7 +162,29 @@ export const updateProduct = async (productId, productData) => {
 };
 
 /**
- * Xóa sản phẩm (admin)
+ * Seller xóa sản phẩm của mình (gửi email cho bidders)
+ * @param {string} productId - ID sản phẩm
+ * @returns {Promise}
+ */
+export const sellerDeleteProduct = async (productId) => {
+  try {
+    const response = await api.delete(`/products/${productId}/seller`);
+    return {
+      success: true,
+      message: response.data.message || 'Xóa sản phẩm thành công',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể xóa sản phẩm'
+    };
+  }
+};
+
+/**
+ * Xóa sản phẩm (Seller hoặc Admin)
  * @param {string} productId - ID sản phẩm
  * @returns {Promise}
  */
@@ -141,6 +201,80 @@ export const deleteProduct = async (productId) => {
     return {
       success: false,
       message: error.response?.data?.message || error.response?.data?.error || 'Lỗi khi xóa sản phẩm'
+    };
+  }
+};
+
+/**
+ * Từ chối bidder (blacklist)
+ * @param {string} productId - ID sản phẩm
+ * @param {string} bidderId - ID bidder bị từ chối
+ * @param {string} reason - Lý do từ chối
+ * @returns {Promise}
+ */
+export const rejectBidder = async (productId, bidderId, reason) => {
+  try {
+    const response = await api.post(`/products/${productId}/reject-bidder`, {
+      bidderId,
+      reason
+    });
+    return {
+      success: true,
+      message: response.data.message || 'Đã từ chối bidder thành công',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error rejecting bidder:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Lỗi khi từ chối bidder'
+    };
+  }
+};
+
+/**
+ * Duyệt first-time bidder
+ * @param {string} productId - ID sản phẩm
+ * @param {string} bidderId - ID bidder cần duyệt
+ * @returns {Promise}
+ */
+export const approveFirstTimeBidder = async (productId, bidderId) => {
+  try {
+    const response = await api.post(`/products/${productId}/approve-bidder`, {
+      bidderId
+    });
+    return {
+      success: true,
+      message: response.data.message || 'Đã duyệt bidder thành công',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error approving bidder:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Lỗi khi duyệt bidder'
+    };
+  }
+};
+
+/**
+ * Toggle cấu hình yêu cầu phê duyệt bidder
+ * @param {string} productId - ID sản phẩm
+ * @returns {Promise}
+ */
+export const toggleBidderApproval = async (productId) => {
+  try {
+    const response = await api.post(`/products/${productId}/toggle-approval`);
+    return {
+      success: true,
+      message: response.data.message || 'Đã cập nhật cấu hình thành công',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error toggling bidder approval:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Lỗi khi cập nhật cấu hình'
     };
   }
 };
@@ -174,21 +308,6 @@ export const getBidHistory = async (productId) => {
  */
 export const updateProductDescription = async (productId, data) => {
   const response = await api.put(`/products/${productId}/description`, data);
-  return response.data;
-};
-
-/**
- * API 3.3a: Từ chối lượt ra giá của bidder
- * @param {string} productId - ID sản phẩm
- * @param {string} bidderId - ID bidder cần từ chối
- * @param {string} reason - Lý do từ chối
- * @returns {Promise}
- */
-export const rejectBidder = async (productId, bidderId, reason) => {
-  const response = await api.post(`/products/${productId}/reject-bidder`, {
-    bidderId,
-    reason
-  });
   return response.data;
 };
 

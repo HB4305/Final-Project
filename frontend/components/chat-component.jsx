@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Paperclip, Image, X } from "lucide-react";
+import { Send } from "lucide-react";
 import { useOrderchat } from "../hooks/useOrderchat.js";
 import Toast from "./Toast";
 
@@ -22,7 +22,6 @@ export default function ChatComponent({ order, currentUser }) {
 
   const { messages, loading, sending, sendMessage } = useOrderchat(orderId);
   const [newMessage, setNewMessage] = useState("");
-  const [attachment, setAttachment] = useState(null);
   const [toast, setToast] = useState(null);
   const messagesEndRef = useRef(null);
 
@@ -37,12 +36,11 @@ export default function ChatComponent({ order, currentUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!newMessage.trim() && !attachment) return;
+    if (!newMessage.trim()) return;
 
     try {
-      await sendMessage(newMessage.trim(), attachment?.url);
+      await sendMessage(newMessage.trim());
       setNewMessage("");
-      setAttachment(null);
     } catch (error) {
       setToast({
         message: "Gửi tin nhắn thất bại: " + error.message,
@@ -51,18 +49,7 @@ export default function ChatComponent({ order, currentUser }) {
     }
   };
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // In real app, would upload file and get URL
-      setAttachment({
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        url: URL.createObjectURL(file),
-      });
-    }
-  };
+
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
@@ -144,24 +131,7 @@ export default function ChatComponent({ order, currentUser }) {
                       <p className="text-sm break-words">{msg.message}</p>
                     )}
 
-                    {msg.attachment && (
-                      <div className="mt-2">
-                        {msg.attachment.type.startsWith("image/") ? (
-                          <img
-                            src={msg.attachment.url}
-                            alt={msg.attachment.name}
-                            className="max-w-full rounded"
-                          />
-                        ) : (
-                          <div className="flex items-center gap-2 p-2 bg-white/10 rounded">
-                            <Paperclip className="w-4 h-4" />
-                            <span className="text-xs">
-                              {msg.attachment.name}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
+
                   </div>
 
                   <span className="text-xs text-muted-foreground mt-1">
@@ -175,32 +145,7 @@ export default function ChatComponent({ order, currentUser }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Attachment Preview */}
-      {attachment && (
-        <div className="px-4 py-2 border-t border-border bg-muted/50">
-          <div className="flex items-center gap-2 p-2 bg-background rounded">
-            {attachment.type.startsWith("image/") ? (
-              <>
-                <Image className="w-4 h-4 text-primary" />
-                <img
-                  src={attachment.url}
-                  alt={attachment.name}
-                  className="h-12 w-12 object-cover rounded"
-                />
-              </>
-            ) : (
-              <Paperclip className="w-4 h-4 text-primary" />
-            )}
-            <span className="text-sm flex-1">{attachment.name}</span>
-            <button
-              onClick={() => setAttachment(null)}
-              className="p-1 hover:bg-muted rounded"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* Message Input */}
       <form
@@ -208,16 +153,7 @@ export default function ChatComponent({ order, currentUser }) {
         className="p-4 border-t border-border bg-muted"
       >
         <div className="flex gap-2">
-          {/* File Upload Button */}
-          <label className="cursor-pointer p-2 hover:bg-background rounded transition">
-            <input
-              type="file"
-              onChange={handleFileSelect}
-              accept="image/*,.pdf,.doc,.docx"
-              className="hidden"
-            />
-            <Paperclip className="w-5 h-5 text-muted-foreground" />
-          </label>
+
 
           {/* Message Input */}
           <input
@@ -231,7 +167,7 @@ export default function ChatComponent({ order, currentUser }) {
           {/* Send Button */}
           <button
             type="submit"
-            disabled={!newMessage.trim() && !attachment}
+            disabled={!newMessage.trim()}
             className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />

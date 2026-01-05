@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Zap, TrendingUp, ShieldCheck, Clock } from "lucide-react";
+import { Zap, TrendingUp, ShieldCheck, Clock, Gavel } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navigation from "../components/navigation";
@@ -9,22 +9,56 @@ import CategoryNav from "../components/category-nav";
 export default function Home() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { loginWithToken } = useAuth();
+  const { loginWithToken, isLoggedIn } = useAuth();
+  const [isProcessingToken, setIsProcessingToken] = React.useState(false);
 
   useEffect(() => {
     const token = searchParams.get("token");
-    if (token) {
+    if (token && !isProcessingToken) {
+      setIsProcessingToken(true);
       loginWithToken(token)
         .then(() => {
-          searchParams.delete("token");
-          setSearchParams(searchParams);
+          // Remove token from URL
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete("token");
+          setSearchParams(newSearchParams, { replace: true });
         })
         .catch((error) => {
           console.error("OAuth login failed:", error);
           navigate("/auth/login?error=oauth_failed");
+        })
+        .finally(() => {
+          setIsProcessingToken(false);
         });
     }
-  }, [searchParams]);
+  }, [searchParams, loginWithToken, navigate, setSearchParams, isProcessingToken]);
+
+  const [heroAuction, setHeroAuction] = React.useState(null);
+
+  useEffect(() => {
+    const fetchHeroAuction = async () => {
+      try {
+        const auctionService = await import("./services/auctionService");
+        let res = await auctionService.getMostViewedAuctions({ limit: 1 });
+        
+        // If no trending auctions, fallback to highest price active auctions
+        if (!res.data?.auctions?.length) {
+            res = await auctionService.getHighestPriceAuctions({ limit: 1 });
+        }
+
+        if (res.data?.auctions?.length > 0) {
+           // Find the first auction that has a valid product
+           const validAuction = res.data.auctions.find(a => a.productId);
+           if (validAuction) {
+             setHeroAuction(validAuction);
+           }
+        }
+      } catch (error) {
+        console.error("Failed to fetch hero auction", error);
+      }
+    };
+    fetchHeroAuction();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden animate-fade-in">
@@ -32,14 +66,14 @@ export default function Home() {
 
       <main className="pt-20">
         {/* Category Nav - Static Top */}
-        <section className="py-2 border-b border-white/5 bg-[#0b1121]/90 backdrop-blur-md shadow-lg mb-8">
+        <section className="py-2 mb-2 transition-colors duration-300">
            <div className="max-w-7xl mx-auto px-4">
              <CategoryNav />
            </div>
         </section>
 
         {/* Hero Section */}
-        <section className="relative px-4 py-12 md:py-20 lg:py-28 overflow-hidden">
+        <section className="relative px-4 py-8 md:py-12 lg:py-20 overflow-hidden">
           {/* Background Elements */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-float" />
@@ -72,12 +106,14 @@ export default function Home() {
                 >
                   Khám Phá Ngay
                 </button>
-                <button 
-                  onClick={() => navigate("/auth/signup")}
-                  className="px-8 py-4 bg-white/5 text-foreground border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all backdrop-blur-sm"
-                >
-                  Đăng Ký Miễn Phí
-                </button>
+                {!isLoggedIn && (
+                  <button 
+                    onClick={() => navigate("/auth/signup")}
+                    className="px-8 py-4 bg-white/5 text-foreground border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all backdrop-blur-sm"
+                  >
+                    Đăng Ký Miễn Phí
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-8 text-sm text-muted-foreground pt-4">
@@ -96,43 +132,44 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative hidden lg:block animate-fade-in">
-              <div className="relative z-10 glass rounded-3xl p-6 rotate-3 hover:rotate-0 transition-transform duration-500 bg-gradient-to-br from-white/10 to-transparent border border-white/20">
-                <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center relative group">
-                  <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
-                  <img 
-                    src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
-                    alt="Premium Auction" 
-                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
-                  />
-                  <div className="absolute bottom-4 left-4 right-4 z-20">
-                    <div className="glass rounded-xl p-4 flex justify-between items-center">
-                      <div>
-                        <p className="text-xs text-gray-300">Đang đấu giá</p>
-                        <p className="font-bold text-white">Sony Electronics Set</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-300">Giá hiện tại</p>
-                        <p className="font-bold text-green-400">12,500,000 ₫</p>
+            {heroAuction && (
+              <div className="relative hidden lg:block animate-fade-in cursor-pointer group" onClick={() => navigate(`/product/${heroAuction.productId?._id || heroAuction.productId}`)}>
+                {/* Main Image Card */}
+                <div className="relative z-10 glass rounded-3xl p-6 rotate-3 group-hover:rotate-0 transition-transform duration-500 bg-gradient-to-br from-white/10 to-transparent border border-white/20">
+                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center relative">
+                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
+                    
+                    {/* Image */}
+                    <img 
+                      src={heroAuction?.productId?.primaryImageUrl || "https://images.unsplash.com/photo-1550009158-9ebf69173e03?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"} 
+                      alt="Premium Auction" 
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
+                    />
+
+                    {/* Top Right "Trending" Badge */}
+                    <div className="absolute top-4 right-4 z-30">
+                       <div className="glass px-4 py-2 rounded-full border border-yellow-500/30 bg-black/40 backdrop-blur-md flex items-center gap-2 shadow-lg shadow-yellow-500/10 animate-pulse">
+                          <span className="text-xl">🔥</span>
+                          <span className="font-bold text-yellow-400 uppercase tracking-wider text-sm">Trending</span>
+                       </div>
+                    </div>
+
+                    {/* Bottom Info Card */}
+                    <div className="absolute bottom-4 left-4 right-4 z-20">
+                      <div className="glass rounded-xl p-4 flex justify-between items-center bg-black/40 backdrop-blur-md border border-white/10">
+                        <div className="max-w-[60%]">
+                          <p className="font-bold text-white truncate text-lg">{heroAuction?.productId?.title}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-300 mb-0.5">Giá hiện tại</p>
+                          <p className="font-bold text-green-400 text-lg">{(heroAuction?.currentPrice).toLocaleString('vi-VN')} VNĐ</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              {/* Decorative floating cards */}
-              <div className="absolute -top-10 -right-10 glass p-4 rounded-2xl animate-float" style={{ animationDelay: "1s" }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Vừa bán xong</p>
-                    <p className="font-bold text-sm">+ 2.5 Triệu</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </section>
 
@@ -142,10 +179,10 @@ export default function Home() {
         <section className="max-w-7xl mx-auto px-4 py-20">
           <div className="flex items-center justify-between mb-10">
             <div>
-               <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+               <h2 className="text-3xl font-bold text-gray-900 dark:text-white dark:bg-clip-text dark:text-transparent dark:bg-gradient-to-r dark:from-white dark:to-gray-400">
                 Sản Phẩm Hot
               </h2>
-              <p className="text-muted-foreground mt-2">Các phiên đấu giá được quan tâm nhiều nhất</p>
+              <p className="text-gray-600 dark:text-muted-foreground mt-2">Các phiên đấu giá được quan tâm nhiều nhất</p>
             </div>
             <button 
               onClick={() => navigate('/products')}
@@ -160,33 +197,17 @@ export default function Home() {
         {/* Stats Section with Glass Effect */}
 
 
-        {/* CTA Section */}
-        <section className="py-20 px-4">
-          <div className="max-w-5xl mx-auto glass rounded-3xl p-8 md:p-16 text-center relative overflow-hidden border border-primary/20">
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/10 to-blue-600/10 -z-10" />
-            
-            <h3 className="text-3xl md:text-5xl font-bold mb-6">
-              Sẵn sàng săn 'vàng'?
-            </h3>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Đừng bỏ lỡ những món hời độc quyền chỉ có tại AuctionHub. Tham gia cộng đồng đấu giá sôi động ngay hôm nay!
-            </p>
-            <button
-              onClick={() => navigate("/auth/signup")}
-              className="px-10 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/40 transition-all hover:-translate-y-1"
-            >
-              Tạo tài khoản ngay
-            </button>
-          </div>
-        </section>
+
       </main>
 
       <footer className="bg-black/40 border-t border-white/10 py-12 px-4 mt-12 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-6">
-               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center font-bold text-white">⚡</div>
-               <span className="font-extrabold text-xl tracking-tight">AuctionHub</span>
+               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center font-bold text-white shadow-lg border border-white/10">
+                  <Gavel className="w-4 h-4 text-white/90" />
+               </div>
+               <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">AuctionHub</span>
             </div>
             <p className="text-muted-foreground max-w-xs">
               Nền tảng đấu giá trực tuyến uy tín và hiện đại nhất.

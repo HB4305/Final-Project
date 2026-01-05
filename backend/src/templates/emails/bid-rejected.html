@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lượt Đặt Giá Bị Từ Chối</title>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+      
       body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         background-color: #f4f4f4;
         margin: 0;
         padding: 0;
@@ -110,17 +112,17 @@
             <span class="value">{{productTitle}}</span>
           </div>
           <div class="info-row">
-            <span class="label">Người bán:</span>
+            <span class="label">Người bán từ chối:</span>
             <span class="value">{{sellerName}}</span>
           </div>
           <div class="info-row">
-            <span class="label">Thời gian:</span>
-            <span class="value">{{timestamp}}</span>
+            <span class="label">Thời gian từ chối:</span>
+            <span class="value">{{rejectedDate}}</span>
           </div>
         </div>
 
         <p style="color: #666; font-size: 14px; line-height: 1.6;">
-          <strong>Lưu ý:</strong> Bạn sẽ không thể đặt giá cho sản phẩm này nữa. 
+          <strong>Lưu ý:</strong> Bạn sẽ không thể đặt giá hoặc mua ngay sản phẩm này nữa. 
           Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ với người bán hoặc bộ phận hỗ trợ.
         </p>
 

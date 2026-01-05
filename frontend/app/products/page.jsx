@@ -19,13 +19,14 @@ import {
 } from './_components';
 import CategoryBreadcrumb from './_components/CategoryBreadcrumb';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; 
+import { useAuth } from '../context/AuthContext';
 
 // ============================================
 // CUSTOM HOOKS
 // ============================================
 const useCategories = () => {
   const [categories, setCategories] = useState(['All']);
+  const [allCategories, setAllCategories] = useState([]);
   const [categoryMap, setCategoryMap] = useState({});
   const [error, setError] = useState(null);
 
@@ -33,11 +34,12 @@ const useCategories = () => {
     const fetchCategories = async () => {
       try {
         const response = await categoryService.getAllCategories();
-        
+
         if (response.success) {
           const allCats = response.data;
+          setAllCategories(allCats);
           const parentCats = allCats.filter(cat => cat.level === 1);
-          
+
           setCategories(['All', ...parentCats.map(cat => cat.name)]);
           setCategoryMap(buildCategoryMap(allCats));
         }
@@ -45,11 +47,11 @@ const useCategories = () => {
         setError('Failed to load categories');
       }
     };
-    
+
     fetchCategories();
   }, []);
 
-  return { categories, categoryMap, error };
+  return { categories, allCategories, categoryMap, error };
 };
 
 const useProducts = () => {
@@ -57,15 +59,18 @@ const useProducts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (params = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await productService.getAllProducts();
-      
+      const response = await productService.getAllProducts(params);
+
       if (response.success) {
         const transformedProducts = response.data.map(transformProductData);
-        setProducts(transformedProducts);
+        setProducts({
+          data: transformedProducts,
+          total: response.pagination?.totalProducts || response.pagination?.total || transformedProducts.length
+        });
       } else {
         setError(response.error || 'Failed to load products');
       }
@@ -76,18 +81,20 @@ const useProducts = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
   return { products, loading, error, refetch: fetchProducts };
 };
 
 const useWatchlist = () => {
   const [watchlist, setWatchlist] = useState(new Set());
+  const { isLoggedIn } = useAuth();
 
   useEffect(() => {
     const loadWatchlist = async () => {
+      if (!isLoggedIn) {
+        setWatchlist(new Set());
+        return;
+      }
+
       try {
         const response = await watchlistService.getWatchlist({ page: 1, limit: 100 });
         if (response.success) {
@@ -103,9 +110,12 @@ const useWatchlist = () => {
       }
     };
     loadWatchlist();
-  }, []);
+  }, [isLoggedIn]);
 
   const toggleWatchlist = useCallback(async (productId) => {
+    if (!isLoggedIn) return;
+
+    // Optimistic update
     setWatchlist(prev => {
       const newWatchlist = new Set(prev);
       if (newWatchlist.has(productId)) {
@@ -117,9 +127,21 @@ const useWatchlist = () => {
     });
 
     try {
-      await watchlistService.toggleWatchlist(productId);
+      // Determine action based on *previous* state (before we toggled it above, but we only have current watchlist state accessible in closure?)
+      // Actually, we can check if it IS in the set *now* (after update? No, closure captures old state unless we use ref or derived).
+      // Let's use the fact that we just toggled it.
+      // If `watchlist.has(productId)` checks the state *when the function was created*, it depends on `watchlist` dependency.
+      // So `watchlist` in closure is the state *before* the setWatchlist update.
+      
+      const isWatched = watchlist.has(productId);
+      if (isWatched) {
+        await watchlistService.removeFromWatchlist(productId);
+      } else {
+        await watchlistService.addToWatchlist(productId);
+      }
     } catch (error) {
       console.error("Error toggling watchlist:", error);
+      // Revert
       setWatchlist(prev => {
         const newWatchlist = new Set(prev);
         if (newWatchlist.has(productId)) {
@@ -130,7 +152,7 @@ const useWatchlist = () => {
         return newWatchlist;
       });
     }
-  }, []);
+  }, [isLoggedIn, watchlist]);
 
   return { watchlist, toggleWatchlist };
 };
@@ -200,13 +222,12 @@ const useFilters = () => {
   };
 };
 
-
 export default function ProductsPage() {
   const { currentUser } = useAuth();
   const location = useLocation();
 
   // Custom hooks
-  const { categories, categoryMap, error: categoryError } = useCategories();
+  const { categories, allCategories, categoryMap, error: categoryError } = useCategories();
   const { products, loading, error: productError, refetch } = useProducts();
   const { watchlist, toggleWatchlist } = useWatchlist();
   const {
@@ -231,7 +252,7 @@ export default function ProductsPage() {
 
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
 
-   // Sync URL query -> filters
+  // Sync URL query -> filters
   useEffect(() => {
     if (!location || !location.search) {
       setSelectedCategory('All');
@@ -246,7 +267,7 @@ export default function ProductsPage() {
     if (subcategoryParam) {
       const subName = decodeURIComponent(subcategoryParam);
       setSelectedSubcategory(subName);
-      
+
       const parentCat = categoryMap[subName];
       if (parentCat) {
         setSelectedCategory(parentCat);
@@ -261,25 +282,41 @@ export default function ProductsPage() {
     }
   }, [location.search, categoryMap]);
 
-  // Filter products
-  const filteredProducts = useMemo(() => {
-    const filtered = filterProducts(products, {
-      searchQuery,
-      selectedCategory,
-      selectedSubcategory,
-      priceRange,
-      categoryMap
-    });
-    
-    return sortProducts(filtered, sortBy);
-  }, [products, searchQuery, selectedCategory, selectedSubcategory, priceRange, categoryMap, sortBy]);
+  // Sync filters to API call
+  useEffect(() => {
+    // Find categoryId from selectedCategory name
+    // Note: selectedCategory can be "All" or a name
+    let categoryId = null;
+    if (selectedCategory && selectedCategory !== 'All' && allCategories.length > 0) {
+        const cat = allCategories.find(c => c.name === selectedCategory);
+        if (cat) categoryId = cat._id;
+    }
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredProducts, currentPage, itemsPerPage]);
+    const params = {
+      page: currentPage,
+      limit: itemsPerPage,
+      sortBy: sortBy,
+      status: 'active',
+      // Pass filters to backend
+      categoryId,
+      searchQuery,
+      priceRange
+    };
+
+    refetch(params);
+  }, [currentPage, itemsPerPage, sortBy, selectedCategory, searchQuery, priceRange, allCategories, refetch]);
+
+  // Derived data
+  const filteredProducts = useMemo(() => {
+    // Backend now handles filtering and pagination.
+    // We just return the data received.
+    return products.data || [];
+  }, [products.data]);
+
+  const totalItems = products.total || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedProducts = filteredProducts; // Already limited if we use getProducts instead of getAllProducts
+
 
   const renderContent = () => {
     if (loading) {
@@ -297,21 +334,21 @@ export default function ProductsPage() {
           watchlist={watchlist}
           onToggleWatchlist={toggleWatchlist}
         />
-        
+
         {/* Pagination */}
         <div className="mt-12">
-            <Pagination
+          <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             itemsPerPage={itemsPerPage}
-            totalItems={filteredProducts.length}
+            totalItems={totalItems}
             onItemsPerPageChange={setItemsPerPage}
-            />
+          />
         </div>
 
         <div className="mt-8 border-t border-gray-100 pt-6">
-             <CategoryBreadcrumb selectedCategory={selectedCategory} selectedSubcategory={selectedSubcategory} />
+          <CategoryBreadcrumb selectedCategory={selectedCategory} selectedSubcategory={selectedSubcategory} />
         </div>
       </div>
     );
@@ -344,10 +381,10 @@ export default function ProductsPage() {
 
           <div className="lg:col-span-3">
             {/* Results Count */}
-            <div className="mb-6 flex justify-between items-center bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
-              <p className="text-gray-400 text-sm">
-                Hiển thị <span className="font-bold text-gray-200">{paginatedProducts.length}</span> / {' '}
-                <span className="font-bold text-gray-200">{filteredProducts.length}</span> sản phẩm
+            <div className="mb-6 flex justify-between items-center bg-white dark:bg-white/5 backdrop-blur rounded-xl p-4 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Hiển thị <span className="font-bold text-gray-900 dark:text-gray-200">{paginatedProducts.length}</span> / {' '}
+                <span className="font-bold text-gray-900 dark:text-gray-200">{totalItems}</span> sản phẩm
                 {selectedCategory !== 'All' && (
                   <span className="ml-2">
                     trong <span className="text-primary font-medium">"{selectedCategory}"</span>

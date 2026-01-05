@@ -8,8 +8,19 @@ import api from "./api";
  * @returns {Promise}
  */
 export const getWatchlist = async (params = {}) => {
-  const response = await api.get("/watchlist", { params });
-  return response.data;
+  try {
+    const response = await api.get("/watchlist", { params });
+    return {
+      success: true,
+      data: response.data.data,
+      pagination: response.data.pagination
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch watchlist"
+    };
+  }
 };
 
 /**
@@ -18,8 +29,16 @@ export const getWatchlist = async (params = {}) => {
  * @returns {Promise}
  */
 export const addToWatchlist = async (productId) => {
-  const response = await api.post(`/watchlist/${productId}`);
-  return response.data;
+  try {
+    const response = await api.post(`/watchlist/${productId}`);
+    return {
+      success: true,
+      data: response.data.data,
+      message: response.data.message
+    };
+  } catch (error) {
+    throw error; // Let components handle specific errors or standardize here
+  }
 };
 
 /**
@@ -28,8 +47,15 @@ export const addToWatchlist = async (productId) => {
  * @returns {Promise}
  */
 export const removeFromWatchlist = async (productId) => {
-  const response = await api.delete(`/watchlist/${productId}`);
-  return response.data;
+  try {
+    const response = await api.delete(`/watchlist/${productId}`);
+    return {
+      success: true,
+      message: response.data.message
+    };
+  } catch (error) {
+    throw error;
+  }
 };
 
 /**
@@ -38,8 +64,18 @@ export const removeFromWatchlist = async (productId) => {
  * @returns {Promise}
  */
 export const checkWatchlist = async (productId) => {
-  const response = await api.get(`/watchlist/check/${productId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/watchlist/check/${productId}`);
+    return {
+      success: true,
+      data: response.data.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.message
+    };
+  }
 };
 
 const watchlistService = {

@@ -193,7 +193,7 @@ export const getOrderDetail = async (req, res, next) => {
     if (!order) {
       throw new AppError("Order not found", 404);
     }
-    
+
     const isAdmin = req.user.roles.includes("admin") || req.user.roles.includes("superadmin");
     const isAuthorized =
       order.buyerId._id.toString() === req.user._id.toString() ||
@@ -261,7 +261,7 @@ export const submitPaymentInfo = async (req, res, next) => {
 
     // Note: Order model doesn't have metadata field, so we cannot save address there.
     // Instead we will pass it via notification to seller.
-    
+
     await order.save();
 
     await notificationService.createNotification(
@@ -474,9 +474,12 @@ export const rateTransaction = async (req, res, next) => {
       throw new AppError("Order not found", 404);
     }
 
+    /* 
+    // Allow rating anytime
     if (order.status !== "completed") {
       throw new AppError("Can only rate after delivery is confirmed", 400);
     }
+    */
 
     let rateeId, context;
 

@@ -21,8 +21,11 @@ const pendingUserSchema = new mongoose.Schema({
     required: true,
   },
   address: {
-    type: String,
-    default: "",
+    street: String,
+    ward: String,
+    district: String,
+    city: String,
+    _id: false,
   },
   otp: {
     code: String,

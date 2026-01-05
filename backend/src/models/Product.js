@@ -60,6 +60,11 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // API 1.6: View Count
+  views: {
+    type: Number,
+    default: 0
+  },
   // API 4.2: Archive support
   isArchived: {
     type: Boolean,
@@ -98,6 +103,15 @@ const productSchema = new mongoose.Schema({
     condition: String,
     specs: mongoose.Schema.Types.Mixed
   },
+  // Bidder approval configuration
+  requireBidderApproval: {
+    type: Boolean,
+    default: false
+  },
+  approvedBidders: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   createdAt: {
     type: Date,
     default: Date.now
