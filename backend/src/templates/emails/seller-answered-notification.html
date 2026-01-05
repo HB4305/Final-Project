@@ -1,189 +1,168 @@
 <!DOCTYPE html>
 <html lang="vi">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <title>Người Bán Đã Trả Lời Câu Hỏi</title>
     <style>
-      body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f4f4f4;
-        margin: 0;
-        padding: 0;
-      }
-      .container {
-        max-width: 600px;
-        margin: 20px auto;
-        background-color: #ffffff;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-      .header {
-        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-        color: white;
-        padding: 30px;
-        text-align: center;
-      }
-      .header h1 {
-        margin: 0;
-        font-size: 28px;
-      }
-      .content {
-        padding: 30px;
-        color: #333;
-      }
-      .notification-box {
-        background-color: #d1fae5;
-        border-left: 4px solid #10b981;
-        padding: 20px;
-        margin: 20px 0;
-        border-radius: 5px;
-      }
-      .qa-box {
-        background-color: #f8f9fa;
-        padding: 20px;
-        margin: 20px 0;
-        border-radius: 5px;
-      }
-      .question-section {
-        background-color: #fff;
-        border-left: 3px solid #6b7280;
-        padding: 15px;
-        margin: 15px 0;
-        border-radius: 5px;
-      }
-      .question-section h3 {
-        margin: 0 0 10px 0;
-        color: #6b7280;
-        font-size: 14px;
-        text-transform: uppercase;
-      }
-      .question-text {
-        color: #333;
-        font-size: 16px;
-        line-height: 1.6;
-      }
-      .answer-section {
-        background-color: #ecfdf5;
-        border-left: 3px solid #10b981;
-        padding: 15px;
-        margin: 15px 0;
-        border-radius: 5px;
-      }
-      .answer-section h3 {
-        margin: 0 0 10px 0;
-        color: #059669;
-        font-size: 14px;
-        text-transform: uppercase;
-      }
-      .answer-text {
-        color: #333;
-        font-size: 16px;
-        line-height: 1.6;
-        font-weight: 500;
-      }
-      .product-info {
-        background-color: #fef3c7;
-        padding: 15px;
-        margin: 20px 0;
-        border-radius: 5px;
-      }
-      .info-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-      }
-      .label {
-        font-weight: 600;
-        color: #555;
-      }
-      .value {
-        color: #333;
-        font-weight: 500;
-      }
-      .button {
-        display: inline-block;
-        padding: 12px 30px;
-        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-        color: white;
-        text-decoration: none;
-        border-radius: 5px;
-        margin: 20px 0;
-        font-weight: 600;
-      }
-      .footer {
-        background-color: #f8f9fa;
-        padding: 20px;
-        text-align: center;
-        color: #666;
-        font-size: 14px;
-      }
+        body {
+            font-family: 'Roboto', 'Be Vietnam Pro', Helvetica, Arial, sans-serif;
+            background-color: #F3F4F6; /* Slate 100 */
+            margin: 0;
+            padding: 0;
+            color: #475569; /* Slate 600 */
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .header {
+            background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%); /* Blue 600 to Indigo 600 */
+            color: white;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+        .content {
+            padding: 32px 24px;
+        }
+        .intro-box {
+            background-color: #F0F9FF; /* Sky 50 */
+            border-left: 4px solid #0EA5E9; /* Sky 500 */
+            padding: 20px;
+            margin: 24px 0;
+            border-radius: 6px;
+        }
+        .dialogue-box {
+            background-color: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 24px 0;
+        }
+        .question-part {
+            padding: 20px;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        .answer-part {
+            padding: 20px;
+            background-color: #F0FDFA; /* Teal 50 */
+        }
+        .label {
+            font-size: 13px;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .text {
+            color: #1E293B;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #64748B;
+        }
+        .info-value {
+            color: #1E293B;
+            font-weight: 500;
+        }
+        .button {
+            display: inline-block;
+            padding: 14px 32px;
+            background-color: #3B82F6; /* Blue 500 */
+            color: white;
+            text-decoration: none;
+            border-radius: 9999px;
+            margin: 24px 0;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .button:hover {
+            background-color: #2563EB; /* Blue 600 */
+        }
+        .footer {
+            background-color: #F8FAFC;
+            padding: 24px;
+            text-align: center;
+            color: #94A3B8;
+            font-size: 12px;
+            border-top: 1px solid #E2E8F0;
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <div class="container">
-      <div class="header">
-        <h1>💬 Câu Hỏi Đã Được Trả Lời</h1>
-      </div>
-      <div class="content">
-        <p>Xin chào <strong>{{participantName}}</strong>,</p>
-        
-        <div class="notification-box">
-          <p style="margin: 0; font-weight: 600; color: #059669;">
-            Người bán đã trả lời một câu hỏi về sản phẩm <strong>{{productTitle}}</strong> mà bạn quan tâm.
-          </p>
+        <div class="header">
+            <h1>Câu Hỏi Đã Được Trả Lời</h1>
         </div>
+        <div class="content">
+            <p>Xin chào <strong style="color: #1E293B;">{{participantName}}</strong>,</p>
+            
+            <div class="intro-box">
+                <p style="margin: 0; font-weight: 500; color: #0369A1;">
+                    Người bán đã trả lời một câu hỏi về sản phẩm <strong>{{productTitle}}</strong>.
+                </p>
+            </div>
 
-        <div class="qa-box">
-          <h2 style="margin: 0 0 15px 0; color: #6b7280;">Hỏi & Đáp</h2>
-          
-          <div class="question-section">
-            <h3>❓ Câu Hỏi</h3>
-            <p class="question-text">{{questionText}}</p>
-            <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
-              Người hỏi: <strong>{{questionAuthor}}</strong>
-            </p>
-          </div>
+            <div class="dialogue-box">
+                <div class="question-part">
+                    <div class="label">Câu hỏi từ {{questionAuthor}}:</div>
+                    <div class="text" style="font-style: italic;">"{{questionText}}"</div>
+                </div>
+                <div class="answer-part">
+                    <div class="label" style="color: #059669;">Câu trả lời từ {{sellerName}}:</div>
+                    <div class="text" style="font-weight: 500;">"{{answerText}}"</div>
+                    <div style="font-size: 12px; color: #94A3B8; margin-top: 8px;">{{timestamp}}</div>
+                </div>
+            </div>
 
-          <div class="answer-section">
-            <h3>✅ Câu Trả Lời</h3>
-            <p class="answer-text">{{answerText}}</p>
-            <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
-              Người bán: <strong>{{sellerName}}</strong> • {{timestamp}}
-            </p>
-          </div>
+            <div style="background-color: #F8FAFC; padding: 15px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                <div class="info-row">
+                    <span class="info-label">Sản phẩm:</span>
+                    <span class="info-value">{{productTitle}}</span>
+                </div>
+                {{#if currentPrice}}
+                <div class="info-row">
+                    <span class="info-label">Giá hiện tại:</span>
+                    <span class="info-value" style="color: #059669; font-weight: 700;">{{currentPrice}} VNĐ</span>
+                </div>
+                {{/if}}
+                {{#if auctionEndTime}}
+                <div class="info-row">
+                    <span class="info-label">Kết thúc vào:</span>
+                    <span class="info-value">{{auctionEndTime}}</span>
+                </div>
+                {{/if}}
+            </div>
+
+            <div style="text-align: center; margin-top: 10px;">
+                <a href="{{productUrl}}" class="button">Xem Sản Phẩm</a>
+            </div>
         </div>
-
-        <div class="product-info">
-          <div class="info-row">
-            <span class="label">Sản phẩm:</span>
-            <span class="value">{{productTitle}}</span>
-          </div>
-          {{#if currentPrice}}
-          <div class="info-row">
-            <span class="label">Giá hiện tại:</span>
-            <span class="value" style="color: #059669; font-weight: 700;">{{currentPrice}} VNĐ</span>
-          </div>
-          {{/if}}
-          {{#if auctionEndTime}}
-          <div class="info-row">
-            <span class="label">Kết thúc vào:</span>
-            <span class="value">{{auctionEndTime}}</span>
-          </div>
-          {{/if}}
+        <div class="footer">
+            <p>Bạn nhận được email này vì bạn đã tham gia đấu giá hoặc quan tâm đến sản phẩm này.</p>
+            <p>&copy; 2025 Auction Platform. All rights reserved.</p>
         </div>
-
-        <p>Bạn có thêm câu hỏi? Hãy đặt câu hỏi mới hoặc tham gia đấu giá ngay!</p>
-
-        <div style="text-align: center;">
-          <a href="{{productUrl}}" class="button">Xem Sản Phẩm</a>
-        </div>
-      </div>
-      <div class="footer">
-        <p>Bạn nhận được email này vì bạn đã tham gia đấu giá hoặc đặt câu hỏi về sản phẩm này.</p>
-        <p>&copy; 2025 Auction Platform. All rights reserved.</p>
-      </div>
     </div>
-  </body>
+</body>
 </html>

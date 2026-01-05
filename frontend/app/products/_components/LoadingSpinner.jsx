@@ -1,8 +1,10 @@
+import { Loader } from 'lucide-react';
+
 const LoadingSpinner = ({ message = 'Loading...' }) => {
   return (
-    <div className="text-center py-12">
-      <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      <p className="text-muted-foreground text-lg mt-4">{message}</p>
+    <div className="text-center py-12 flex flex-col items-center justify-center">
+      <Loader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+      <p className="text-muted-foreground text-lg font-medium animate-pulse">{message}</p>
     </div>
   );
 };

@@ -1,122 +1,162 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="vi">
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  </head>
-  <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: Arial, sans-serif;">
-    <table role="presentation" style="width: 100%; border-collapse: collapse;">
-      <tr>
-        <td style="padding: 20px 10px;">
-          <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-            
-            <!-- Header -->
-            <tr>
-              <td style="background: linear-gradient(to right, #059669, #0d9488); padding: 30px; text-align: center;">
-                <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">
-                  Câu hỏi của bạn đã được trả lời!
-                </h1>
-              </td>
-            </tr>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>Câu Trả Lời Mới</title>
+    <style>
+        body {
+            font-family: 'Roboto', 'Be Vietnam Pro', Helvetica, Arial, sans-serif;
+            background-color: #F3F4F6; /* Slate 100 */
+            margin: 0;
+            padding: 0;
+            color: #475569; /* Slate 600 */
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .header {
+            background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%); /* Blue 600 to Indigo 600 */
+            color: white;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+        .content {
+            padding: 32px 24px;
+        }
+        .product-info {
+            background-color: #F8FAFC; /* Slate 50 */
+            padding: 20px;
+            margin: 24px 0;
+            border-radius: 8px;
+            border: 1px solid #E2E8F0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+        .label {
+            font-weight: 600;
+            color: #64748B;
+        }
+        .value {
+            color: #1E293B;
+            font-weight: 500;
+        }
+        .question-box {
+            background-color: #EFF6FF; /* Blue 50 */
+            border-left: 4px solid #3B82F6; /* Blue 500 */
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+        .answer-box {
+            background-color: #ECFDF5; /* Emerald 50 */
+            border-left: 4px solid #10B981; /* Emerald 500 */
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+        .box-label {
+            font-size: 13px;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .text-content {
+            color: #1E293B;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .button {
+            display: inline-block;
+            padding: 14px 32px;
+            background-color: #3B82F6; /* Blue 500 */
+            color: white;
+            text-decoration: none;
+            border-radius: 9999px;
+            margin: 24px 0;
+            font-weight: 600;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+            transition: background-color 0.2s;
+        }
+        .button:hover {
+            background-color: #2563EB; /* Blue 600 */
+        }
+        .footer {
+            background-color: #F8FAFC;
+            padding: 24px;
+            text-align: center;
+            color: #94A3B8;
+            font-size: 12px;
+            border-top: 1px solid #E2E8F0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Câu Trả Lời Mới!</h1>
+        </div>
+        <div class="content">
+            <p>Xin chào <strong style="color: #1E293B;">{{buyerName}}</strong>,</p>
+            <p>Người bán đã trả lời câu hỏi của bạn:</p>
 
-            <!-- Content -->
-            <tr>
-              <td style="padding: 40px 30px;">
-                <p style="margin: 0 0 20px; font-size: 16px; color: #374151; line-height: 1.5;">
-                  Xin chào <strong style="color: #111827;">{{buyerName}}</strong>,
-                </p>
+            <div class="product-info">
+                <div class="info-row">
+                    <span class="label">Sản phẩm:</span>
+                    <span class="value">{{productTitle}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Thời gian:</span>
+                    <span class="value">{{timestamp}}</span>
+                </div>
+            </div>
 
-                <p style="margin: 0 0 25px; font-size: 14px; color: #6b7280; line-height: 1.5;">
-                  Người bán đã trả lời câu hỏi của bạn:
-                </p>
+            <div class="question-box">
+                <div class="box-label">Câu hỏi của bạn:</div>
+                <div class="text-content" style="font-style: italic;">
+                    "{{questionText}}"
+                </div>
+            </div>
 
-                <!-- Product Info Box -->
-                <table role="presentation" style="width: 100%; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 25px;">
-                  <tr>
-                    <td style="padding: 25px;">
-                      <table role="presentation" style="width: 100%;">
-                        <tr>
-                          <td style="padding: 8px 0;">
-                            <span style="color: #4b5563; font-weight: 600; display: inline-block; width: 120px;">Sản phẩm:</span>
-                            <span style="color: #111827;">{{productTitle}}</span>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="padding: 8px 0;">
-                            <span style="color: #4b5563; font-weight: 600; display: inline-block; width: 120px;">Thời gian:</span>
-                            <span style="color: #111827;">{{timestamp}}</span>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-                </table>
+            <div class="answer-box">
+                <div class="box-label">Câu trả lời:</div>
+                <div class="text-content" style="font-weight: 500;">
+                    "{{answerText}}"
+                </div>
+            </div>
 
-                <!-- Your Question Box -->
-                <table role="presentation" style="width: 100%; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
-                  <tr>
-                    <td style="padding: 25px;">
-                      <p style="margin: 0 0 10px; font-size: 12px; color: #4b5563; font-weight: 600;">Câu hỏi của bạn:</p>
-                      <p style="margin: 0; color: #1f2937; font-size: 14px; font-style: italic; line-height: 1.6;">
-                        "{{questionText}}"
-                      </p>
-                    </td>
-                  </tr>
-                </table>
+            <div style="text-align: center;">
+                <a href="{{productUrl}}" class="button">Xem Chi Tiết</a>
+            </div>
 
-                <!-- Answer Box -->
-                <table role="presentation" style="width: 100%; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 0 8px 8px 0; margin-bottom: 30px;">
-                  <tr>
-                    <td style="padding: 25px;">
-                      <p style="margin: 0 0 10px; font-size: 12px; color: #4b5563; font-weight: 600;">Câu trả lời của người bán:</p>
-                      <p style="margin: 0; color: #1f2937; font-size: 14px; font-style: italic; line-height: 1.6;">
-                        "{{answerText}}"
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-
-                <!-- CTA Button -->
-                <table role="presentation" style="width: 100%; margin: 30px 0;">
-                  <tr>
-                    <td style="text-align: center;">
-                      <a href="{{productUrl}}" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: bold; padding: 16px 32px; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                        Xem chi tiết sản phẩm
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-
-                <!-- Direct Link -->
-                <table role="presentation" style="width: 100%; background-color: #f9fafb; border-radius: 8px; margin-top: 25px;">
-                  <tr>
-                    <td style="padding: 15px;">
-                      <p style="margin: 0 0 8px; font-size: 12px; color: #4b5563;">
-                        Hoặc sao chép liên kết này vào trình duyệt của bạn:
-                      </p>
-                      <p style="margin: 0; font-size: 11px; word-break: break-all;">
-                        <a href="{{productUrl}}" style="color: #2563eb; text-decoration: underline;">{{productUrl}}</a>
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <!-- Footer -->
-            <tr>
-              <td style="background-color: #f3f4f6; padding: 25px; text-align: center; border-top: 1px solid #e5e7eb;">
-                <p style="margin: 0 0 5px; font-size: 12px; color: #6b7280;">
-                  © 2025 Sàn Đấu Giá. All rights reserved.
-                </p>
-                <p style="margin: 0; font-size: 11px; color: #9ca3af;">
-                  Email này được gửi tự động, vui lòng không trả lời trực tiếp.
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
+            <p style="margin-top: 24px; font-size: 13px; color: #64748B; text-align: center;">
+                Hoặc sao chép liên kết này vào trình duyệt của bạn:<br>
+                <a href="{{productUrl}}" style="color: #3B82F6; text-decoration: none;">{{productUrl}}</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>Email này được gửi tự động, vui lòng không trả lời trực tiếp.</p>
+            <p>&copy; 2025 Auction Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
 </html>

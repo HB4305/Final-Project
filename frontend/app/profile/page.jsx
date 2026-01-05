@@ -9,7 +9,7 @@ import {
   Edit2,
   Save,
   X,
-  Loader2,
+  Loader,
   Trophy,
   Settings,
   Bell,
@@ -249,7 +249,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -294,7 +294,7 @@ export default function ProfilePage() {
                   title="Đổi ảnh đại diện"
                 >
                   {saving ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader className="w-5 h-5 animate-spin" />
                   ) : (
                     <Camera className="w-5 h-5" />
                   )}
@@ -444,7 +444,7 @@ export default function ProfilePage() {
                             className="p-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition"
                           >
                             {emailUpdating ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
+                              <Loader className="w-5 h-5 animate-spin" />
                             ) : (
                               <Save className="w-5 h-5" />
                             )}
@@ -544,7 +544,7 @@ export default function ProfilePage() {
                       className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 font-medium flex items-center gap-2 disabled:opacity-50"
                     >
                       {saving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader className="w-4 h-4 animate-spin" />
                       ) : (
                         <Save className="w-4 h-4" />
                       )}
@@ -736,7 +736,7 @@ export default function ProfilePage() {
                 >
                   {emailOtpVerifying ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader className="w-5 h-5 animate-spin" />
                       Đang xác thực...
                     </>
                   ) : (

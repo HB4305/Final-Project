@@ -21,7 +21,7 @@ const SearchHeader = ({
 
   return (
     <div className="pt-28 pb-4 bg-transparent border-b border-white/5">
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4 animate-fade-in">
           <div>
@@ -62,7 +62,7 @@ const SearchHeader = ({
                 setLocalQuery(e.target.value);
                 onSearchChange(e.target.value);
               }}
-              className="block w-full pl-11 pr-4 py-3.5 border border-white/10 rounded-xl bg-white/5 text-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm placeholder-gray-500"
+              className="block w-full pl-11 pr-4 py-3 border border-white/10 rounded-xl bg-white/5 text-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm placeholder-gray-500"
               placeholder="Tìm kiếm sản phẩm, danh mục..."
             />
             {localQuery && (

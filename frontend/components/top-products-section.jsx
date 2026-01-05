@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Clock, Heart, Gavel, Sparkles } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import productService from "../app/services/productService";
@@ -225,6 +225,8 @@ function ProductCard({
   isWatchlisted,
   onWatchlistChange,
 }) {
+  const { isLoggedIn } = useAuth(); // Get auth state
+  const navigate = useNavigate(); // Get navigate function
   const [isFavorite, setIsFavorite] = useState(isWatchlisted);
 
   useEffect(() => {
@@ -236,6 +238,12 @@ function ProductCard({
   const handleToggleWatchlist = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Check if user is logged in
+    if (!isLoggedIn) {
+      navigate("/auth/login");
+      return;
+    }
 
     // Optimistic update
     const newStatus = !isFavorite;

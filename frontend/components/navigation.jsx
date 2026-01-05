@@ -12,6 +12,15 @@ export default function Navigation() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Sync search query from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get("q");
+    if (q) {
+      setSearchQuery(q);
+    }
+  }, [location.search]);
+
   const isActive = (path) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
@@ -66,11 +75,11 @@ export default function Navigation() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 shrink-0 group">
             <img 
-              src="/images/logo-kab.png" 
+              src="/images/logo-kab-v3.png" 
               alt="KAB Auction" 
               className="h-10 md:h-12 w-auto object-contain group-hover:scale-105 transition-transform duration-300 rounded-xl" 
             />
-            <span className="font-extrabold text-2xl hidden sm:inline bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
+            <span className="font-extrabold text-2xl hidden sm:inline bg-clip-text text-transparent bg-gradient-to-r from-white via-primary to-blue-400 tracking-tight drop-shadow-sm">
               KKABB
             </span>
           </Link>
@@ -130,8 +139,12 @@ export default function Navigation() {
                       className="w-8 h-8 rounded-full object-cover border border-primary/20"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                      <User className="w-5 h-5" />
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 overflow-hidden">
+                      <img 
+                        src="/images/logo-kab-v3.png" 
+                        alt="Avatar" 
+                        className="w-full h-full object-contain p-1" 
+                      />
                     </div>
                   )}
                   <span className="text-sm font-semibold hidden sm:inline text-foreground">
@@ -171,7 +184,12 @@ export default function Navigation() {
                             onClick={() => setIsUserMenuOpen(false)}
                             className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-orange-400 hover:bg-orange-500/10 rounded-xl transition-colors"
                           >
-                            🛡️ Trang quản trị
+                            <img 
+                              src="/images/logo-kab-v3.png" 
+                              alt="Admin" 
+                              className="w-5 h-5 object-contain"
+                            />
+                            Trang quản trị
                           </Link>
                         </>
                       )}

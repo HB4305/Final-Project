@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, Loader2, Eye, EyeOff, CheckCircle, X, Shield, ChevronLeft } from "lucide-react";
+import { Lock, Loader, Eye, EyeOff, CheckCircle, X, Shield, ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import Navigation from "../../../components/navigation";
 import userService from "../../services/userService";
@@ -354,7 +354,7 @@ export default function SettingsPage() {
                                 disabled={loading}
                                 className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 font-medium flex items-center gap-2 disabled:opacity-50"
                              >
-                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                                {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
                                 {isGoogleUser ? "Thiết lập mật khẩu" : "Đổi mật khẩu"}
                              </button>
                              {isGoogleUser && isSettingPassword && (
@@ -423,7 +423,7 @@ export default function SettingsPage() {
                 >
                   {otpLoading ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader className="w-5 h-5 animate-spin" />
                       Đang xác thực...
                     </>
                   ) : (

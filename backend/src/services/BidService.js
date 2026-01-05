@@ -84,7 +84,7 @@ export class BidService {
       );
     }
 
-    // 4. Validate Rating for Open Bidding (requireBidderApproval = false)
+    // 4. Validate Rating & Eligibility
     const product = await Product.findById(auction.productId);
     if (!product) throw new AppError("Sản phẩm không tồn tại", 404);
 
@@ -98,42 +98,65 @@ export class BidService {
       throw new AppError("Không tìm thấy người dùng", 404);
     }
 
-    if (!product.requireBidderApproval) {
-      // 1. Real-time stats from Rating collection
-      const ratingStats = await Rating.aggregate([
-        { $match: { rateeId: new mongoose.Types.ObjectId(bidderId) } },
-        { $group: {
-            _id: null,
-            total: { $sum: 1 },
-            positive: { $sum: { $cond: [{ $eq: ["$score", 1] }, 1, 0] } }
-          }
+    // --- RATING CALCULATION ---
+    // 1. Real-time stats from Rating collection
+    const ratingStats = await Rating.aggregate([
+      { $match: { rateeId: new mongoose.Types.ObjectId(bidderId) } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          positive: { $sum: { $cond: [{ $eq: ["$score", 1] }, 1, 0] } }
         }
-      ]);
-      const realtimeStats = ratingStats[0] || { total: 0, positive: 0 };
-      let realtimePercent = 0;
-      if (realtimeStats.total > 0) {
-        realtimePercent = (realtimeStats.positive / realtimeStats.total) * 100;
       }
+    ]);
+    const realtimeStats = ratingStats[0] || { total: 0, positive: 0 };
+    let realtimePercent = 0;
+    if (realtimeStats.total > 0) {
+      realtimePercent = (realtimeStats.positive / realtimeStats.total) * 100;
+    }
 
-      // 2. Cached stats from User Profile
-      const profileStats = bidder.ratingSummary || { totalCount: 0, countPositive: 0 };
-      let profilePercent = 0;
-      if (profileStats.totalCount > 0) {
-        profilePercent = (profileStats.countPositive / profileStats.totalCount) * 100;
-      }
+    // 2. Cached stats from User Profile
+    const profileStats = bidder.ratingSummary || { totalCount: 0, countPositive: 0 };
+    let profilePercent = 0;
+    if (profileStats.totalCount > 0) {
+      profilePercent = (profileStats.countPositive / profileStats.totalCount) * 100;
+    }
 
-      // 3. Use the Best Rating available (Benefit of the doubt)
-      const effectivePercent = Math.max(realtimePercent, profilePercent);
-      const hasRatingData = realtimeStats.total > 0 || profileStats.totalCount > 0;
+    // 3. Use the Best Rating available (Benefit of the doubt)
+    const effectivePercent = Math.max(realtimePercent, profilePercent);
+    const hasRatingData = realtimeStats.total > 0 || profileStats.totalCount > 0;
 
-      // Strict 80% Rule (Only if user has ratings)
-      if (hasRatingData && effectivePercent < 80) {
+    // --- ELIGIBILITY LOGIC ---
+    if (hasRatingData) {
+      // Rule 1: Bidders with rating < 80% are BLOCKED globally (for quality control)
+      if (effectivePercent < 80) {
         throw new AppError(
-          `Điểm uy tín của bạn (${effectivePercent.toFixed(0)}%) thấp hơn mức yêu cầu (80%) để tham gia đấu giá tự do.`,
+          `Điểm uy tín của bạn (${effectivePercent.toFixed(0)}%) thấp hơn mức yêu cầu (80%) để tham gia đấu giá.`,
           403,
           ERROR_CODES.RATING_TOO_LOW
         );
       }
+      // Rule 2: Bidders with rating >= 80% are ALWAYS ALLOWED
+      // (Proceed to bid)
+    } else {
+      // Rule 3: New Bidders (No Rating)
+      // Condition: Allowed ONLY IF requireBidderApproval is FALSE (Open Mode)
+      // OR if they are specifically Approved in whitelist
+      
+      if (product.requireBidderApproval) {
+        // Restricted Mode: Check Whitelist
+        const isApproved = product.approvedBidders && product.approvedBidders.some(id => id.toString() === bidderId.toString());
+        
+        if (!isApproved) {
+           throw new AppError(
+            "Sản phẩm này yêu cầu phê duyệt cho người mới. Vui lòng gửi yêu cầu tham gia.",
+            403,
+            "BIDDER_APPROVAL_REQUIRED"
+          );
+        }
+      }
+      // If requireBidderApproval is FALSE -> Allow New Bidder automatically
     }
 
     // 5. Validate Max Amount

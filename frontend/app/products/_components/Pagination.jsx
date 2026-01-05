@@ -35,7 +35,7 @@ const Pagination = ({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-border">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
       {/* Items per page selector */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>Hiển thị</span>

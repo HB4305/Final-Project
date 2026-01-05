@@ -4,7 +4,7 @@ import {
   Star,
   StarHalf,
   ArrowLeft,
-  Loader2,
+  Loader,
   ThumbsUp,
   ThumbsDown,
   ChevronLeft,
@@ -158,7 +158,7 @@ export default function RatingsPage() {
       {loading && !userInfo && !ratings.length ? (
         <div className="flex items-center justify-center h-[calc(100vh-80px)]">
           <div className="text-center animate-pulse">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <Loader className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
             <p className="text-muted-foreground font-medium">
               Đang tải đánh giá...
             </p>

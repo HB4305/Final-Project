@@ -1440,8 +1440,8 @@ export const toggleBidderApproval = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: product.requireBidderApproval 
-        ? "Đã bật yêu cầu phê duyệt bidder" 
-        : "Đã tắt yêu cầu phê duyệt bidder",
+        ? "Đã tắt chế độ cho phép người mới (Yêu cầu phê duyệt)" 
+        : "Đã bật chế độ cho phép người mới tham gia",
       data: {
         productId: product._id,
         requireBidderApproval: product.requireBidderApproval

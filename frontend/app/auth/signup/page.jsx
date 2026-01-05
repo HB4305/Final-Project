@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Eye, EyeOff, Loader2, ArrowLeft, CheckCircle, Gavel } from "lucide-react";
+import { Eye, EyeOff, Loader, ArrowLeft, CheckCircle, Gavel } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 import Toast from "../../../components/Toast";
 import authService from "../../services/authService";
@@ -211,21 +211,16 @@ export default function SignupPage() {
         <div className="glass-card bg-[#1e293b]/40 rounded-2xl p-8 border border-white/10 shadow-2xl backdrop-blur-xl">
           {/* HEADER */}
           <div className="flex justify-center mb-8">
-               <Link to="/" className="flex items-center gap-3 shrink-0 group">
-                 <div className="w-12 h-12 flex items-center justify-center">
+                 <Link to="/" className="flex items-center gap-3 shrink-0 group">
                     <img 
-                        src="/images/logo-kab.png" 
+                        src="/images/logo-kab-v3.png" 
                         alt="KKABB Auction" 
-                        className="w-full h-full object-contain rounded-xl" 
+                        className="h-12 w-auto object-contain rounded-2xl" 
                     />
-                 </div>
-                 <span className="font-extrabold text-3xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
-                     KKABB
-                 </span>
-                </Link>
+                 </Link>
           </div>
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-400 mb-2">
               {step === 1 ? "Tạo tài khoản mới" : "Xác thực Email"}
             </h1>
             <p className="text-muted-foreground">
@@ -398,7 +393,7 @@ export default function SignupPage() {
                 disabled={isLoading}
                 className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:shadow-lg hover:shadow-primary/25 focus:ring-4 focus:ring-primary/20 transition transform hover:-translate-y-1 active:scale-[0.98] font-bold flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {isLoading && <Loader2 className="animate-spin w-4 h-4" />}
+                {isLoading && <Loader className="animate-spin w-4 h-4" />}
                 {isLoading ? "Đang tạo tài khoản..." : "Đăng ký ngay"}
               </button>
             </form>
@@ -440,7 +435,7 @@ export default function SignupPage() {
                 disabled={isLoading || otp.length !== 6}
                 className="w-full px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 transition-all font-bold flex justify-center items-center gap-2 shadow-lg shadow-green-600/20"
               >
-                {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <CheckCircle className="w-5 h-5" />}
+                {isLoading ? <Loader className="animate-spin w-4 h-4" /> : <CheckCircle className="w-5 h-5" />}
                 {isLoading ? "Đang xác thực..." : "Xác thực tài khoản"}
               </button>
 

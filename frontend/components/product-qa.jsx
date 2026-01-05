@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageSquare, Send, User, Clock, AlertCircle } from "lucide-react";
+import { MessageSquare, Send, User, Clock, AlertCircle, Loader } from "lucide-react";
 import { useAuth } from "../app/context/AuthContext.jsx";
 import questionService from "../app/services/questionService";
 import Toast from "./Toast";
@@ -137,9 +137,7 @@ export default function ProductQA({ productId, sellerId }) {
     return (
       <div className="bg-background border border-border rounded-lg p-6">
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary">
-            <span className="ml-3 text-muted-foreground">Đang tải...</span>
-          </div>
+          <Loader className="animate-spin w-8 h-8 text-primary" />
         </div>
       </div>
     );

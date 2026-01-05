@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Users,
   Shield,
+  Loader,
   Search,
   Edit,
   Trash2,
@@ -12,6 +14,20 @@ import {
   Clock,
   Timer,
   Power,
+  Filter,
+  MoreVertical,
+  AlertTriangle,
+  Mail,
+  Calendar,
+  Lock,
+  Unlock,
+  ChevronRight,
+  Eye,
+  UserCheck,
+  UserX,
+  CreditCard,
+  MapPin, // Added MapPin
+  Phone // Added Phone
 } from "lucide-react";
 import adminService from "../app/services/adminService";
 import Toast from "./Toast";
@@ -33,35 +49,35 @@ export default function AdminPanel() {
         <div className="flex gap-2 mb-6 border-b border-border">
           <button
             onClick={() => setActiveTab("users")}
-            className={`flex items-center gap-2 px-4 py-3 font-medium border-b-2 transition ${
+            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all rounded-t-lg ${
               activeTab === "users"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? "bg-primary/20 text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-white hover:bg-white/5"
             }`}
           >
-            <Users className="w-5 h-5" />
+            <Users className="w-4 h-4" />
             Danh sách tài khoản
           </button>
           <button
             onClick={() => setActiveTab("upgrades")}
-            className={`flex items-center gap-2 px-4 py-3 font-medium border-b-2 transition ${
+            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all rounded-t-lg ${
               activeTab === "upgrades"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? "bg-primary/20 text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-white hover:bg-white/5"
             }`}
           >
-            <Shield className="w-5 h-5" />
+            <Shield className="w-4 h-4" />
             Yêu cầu nâng cấp
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`flex items-center gap-2 px-4 py-3 font-medium border-b-2 transition ${
+            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all rounded-t-lg ${
               activeTab === "settings"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? "bg-primary/20 text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-white hover:bg-white/5"
             }`}
           >
-            <Settings className="w-5 h-5" />
+            <Settings className="w-4 h-4" />
             Cài đặt
           </button>
         </div>
@@ -164,18 +180,19 @@ function UserManagement({ searchQuery, setSearchQuery }) {
       user.fullName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const calculateRating = (ratingSummary) => {
+    if (!ratingSummary || ratingSummary.totalCount === 0) {
+      return 0;
+    }
+    return ((ratingSummary.score || 0) / 5 * 100).toFixed(0);
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="relative">
-          <div className="w-24 h-24 border-4 border-primary/20 rounded-full"></div>
-          <div className="w-24 h-24 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Users className="w-10 h-10 text-primary animate-pulse" />
-          </div>
-        </div>
-        <div className="ml-6">
-          <p className="text-lg font-semibold text-foreground">Đang tải danh sách người dùng</p>
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader className="w-16 h-16 text-blue-600 animate-spin mb-6" />
+        <div className="text-center">
+          <p className="text-lg font-bold text-foreground animate-pulse">Đang tải danh sách người dùng</p>
           <p className="text-sm text-muted-foreground mt-1">Vui lòng đợi trong giây lát...</p>
         </div>
       </div>
@@ -220,7 +237,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
         </div>
         <button
           onClick={fetchUsers}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 font-medium shadow-lg shadow-primary/20"
         >
           <RefreshCw className="w-4 h-4" />
           Làm mới
@@ -228,9 +245,9 @@ function UserManagement({ searchQuery, setSearchQuery }) {
       </div>
 
       {/* User List */}
-      <div className="bg-background border border-border rounded-lg overflow-hidden">
+      <div className="glass rounded-xl overflow-hidden">
         <table className="w-full">
-          <thead className="bg-muted">
+          <thead className="bg-white/5">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold">
                 Người dùng
@@ -291,12 +308,12 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                       {user.roles?.map((role) => (
                         <span
                           key={role}
-                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${
                             role === "admin" || role === "superadmin"
-                              ? "bg-red-100 text-red-700"
+                              ? "bg-red-500/10 text-red-400 border-red-500/20"
                               : role === "seller"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-700"
+                              ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                              : "bg-gray-500/10 text-gray-400 border-gray-500/20"
                           }`}
                         >
                           {role}
@@ -314,10 +331,10 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${
                         user.status
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
+                          ? "bg-green-500/10 text-green-400 border-green-500/20"
+                          : "bg-red-500/10 text-red-400 border-red-500/20"
                       }`}
                     >
                       {user.status ? "Active" : "Inactive"}
@@ -353,124 +370,101 @@ function UserManagement({ searchQuery, setSearchQuery }) {
 
       {/* User Detail Modal */}
       {showDetailModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
-          <div className="bg-slate-900 border border-gray-700 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-gray-700 p-6 z-10">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2 text-white">Thông tin người dùng</h2>
-                  <p className="text-gray-400">Chi tiết tài khoản</p>
-                </div>
-                <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-gray-800 text-gray-400 hover:text-white rounded-lg transition">
-                  <XCircle className="w-6 h-6" />
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
+          <div className="glass-card border border-white/10 bg-[#1e293b]/90 backdrop-blur-xl rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
+              <h3 className="text-xl font-bold text-white">Thông tin người dùng</h3>
+              <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-white transition p-1 hover:bg-white/10 rounded-full">
+                <XCircle className="w-6 h-6" />
+              </button>
             </div>
             
-            <div className="p-6 space-y-6">
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Tên đăng nhập</label>
-                  <p className="text-lg font-bold text-white mt-1">{selectedUser.username}</p>
+            <div className="p-8 space-y-8">
+              <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+                <div className="w-24 h-24 rounded-full p-1 bg-white/10 shadow-lg ring-2 ring-white/20 flex-shrink-0">
+                  <img 
+                    src={selectedUser.profileImageUrl || "/placeholder-user.jpg"} 
+                    alt={selectedUser.username}
+                    className="w-full h-full rounded-full object-cover"
+                  />
                 </div>
-                <div className="col-span-2">
-                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Họ tên</label>
-                  <p className="text-lg text-white mt-1">{selectedUser.fullName || 'Chưa cập nhật'}</p>
-                </div>
-                <div className="col-span-2">
-                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Email</label>
-                  <p className="text-lg text-white mt-1">{selectedUser.email}</p>
+                <div className="flex-1 space-y-4 text-center sm:text-left w-full">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Tên đăng nhập</p>
+                    <h4 className="text-2xl font-bold text-white">{selectedUser.username}</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div>
+                        <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Họ tên</p>
+                        <p className="text-white font-medium">{selectedUser.fullName || "Chưa cập nhật"}</p>
+                     </div>
+                     <div>
+                        <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Email</p>
+                        <p className="text-white font-medium truncate" title={selectedUser.email}>{selectedUser.email}</p>
+                     </div>
+                  </div>
+
+                  <div>
+                     <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">Vai trò</p>
+                     <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                        {selectedUser.roles.map(role => (
+                          <span key={role} className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${
+                            role === 'admin' 
+                              ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                              : role === 'seller' 
+                                ? 'bg-green-500/20 text-green-400 border-green-500/30' 
+                                : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                          }`}>
+                            {role}
+                          </span>
+                        ))}
+                     </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Roles */}
-              <div>
-                <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2 block">Vai trò</label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedUser.roles?.map((role) => (
-                    <span
-                      key={role}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                        role === "admin" || role === "superadmin"
-                          ? "bg-red-100 text-red-700"
-                          : role === "seller"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {role}
-                    </span>
-                  ))}
-                </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-white/10">
+                  <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                     <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Xếp hạng</p>
+                     <p className="text-3xl font-bold text-yellow-500">
+                        {calculateRating(selectedUser.ratingSummary)}%
+                     </p>
+                     <p className="text-xs text-gray-500 mt-1">
+                        ({selectedUser.ratingSummary?.totalCount || 0} đánh giá)
+                     </p>
+                  </div>
+                  
+                  <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                     <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Trạng thái</p>
+                     <p className={`text-xl font-bold ${selectedUser.isActive ? 'text-green-400' : 'text-red-400'}`}>
+                        {selectedUser.isActive ? 'Đang hoạt động' : 'Đã bị khóa'}
+                     </p>
+                  </div>
+               </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-white/10">
+                 <div>
+                    <p className="text-gray-400 font-medium mb-1">Ngày tham gia</p>
+                    <p className="text-white">{new Date(selectedUser.createdAt).toLocaleDateString("vi-VN")}</p>
+                 </div>
+                 <div>
+                    <p className="text-gray-400 font-medium mb-1">Cập nhật cuối</p>
+                    <p className="text-white">{new Date(selectedUser.updatedAt).toLocaleDateString("vi-VN")}</p>
+                 </div>
+              </div>
+              
+              <div className="bg-black/20 p-4 rounded-xl border border-white/5">
+                 <p className="text-xs font-bold text-gray-500 uppercase mb-1">User ID</p>
+                 <p className="text-xs font-mono text-gray-400 select-all">{selectedUser._id}</p>
               </div>
 
-              {/* Rating & Stats */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20">
-                  <label className="text-sm font-semibold text-yellow-500 uppercase tracking-wide">Xếp hạng</label>
-                  <p className="text-2xl font-bold text-yellow-500 mt-1">
-                    {((selectedUser.ratingSummary?.score || 0) / 5 * 100).toFixed(0)}%
-                  </p>
-                  <p className="text-xs text-yellow-600/80 mt-1">({selectedUser.ratingSummary?.totalCount || 0} đánh giá)</p>
-                </div>
-                <div className={`p-4 rounded-xl border ${
-                  selectedUser.status ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'
-                }`}>
-                  <label className={`text-sm font-semibold uppercase tracking-wide ${
-                    selectedUser.status ? 'text-green-500' : 'text-red-500'
-                  }`}>Trạng thái</label>
-                  <p className={`text-2xl font-bold mt-1 ${
-                    selectedUser.status ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {selectedUser.status ? 'Đang hoạt động' : 'Không hoạt động'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Additional Info */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-800">
-                <div>
-                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Ngày tham gia</label>
-                  <p className="text-white mt-1">{new Date(selectedUser.createdAt).toLocaleDateString('vi-VN')}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Cập nhật cuối</label>
-                  <p className="text-white mt-1">{new Date(selectedUser.updatedAt).toLocaleDateString('vi-VN')}</p>
-                </div>
-              </div>
-
-              {/* Contact Info */}
-              {selectedUser.phoneNumber && (
-                <div>
-                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Số điện thoại</label>
-                  <p className="text-white mt-1">{selectedUser.phoneNumber}</p>
-                </div>
-              )}
-
-              {/* Address */}
-              {selectedUser.address && (
-                <div>
-                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Địa chỉ</label>
-                  <p className="text-white mt-1">
-                    {typeof selectedUser.address === 'object' 
-                      ? `${selectedUser.address.street || ''}, ${selectedUser.address.city || ''}`.trim().replace(/^,\s*/, '').replace(/,\s*$/, '')
-                      : selectedUser.address}
-                  </p>
-                </div>
-              )}
-
-              {/* User ID */}
-              <div className="bg-slate-950 p-4 rounded-xl border border-gray-800">
-                <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">User ID</label>
-                <p className="text-xs text-gray-500 mt-1 font-mono break-all">{selectedUser._id}</p>
-              </div>
             </div>
-
-            <div className="bg-slate-900/95 backdrop-blur px-6 py-4 flex justify-end border-t border-gray-700 sticky bottom-0">
-              <button
+            
+            <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end">
+              <button 
                 onClick={() => setShowDetailModal(false)}
-                className="px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
+                className="px-6 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 font-medium"
               >
                 Đóng
               </button>
@@ -685,16 +679,10 @@ function UpgradeRequests() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="relative">
-          <div className="w-24 h-24 border-4 border-primary/20 rounded-full"></div>
-          <div className="w-24 h-24 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Shield className="w-10 h-10 text-primary animate-pulse" />
-          </div>
-        </div>
-        <div className="ml-6">
-          <p className="text-lg font-semibold text-foreground">Đang tải danh sách yêu cầu</p>
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader className="w-16 h-16 text-blue-600 animate-spin mb-6" />
+        <div className="text-center">
+          <p className="text-lg font-bold text-foreground animate-pulse">Đang tải danh sách yêu cầu</p>
           <p className="text-sm text-muted-foreground mt-1">Đang xử lý thông tin...</p>
         </div>
       </div>
@@ -735,16 +723,16 @@ function UpgradeRequests() {
         </div>
         <button
           onClick={fetchUpgradeRequests}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 font-medium shadow-lg shadow-primary/20"
         >
           <RefreshCw className="w-4 h-4" />
           Làm mới
         </button>
       </div>
 
-      <div className="bg-background border border-border rounded-lg overflow-hidden">
+      <div className="glass rounded-xl overflow-hidden">
         <table className="w-full">
-          <thead className="bg-muted">
+          <thead className="bg-white/5">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold">
                 Người dùng
@@ -810,12 +798,12 @@ function UpgradeRequests() {
                   <td className="px-4 py-3">{request.user?.ratingSummary?.countPositive || 0}</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${
                         request.status === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
+                          ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
                           : request.status === "approved"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
+                          ? "bg-green-500/10 text-green-400 border-green-500/20"
+                          : "bg-red-500/10 text-red-400 border-red-500/20"
                       }`}
                     >
                       {request.status === "pending"
@@ -863,74 +851,65 @@ function UpgradeRequests() {
 
       {/* Detail Modal */}
       {showDetailModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-gray-700 p-6 flex items-center justify-between z-10">
-              <div>
-                <h3 className="text-xl font-bold text-white">Chi tiết yêu cầu nâng cấp</h3>
-                <p className="text-sm text-gray-400 mt-1">Thông tin đầy đủ về yêu cầu</p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowDetailModal(false);
-                  setSelectedRequest(null);
-                }}
-                className="text-gray-400 hover:text-gray-600 transition"
-              >
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
+          <div className="glass-card border border-white/10 bg-[#1e293b]/90 backdrop-blur-xl rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
+              <h3 className="text-xl font-bold text-white">Chi tiết yêu cầu nâng cấp</h3>
+              <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-white transition p-1 hover:bg-white/10 rounded-full">
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
             
-            <div className="p-6 space-y-6">
+            <div className="p-8 space-y-8">
               {/* User Info Section */}
-              <div className="bg-white/5 rounded-lg p-4 border border-gray-700/50">
-                <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
                   <Users className="w-5 h-5 text-blue-400" />
                   Thông tin người dùng
                 </h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Tên đăng nhập</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-gray-400 mb-1">Tên đăng nhập</p>
+                    <p className="font-semibold text-white">
                       {selectedRequest.user?.username || selectedRequest.userId?.username || 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Họ và tên</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-gray-400 mb-1">Họ và tên</p>
+                    <p className="font-semibold text-white">
                       {selectedRequest.user?.fullName || selectedRequest.userId?.fullName || 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-gray-400 mb-1">Email</p>
+                    <p className="font-semibold text-white">
                       {selectedRequest.user?.email || selectedRequest.userId?.email || 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Số điện thoại</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-gray-400 mb-1">Số điện thoại</p>
+                    <p className="font-semibold text-white">
                       {selectedRequest.user?.phone || selectedRequest.userId?.phone || 'Chưa cập nhật'}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Địa chỉ</p>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-400 mb-1">Địa chỉ</p>
                     <p className="font-semibold text-white">
                       {selectedRequest.user?.address || selectedRequest.userId?.address || 'Chưa cập nhật'}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Vai trò hiện tại</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-400 mb-1">Vai trò hiện tại</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
                       {(selectedRequest.user?.roles || selectedRequest.userId?.roles || []).map((role) => (
                         <span
                           key={role}
-                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${
                             role === "admin" || role === "superadmin"
-                              ? "bg-red-100 text-red-700"
+                              ? "bg-red-500/20 text-red-400 border-red-500/30"
                               : role === "seller"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-700"
+                              ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                              : "bg-gray-500/20 text-gray-400 border-gray-500/30"
                           }`}
                         >
                           {role}
@@ -942,27 +921,27 @@ function UpgradeRequests() {
               </div>
 
               {/* Rating Section */}
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-blue-600" />
+              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-yellow-400" />
                   Đánh giá và hoạt động
                 </h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <p className="text-sm text-gray-400">Điểm đánh giá</p>
-                    <p className="text-2xl font-bold text-blue-400">
+                    <p className="text-sm text-gray-400 mb-1">Điểm đánh giá</p>
+                    <p className="text-2xl font-bold text-yellow-500">
                       {Math.round(((selectedRequest.user?.ratingSummary?.score || 0) / 5) * 100)}%
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Đánh giá tích cực</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-sm text-gray-400 mb-1">Đánh giá tích cực</p>
+                    <p className="text-2xl font-bold text-green-500">
                       {selectedRequest.user?.ratingSummary?.countPositive || 0}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Đánh giá tiêu cực</p>
-                    <p className="text-2xl font-bold text-red-600">
+                    <p className="text-sm text-gray-400 mb-1">Đánh giá tiêu cực</p>
+                    <p className="text-2xl font-bold text-red-500">
                       {selectedRequest.user?.ratingSummary?.countNegative || 0}
                     </p>
                   </div>
@@ -970,27 +949,27 @@ function UpgradeRequests() {
               </div>
 
               {/* Request Info Section */}
-              <div className="bg-yellow-500/10 rounded-lg p-4 border border-yellow-500/20">
-                <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-                  <RefreshCw className="w-5 h-5 text-yellow-500" />
+              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-purple-400" />
                   Thông tin yêu cầu
                 </h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Ngày yêu cầu</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-gray-400 mb-1">Ngày yêu cầu</p>
+                    <p className="font-semibold text-white">
                       {new Date(selectedRequest.createdAt).toLocaleString('vi-VN')}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Trạng thái</p>
+                    <p className="text-sm text-gray-400 mb-1">Trạng thái</p>
                     <span
-                      className={`inline-block px-3 py-1 rounded text-sm font-semibold ${
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${
                         selectedRequest.status === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
+                          ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                           : selectedRequest.status === "approved"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
+                          ? "bg-green-500/20 text-green-400 border-green-500/30"
+                          : "bg-red-500/20 text-red-400 border-red-500/30"
                       }`}
                     >
                       {selectedRequest.status === "pending"
@@ -1002,26 +981,26 @@ function UpgradeRequests() {
                   </div>
                   {selectedRequest.reviewedAt && (
                     <div>
-                      <p className="text-sm text-gray-600">Ngày xử lý</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="text-sm text-gray-400 mb-1">Ngày xử lý</p>
+                      <p className="font-semibold text-white">
                         {new Date(selectedRequest.reviewedAt).toLocaleString('vi-VN')}
                       </p>
                     </div>
                   )}
                   {selectedRequest.reviewedBy && (
                     <div>
-                      <p className="text-sm text-gray-600">Người xử lý</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="text-sm text-gray-400 mb-1">Người xử lý</p>
+                      <p className="font-semibold text-white">
                         {selectedRequest.reviewedBy.fullName || selectedRequest.reviewedBy.username || 'Admin'}
                       </p>
                     </div>
                   )}
                 </div>
                 {selectedRequest.reviewNote && (
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-600 mb-1">Ghi chú xử lý</p>
-                    <div className="bg-white border border-gray-200 rounded p-3">
-                      <p className="text-gray-900">{selectedRequest.reviewNote}</p>
+                  <div className="mt-6">
+                    <p className="text-sm text-gray-400 mb-2">Ghi chú xử lý</p>
+                    <div className="bg-black/20 border border-white/10 rounded-lg p-4">
+                      <p className="text-white text-sm">{selectedRequest.reviewNote}</p>
                     </div>
                   </div>
                 )}
@@ -1029,14 +1008,14 @@ function UpgradeRequests() {
 
               {/* Action Buttons */}
               {selectedRequest.status === "pending" && (
-                <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+                <div className="flex gap-3 justify-end pt-6 border-t border-white/10">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowDetailModal(false);
                       handleReject(selectedRequest._id);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium"
+                    className="flex items-center gap-2 px-5 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition font-medium shadow-lg shadow-red-500/20"
                   >
                     <XCircle className="w-5 h-5" />
                     Từ chối yêu cầu
@@ -1239,8 +1218,9 @@ function SettingsManagement() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-muted-foreground font-medium animate-pulse">Đang tải cài đặt...</p>
       </div>
     );
   }
@@ -1248,16 +1228,16 @@ function SettingsManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-950 to-indigo-950 rounded-lg px-4 py-3 border border-blue-700 inline-block">
-        <h2 className="text-xl font-bold text-white">Cài đặt tham số tự động gia hạn</h2>
+      <div className="glass rounded-xl px-6 py-4 border-b border-white/5">
+        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">Cài đặt tham số tự động gia hạn</h2>
       </div>
 
       {/* Settings Card */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-sm">
+      <div className="glass rounded-xl border border-white/5 shadow-sm">
         <div className="p-6 space-y-6">
 
           {/* Threshold Setting */}
-          <div className="space-y-3 bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+          <div className="space-y-3 bg-white/5 p-4 rounded-lg border border-white/10">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-blue-400" />
               <label className="font-semibold text-gray-100">
@@ -1274,7 +1254,7 @@ function SettingsManagement() {
                 max="60"
                 value={settings.autoExtendThreshold}
                 onChange={(e) => handleChange('autoExtendThreshold', parseInt(e.target.value) || 5)}
-                className="w-24 px-4 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-900/50 text-white"
+                className="w-24 px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background/50 text-white"
               />
               <span className="text-gray-200 font-medium">phút</span>
               <span className="text-sm text-gray-400">
@@ -1284,7 +1264,7 @@ function SettingsManagement() {
           </div>
 
           {/* Duration Setting */}
-          <div className="space-y-3 bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+          <div className="space-y-3 bg-white/5 p-4 rounded-lg border border-white/10">
             <div className="flex items-center gap-2">
               <Timer className="w-5 h-5 text-blue-400" />
               <label className="font-semibold text-gray-100">
@@ -1301,7 +1281,7 @@ function SettingsManagement() {
                 max="120"
                 value={settings.autoExtendDuration}
                 onChange={(e) => handleChange('autoExtendDuration', parseInt(e.target.value) || 10)}
-                className="w-24 px-4 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-900/50 text-white"
+                className="w-24 px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background/50 text-white"
               />
               <span className="text-gray-200 font-medium">phút</span>
               <span className="text-sm text-gray-400">
@@ -1312,7 +1292,7 @@ function SettingsManagement() {
         </div>
 
         {/* Action Buttons */}
-        <div className="bg-gray-900 px-6 py-4 border-t border-gray-700 flex justify-end gap-3">
+        <div className="bg-white/5 px-6 py-4 border-t border-white/10 flex justify-end gap-3">
           <button
             onClick={handleReset}
             disabled={!hasChanges || saving}

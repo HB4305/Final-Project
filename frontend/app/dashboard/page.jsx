@@ -11,7 +11,7 @@ import {
   ArrowRight,
   Edit,
   AlertCircle,
-  Loader2,
+  Loader,
   Trash2,
   ShieldCheck,
   ShieldOff,
@@ -354,7 +354,7 @@ export default function DashboardPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -461,8 +461,8 @@ export default function DashboardPage() {
             <div className="glass-card border border-white/10 bg-[#1e293b]/60 rounded-2xl p-6 min-h-[500px]">
               {loading ? (
                 <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                  <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
-                  <p>Đang tải dữ liệu...</p>
+                  <Loader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+                  <p className="font-medium animate-pulse">Đang tải dữ liệu...</p>
                 </div>
               ) : error ? (
                 <div className="flex flex-col items-center justify-center h-64 text-red-500">
@@ -727,18 +727,18 @@ export default function DashboardPage() {
                                   >
                                     {togglingProductId === auction.productId?._id ? (
                                       <>
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <Loader className="w-3.5 h-3.5 animate-spin" />
                                         <span>Đang cập nhật...</span>
                                       </>
                                     ) : !auction.productId?.requireBidderApproval ? (
                                       <>
                                         <CheckCircle className="w-3.5 h-3.5" />
-                                        <span>Đã bật cho phép người mới</span>
+                                        <span>Người mới: Đã cho phép</span>
                                       </>
                                     ) : (
                                       <>
                                         <ShieldCheck className="w-3.5 h-3.5" />
-                                        <span>Cho phép bidder mới</span>
+                                        <span>Cho phép người mới</span>
                                       </>
                                     )}
                                   </button>

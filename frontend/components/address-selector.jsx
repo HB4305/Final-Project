@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { Loader2 } from "lucide-react";
+import { Loader } from "lucide-react";
 
 const DATA_SOURCE = {
   PROVINCE: "/address/province.json",
@@ -74,12 +74,13 @@ export default function AddressSelector({ value, onChange, disabled }) {
   };
 
   const inputClass = "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-white placeholder-gray-500 transition-all disabled:opacity-50";
+  const labelClass = "text-sm font-medium text-gray-300"; // Reverted to gray
 
   return (
     <div className="space-y-4">
       {/* Province / City */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-300">Tỉnh / Thành phố</label>
+        <label className={labelClass}>Tỉnh / Thành phố</label>
         <div className="relative">
              <select
                 disabled={disabled || loading}
@@ -94,14 +95,14 @@ export default function AddressSelector({ value, onChange, disabled }) {
                     </option>
                 ))}
             </select>
-             {loading && <Loader2 className="absolute right-3 top-3 w-5 h-5 animate-spin text-gray-400" />}
+             {loading && <Loader className="absolute right-3 top-3 w-5 h-5 animate-spin text-gray-400" />}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Ward */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Phường / Xã</label>
+            <label className={labelClass}>Phường / Xã</label>
              <div className="relative">
                 <select
                     disabled={disabled || !value.city || !dataLoaded}
@@ -121,7 +122,7 @@ export default function AddressSelector({ value, onChange, disabled }) {
           
            {/* Street */}
             <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Số nhà, tên đường</label>
+                <label className={labelClass}>Số nhà, tên đường</label>
                 <input
                     type="text"
                     disabled={disabled}

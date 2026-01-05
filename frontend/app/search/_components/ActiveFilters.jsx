@@ -45,7 +45,7 @@ const ActiveFilters = ({
   if (activeFiltersCount === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-muted/50 rounded-lg">
+    <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/10 rounded-lg border border-white/5">
       <span className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
         <Filter className="w-4 h-4" />
         Đang lọc:

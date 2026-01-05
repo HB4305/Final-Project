@@ -13,6 +13,8 @@ import {
   Settings,
   BarChart3,
   FileText,
+  LogOut,
+  Zap,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../app/context/AuthContext";
@@ -78,22 +80,19 @@ export default function AdminNavigation() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 shadow-lg flex flex-col">
       {/* Main Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-[#0f172a]/95 backdrop-blur-xl border-b border-white/5 text-white transition-all duration-300">
+      <div className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5 text-white transition-all duration-300">
         <div className="py-3">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
           {/* Logo & Admin Badge */}
           <Link to="/admin/dashboard" className="flex items-center gap-3 shrink-0 group">
             <img 
-              src="/images/logo-kab.png" 
+              src="/images/logo-kab-v3.png" 
               alt="Admin Panel" 
               className="h-10 md:h-12 w-auto object-contain group-hover:scale-105 transition-transform duration-300 rounded-xl" 
             />
             <div className="flex flex-col">
-              <span className="font-extrabold text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm leading-none">
+              <span className="font-extrabold text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white via-primary to-blue-400 tracking-tight drop-shadow-sm">
                 KKABB
-              </span>
-              <span className="text-[10px] font-bold tracking-widest text-blue-400 uppercase">
-                Admin Panel
               </span>
             </div>
           </Link>
@@ -109,13 +108,13 @@ export default function AdminNavigation() {
                   to={item.path}
                   className={`text-sm font-medium transition-all duration-200 relative py-1 mx-3 ${
                     active
-                      ? "text-blue-400"
+                      ? "text-primary"
                       : "text-gray-400 hover:text-white"
                   }`}
                 >
                   {item.label}
                   {active && (
-                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-400 rounded-full animate-fade-in"></span>
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>
                   )}
                 </Link>
               );
@@ -137,16 +136,28 @@ export default function AdminNavigation() {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 transition cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-white/5 transition border border-transparent hover:border-white/10"
               >
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4" />
-                </div>
+                {currentUser?.profileImageUrl ? (
+                  <img
+                    src={currentUser.profileImageUrl}
+                    alt="Avatar"
+                    className="w-8 h-8 rounded-full object-cover border border-primary/20"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 overflow-hidden">
+                    <img 
+                      src="/images/logo-kab-v3.png" 
+                      alt="Avatar" 
+                      className="w-full h-full object-contain p-1" 
+                    />
+                  </div>
+                )}
                 <div className="hidden sm:block text-left">
-                  <div className="text-sm font-medium">
+                  <div className="text-sm font-semibold text-white">
                     {currentUser?.username || "Admin"}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-[10px] text-blue-200 uppercase tracking-wider font-bold">
                     {currentUser?.roles?.includes("superadmin")
                       ? "Siêu Quản trị viên"
                       : "Quản trị viên"}
@@ -156,46 +167,50 @@ export default function AdminNavigation() {
 
               {/* User Dropdown Menu */}
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-slate-900 rounded-lg shadow-xl border border-slate-700 overflow-hidden z-50">
-                  <div className="px-4 py-3 bg-slate-800 border-b border-slate-700">
-                    <p className="text-sm font-semibold text-white">
-                      {currentUser?.username}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {currentUser?.email}
-                    </p>
+                <div className="absolute right-0 mt-4 w-64 bg-[#0f172a]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 shadow-2xl shadow-black/50">
+                  <div className="px-4 py-3 bg-white/5 rounded-xl mb-2">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tài khoản</p>
+                    <p className="truncate font-medium text-white">{currentUser?.email}</p>
                   </div>
 
-                  <Link
-                    to="/profile"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="block px-4 py-3 text-sm text-gray-300 hover:bg-slate-800 transition"
-                  >
-                    <User className="w-4 h-4 inline mr-2" />
-                    Hồ sơ cá nhân
-                  </Link>
-                  <Link
-                    to="/profile/settings"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="block px-4 py-3 text-sm text-gray-300 hover:bg-slate-800 transition"
-                  >
-                    <Settings className="w-4 h-4 inline mr-2" />
-                    Cài đặt
-                  </Link>
+                  <div className="space-y-1">
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-primary/20 rounded-xl transition-all"
+                    >
+                      <User className="w-4 h-4" />
+                      Hồ sơ cá nhân
+                    </Link>
+                    <Link
+                      to="/admin/dashboard"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-primary/20 rounded-xl transition-all"
+                    >
+                      <Zap className="w-4 h-4" />
+                      Bảng điều khiển
+                    </Link>
+                    <Link
+                      to="/profile/settings"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-primary/20 rounded-xl transition-all"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Cài đặt
+                    </Link>
 
+                    <div className="h-px bg-white/10 my-2 mx-2"></div>
 
-
-                  <hr className="border-gray-700" />
-
-                  <button
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      handleLogout();
-                    }}
-                    className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-slate-800 transition"
-                  >
-                    Đăng xuất
-                  </button>
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-xl transition-colors text-left"
+                    >
+                      <LogOut className="w-4 h-4" /> Đăng xuất
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

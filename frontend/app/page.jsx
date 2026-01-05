@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
-import { Zap, TrendingUp, ShieldCheck, Clock, Gavel } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Zap, TrendingUp, ShieldCheck, Clock, Gavel, Facebook, Twitter, Instagram, Github, Mail, Phone, MapPin, Home as HomeIcon } from "lucide-react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navigation from "../components/navigation";
 import TopProductsSection from "../components/top-products-section";
@@ -230,53 +230,62 @@ export default function Home() {
 
       </main>
 
-      <footer className="bg-black/40 border-t border-white/10 py-12 px-4 mt-12 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12 mb-12">
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-               <img 
-                  src="/images/logo-kab.png" 
-                  alt="KKABB Auction" 
-                  className="h-12 w-auto object-contain rounded-xl" 
-               />
-               <span className="font-extrabold text-3xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
+      <footer className="bg-[#1a1a1a] text-gray-300 border-t border-white/10 mt-12 font-sans">
+        {/* Social Media Bar */}
+
+
+        {/* Main Footer Content */}
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Column 1: Company Name */}
+            <div>
+              <Link to="/" className="flex items-center gap-2 mb-6 group">
+                <img 
+                  src="/images/logo-kab-v3.png" 
+                  alt="KKABB" 
+                  className="h-10 w-auto object-contain rounded-xl" 
+                />
+                <span className="font-extrabold text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white via-primary to-blue-400">
                   KKABB
-               </span>
+                </span>
+              </Link>
+              <p className="text-sm leading-relaxed text-gray-400">
+                Nền tảng đấu giá trực tuyến uy tín và hiện đại nhất Việt Nam. 
+                Chúng tôi mang đến trải nghiệm mua sắm đẳng cấp và cơ hội sở hữu những món hàng hiệu giá trị.
+              </p>
             </div>
-            <p className="text-muted-foreground max-w-xs">
-              Nền tảng đấu giá trực tuyến uy tín và hiện đại nhất.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-12">
+
+            {/* Column 2: Products */}
+
+
+            {/* Column 4: Contact */}
             <div>
-              <h4 className="font-bold mb-4 text-white">Khám phá</h4>
-              <ul className="space-y-3 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-primary transition">Đấu giá đang diễn ra</a></li>
-                <li><a href="#" className="hover:text-primary transition">Sắp diễn ra</a></li>
-                <li><a href="#" className="hover:text-primary transition">Đã kết thúc</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-white">Hỗ trợ</h4>
-              <ul className="space-y-3 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-primary transition">Trung tâm trợ giúp</a></li>
-                <li><a href="#" className="hover:text-primary transition">Quy chế hoạt động</a></li>
-                <li><a href="#" className="hover:text-primary transition">Bảo mật thông tin</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-white">Kết nối</h4>
-              <ul className="space-y-3 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-primary transition">Facebook</a></li>
-                <li><a href="#" className="hover:text-primary transition">Instagram</a></li>
-                <li><a href="#" className="hover:text-primary transition">Twitter</a></li>
+              <h6 className="uppercase font-bold mb-6 text-white tracking-wider">Liên hệ</h6>
+              <ul className="space-y-4 text-sm">
+                <li className="flex items-start gap-3">
+                  <div className="w-5 h-5 mt-0.5 text-primary"><HomeIcon className="w-5 h-5" /></div>
+                  <span>Ho Chi Minh City, Vietnam</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 text-primary"><Mail className="w-5 h-5" /></div>
+                  <a href="mailto:daokinghacker05@gmail.com" className="hover:text-white">daokinghacker05@gmail.com</a>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 text-primary"><Phone className="w-5 h-5" /></div>
+                  <span>+ 01 234 567 88</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 text-primary"><Phone className="w-5 h-5" /></div>
+                  <span>+ 01 234 567 89</span>
+                </li>
               </ul>
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto text-center text-sm text-gray-600 border-t border-gray-800 pt-8">
-          <p>&copy; 2025 KKABB. All rights reserved.</p>
+
+        {/* Copyright */}
+        <div className="bg-black/20 py-6 text-center text-sm text-gray-500 border-t border-white/5">
+          <p>&copy; 2025 Copyright: <span className="font-bold text-white">KKABB.com</span></p>
         </div>
       </footer>
     </div>

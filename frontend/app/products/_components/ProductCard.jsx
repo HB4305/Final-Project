@@ -1,4 +1,4 @@
-import { Heart, Clock, TrendingUp, User, ShoppingBag, Sparkles } from 'lucide-react';
+import { Heart, Clock, TrendingUp, User, ShoppingBag, Sparkles, Gavel } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatPrice, FALLBACK_IMAGE, isNewProduct } from './utils';
@@ -138,7 +138,7 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
 
              <div className="flex items-center gap-2">
                  <button className="flex-1 py-2.5 rounded-xl bg-primary text-white font-medium text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
-                     <ShoppingBag className="w-4 h-4" /> Đấu giá
+                     <Gavel className="w-4 h-4" /> Đấu giá ngay
                  </button>
              </div>
           </div>

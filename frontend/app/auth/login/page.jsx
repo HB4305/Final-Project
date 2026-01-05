@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Loader, ArrowLeft } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useAuth } from "../../context/AuthContext";
 import Toast from "../../../components/Toast";
@@ -202,7 +202,7 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 flex justify-center items-center gap-2"
               >
-                {isLoading && <Loader2 className="animate-spin w-4 h-4" />}
+                {isLoading && <Loader className="animate-spin w-4 h-4" />}
                 {isLoading ? "Đang xử lý..." : "Đăng nhập ngay"}
               </button>
             </form>
@@ -253,7 +253,7 @@ export default function LoginPage() {
                 to="/auth/signup"
                 className="text-primary hover:text-primary/80 font-bold transition"
               >
-                Đăng ký miễn phí
+                Đăng ký
               </Link>
             </div>
           </div>

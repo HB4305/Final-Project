@@ -1,4 +1,4 @@
-import { Search, Loader2, AlertCircle, PackageSearch } from 'lucide-react';
+import { Search, Loader, AlertCircle, PackageSearch } from 'lucide-react';
 
 /**
  * Loading State Component
@@ -6,7 +6,7 @@ import { Search, Loader2, AlertCircle, PackageSearch } from 'lucide-react';
  */
 export const LoadingState = () => (
   <div className="flex flex-col items-center justify-center py-16">
-    <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+    <Loader className="w-12 h-12 text-primary animate-spin mb-4" />
     <p className="text-lg font-medium">Đang tìm kiếm...</p>
     <p className="text-sm text-muted-foreground mt-2">Vui lòng đợi trong giây lát</p>
   </div>
@@ -90,24 +90,18 @@ export const NoQueryState = () => (
 
 /**
  * Results Header Component
- * Hiển thị số lượng kết quả tìm kiếm
+ * Hiển thị số lượng kết quả tìm kiếm view theo style đồng bộ với trang Products
  */
-export const ResultsHeader = ({ total, searchQuery, currentPage, totalPages }) => (
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-    <div>
-      <h2 className="text-lg font-semibold">
-        Tìm thấy <span className="text-primary">{total}</span> kết quả
-        {searchQuery && (
-          <span className="text-muted-foreground font-normal">
-            {' '}cho "{searchQuery}"
-          </span>
-        )}
-      </h2>
-    </div>
-    {totalPages > 1 && (
-      <p className="text-sm text-muted-foreground">
-        Trang {currentPage} / {totalPages}
-      </p>
-    )}
+export const ResultsHeader = ({ total, currentCount, searchQuery }) => (
+  <div className="mb-6 flex justify-between items-center bg-white dark:bg-white/5 backdrop-blur rounded-xl p-4 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none animate-fade-in-up">
+    <p className="text-gray-600 dark:text-gray-400 text-sm">
+      Hiển thị <span className="font-bold text-gray-900 dark:text-gray-200">{currentCount}</span> / {' '}
+      <span className="font-bold text-gray-900 dark:text-gray-200">{total}</span> kết quả
+      {searchQuery && (
+        <span className="ml-2">
+          cho từ khóa <span className="text-primary font-medium">"{searchQuery}"</span>
+        </span>
+      )}
+    </p>
   </div>
 );

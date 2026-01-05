@@ -65,10 +65,10 @@ export default function CategoriesPage() {
       <Navigation />
       
       {/* Header */}
-      <div className="pt-24 pb-8 bg-muted/30 border-b border-white/5">
+      <div className="pt-28 pb-4 bg-transparent border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4">
-          <h1 className="text-4xl font-bold mb-4 mt-10 text-white">Danh Mục Sản Phẩm</h1>
-          <p className="text-gray-400">Khám phá hàng ngàn sản phẩm độc đáo đang được đấu giá</p>
+          <h1 className ="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-primary to-blue-400 mb-2">Danh Mục Sản Phẩm</h1>
+          <p className="text-gray-400 text-lg">Khám phá hàng ngàn sản phẩm độc đáo đang được đấu giá</p>
         </div>
       </div>
 

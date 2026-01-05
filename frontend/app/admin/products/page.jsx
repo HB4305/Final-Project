@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Eye, RefreshCw, X, AlertTriangle } from "lucide-react";
+import { Loader, Trash2, Eye, RefreshCw, X, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminNavigation from "../../../components/admin-navigation";
 import productService from "../../services/productService";
@@ -81,24 +81,20 @@ export default function AdminProductsPage() {
             <h2 className="font-semibold">Sản phẩm đang đấu giá</h2>
             <button
               onClick={fetchProducts}
-              className="px-4 py-2 bg-muted text-foreground border border-border rounded-lg hover:bg-muted/80 transition flex items-center gap-2"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 font-medium shadow-lg shadow-primary/20"
             >
-              <RefreshCw className="w-5 h-5" />
+              <RefreshCw className="w-4 h-4" />
               Làm mới
             </button>
           </div>
 
+
+
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 border-4 border-primary/20 rounded-full"></div>
-                <div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg animate-pulse shadow-lg"></div>
-                </div>
-              </div>
+              <Loader className="w-16 h-16 text-blue-600 animate-spin mb-6" />
               <div className="text-center">
-                <p className="text-xl font-bold text-foreground mb-2">
+                <p className="text-xl font-bold text-foreground mb-2 animate-pulse">
                   Đang tải sản phẩm
                 </p>
                 <p className="text-sm text-muted-foreground">

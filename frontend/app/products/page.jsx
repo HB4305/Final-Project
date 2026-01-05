@@ -18,7 +18,7 @@ import {
   sortProducts,
 } from './_components';
 import CategoryBreadcrumb from './_components/CategoryBreadcrumb';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 // ============================================
@@ -87,9 +87,11 @@ const useProducts = () => {
 const useWatchlist = () => {
   const [watchlist, setWatchlist] = useState(new Set());
   const { isLoggedIn } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadWatchlist = async () => {
+      // If not logged in, just clear watchlist, no redirect needed on load
       if (!isLoggedIn) {
         setWatchlist(new Set());
         return;
@@ -113,7 +115,10 @@ const useWatchlist = () => {
   }, [isLoggedIn]);
 
   const toggleWatchlist = useCallback(async (productId) => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn) {
+        navigate("/auth/login");
+        return;
+    }
 
     // Optimistic update
     setWatchlist(prev => {
@@ -165,6 +170,7 @@ const useFilters = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [status, setStatus] = useState('active');
 
   const resetFilters = useCallback(() => {
     setSearchQuery('');
@@ -172,6 +178,7 @@ const useFilters = () => {
     setSortBy('newest');
     setPriceRange([0, Infinity]);
     setCurrentPage(1);
+    setStatus('active');
   }, []);
 
   const toggleFilters = useCallback(() => {
@@ -218,7 +225,9 @@ const useFilters = () => {
     currentPage,
     setCurrentPage,
     itemsPerPage,
-    setItemsPerPage: handleItemsPerPageChange
+    setItemsPerPage: handleItemsPerPageChange,
+    status,
+    setStatus
   };
 };
 
@@ -245,7 +254,9 @@ export default function ProductsPage() {
     currentPage,
     setCurrentPage,
     itemsPerPage,
-    setItemsPerPage
+    setItemsPerPage,
+    status,
+    setStatus
   } = useFilters();
 
   const error = categoryError || productError;
@@ -263,6 +274,13 @@ export default function ProductsPage() {
     const params = new URLSearchParams(location.search);
     const subcategoryParam = params.get('subcategory');
     const categoryParam = params.get('category') || params.get('categoryId');
+    const statusParam = params.get('status');
+
+    if (statusParam) {
+      setStatus(statusParam);
+    } else {
+      setStatus('active');
+    }
 
     if (subcategoryParam) {
       const subName = decodeURIComponent(subcategoryParam);
@@ -296,7 +314,9 @@ export default function ProductsPage() {
       page: currentPage,
       limit: itemsPerPage,
       sortBy: sortBy,
-      status: 'active',
+      limit: itemsPerPage,
+      sortBy: sortBy,
+      status: status || 'active',
       // Pass filters to backend
       categoryId,
       searchQuery,
@@ -304,7 +324,7 @@ export default function ProductsPage() {
     };
 
     refetch(params);
-  }, [currentPage, itemsPerPage, sortBy, selectedCategory, searchQuery, priceRange, allCategories, refetch]);
+  }, [currentPage, itemsPerPage, sortBy, selectedCategory, searchQuery, priceRange, status, allCategories, refetch]);
 
   // Derived data
   const filteredProducts = useMemo(() => {
@@ -347,7 +367,7 @@ export default function ProductsPage() {
           />
         </div>
 
-        <div className="mt-8 border-t border-gray-100 pt-6">
+        <div className="mt-8">
           <CategoryBreadcrumb selectedCategory={selectedCategory} selectedSubcategory={selectedSubcategory} />
         </div>
       </div>

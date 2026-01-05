@@ -18,7 +18,7 @@ const FilterPanel = ({
 }) => {
   return (
     <div className={`${isVisible ? 'block' : 'hidden'} lg:block`}>
-      <div className="glass-card bg-[#1e293b]/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sticky top-24 shadow-xl">
+      <div className="glass-card border border-gray-200 dark:border-white/10 rounded-2xl p-6 sticky top-24 shadow-xl bg-white/50 dark:bg-transparent backdrop-blur-md">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-bold text-lg flex items-center gap-2 text-white">
@@ -45,7 +45,7 @@ const FilterPanel = ({
         {/* Category Filter - Button List Style */}
         <div className="mb-6">
           <h3 className="font-bold text-sm mb-4 text-gray-200">Danh mục</h3>
-          <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
             <button
                onClick={() => onCategoryChange("")}
                className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm font-medium flex items-center justify-between group ${

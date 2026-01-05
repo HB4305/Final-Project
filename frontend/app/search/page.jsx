@@ -26,7 +26,6 @@ import {
   SortDropdown,
   FilterPanel,
   SearchProductCard,
-  SearchPagination,
   ActiveFilters,
   // State Components
   LoadingState,
@@ -35,6 +34,7 @@ import {
   NoQueryState,
   ResultsHeader,
 } from './_components';
+import Pagination from '../products/_components/Pagination';
 
 /**
  * SearchPage Component
@@ -151,9 +151,8 @@ export default function SearchPage() {
       <>
         <ResultsHeader
           total={pagination.total}
+          currentCount={products.length}
           searchQuery={query}
-          currentPage={pagination.page}
-          totalPages={pagination.totalPages}
         />
 
         {/* Products Grid */}
@@ -164,7 +163,7 @@ export default function SearchPage() {
         </div>
 
         {/* Pagination */}
-        <SearchPagination
+        <Pagination
           currentPage={pagination.page}
           totalPages={pagination.totalPages}
           totalItems={pagination.total}
@@ -182,19 +181,32 @@ export default function SearchPage() {
 
       {/* ===== Search Header ===== */}
       <header className="pt-24 pb-6 bg-background/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4">
-          <h1 className="text-3xl font-bold mb-6">Tìm kiếm sản phẩm</h1>
+        <div className="max-w-7xl mx-auto px-4">
+          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-primary to-blue-400 mb-2">Tìm kiếm sản phẩm</h1>
           
-          {/* Search Bar & Sort */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <SearchInput
-              value={query}
-              onChange={clearQuery}
-              onSubmit={handleSearch}
-              isLoading={loading}
-            />
+          {/* Filters & Sort Row */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             
-            <div className="flex gap-2">
+            {/* Active Filters (Left) */}
+            <div className="flex-1 w-full md:w-auto min-h-[40px] flex items-center">
+              <ActiveFilters
+                searchQuery={query}
+                selectedCategory={categoryId}
+                categories={categories}
+                sortBy={sortBy}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+                onRemoveQuery={clearQuery}
+                onRemoveCategory={clearCategory}
+                onRemoveSort={clearSort}
+                onRemoveMinPrice={clearMinPrice}
+                onRemoveMaxPrice={clearMaxPrice}
+                onClearAll={clearAll}
+              />
+            </div>
+
+            {/* Sort & Mobile Filter Toggle (Right) */}
+            <div className="flex gap-2 shrink-0">
               <SortDropdown value={sortBy} onChange={handleSortChange} />
               
               {/* Mobile Filter Toggle Button */}
@@ -207,30 +219,12 @@ export default function SearchPage() {
               </button>
             </div>
           </div>
-
-          {/* Active Filters */}
-          <div className="mt-4">
-            <ActiveFilters
-              searchQuery={query}
-              selectedCategory={categoryId}
-              categories={categories}
-              sortBy={sortBy}
-              minPrice={minPrice}
-              maxPrice={maxPrice}
-              onRemoveQuery={clearQuery}
-              onRemoveCategory={clearCategory}
-              onRemoveSort={clearSort}
-              onRemoveMinPrice={clearMinPrice}
-              onRemoveMaxPrice={clearMaxPrice}
-              onClearAll={clearAll}
-            />
-          </div>
         </div>
       </header>
 
       {/* ===== Main Content ===== */}
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* Filter Sidebar */}
           <aside>
