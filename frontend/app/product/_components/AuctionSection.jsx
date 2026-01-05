@@ -53,18 +53,18 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
     }
   };
 
-  const handleConfirmBid = () => {
+  const handleConfirmBid = async () => {
     const rawAmount = parseInt(bidAmount.replace(/\./g, ''));
     setIsSubmitting(true);
-      try {
-        await onPlaceBid(rawAmount);
+    try {
+      await onPlaceBid(rawAmount);
       setBidAmount('');
       setShowBidForm(false);
-      } catch (error) {
-        console.error("Bid failed", error);
-      } finally {
-        setIsSubmitting(false);
-      }
+    } catch (error) {
+      console.error("Bid failed", error);
+    } finally {
+      setIsSubmitting(false);
+    }
     setShowConfirmation(false);
   };
 
@@ -84,7 +84,7 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
           </div>
           <p className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 flex items-baseline gap-2 flex-wrap">
             <span className="text-3xl md:text-4xl tracking-tight">{auction?.currentPrice?.toLocaleString('vi-VN')}</span>
-          <span className="text-lg md:text-xl text-blue-400 font-medium whitespace-nowrap">VNĐ</span>
+            <span className="text-lg md:text-xl text-blue-400 font-medium whitespace-nowrap">VNĐ</span>
           </p>
         </div>
 
@@ -93,14 +93,14 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
           <div>
             <p className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Giá khởi điểm</p>
             <p className="font-bold text-white text-lg flex items-baseline gap-1.5 flex-wrap">
-            {auction?.startPrice?.toLocaleString('vi-VN')} <span className="text-xs text-gray-400 font-normal">VNĐ</span>
-          </p>
+              {auction?.startPrice?.toLocaleString('vi-VN')} <span className="text-xs text-gray-400 font-normal">VNĐ</span>
+            </p>
           </div>
           <div>
             <p className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Bước giá</p>
             <p className="font-bold text-white text-lg flex items-baseline gap-1.5 flex-wrap">
-             {auction?.priceStep?.toLocaleString('vi-VN')} <span className="text-xs text-gray-400 font-normal">VNĐ</span>
-          </p>
+              {auction?.priceStep?.toLocaleString('vi-VN')} <span className="text-xs text-gray-400 font-normal">VNĐ</span>
+            </p>
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
               </p>
             </div>
             <button
-            disabled={showBuyNowConfirm}
+              disabled={showBuyNowConfirm}
               onClick={() => {
                 if (!user) {
                   navigate('/auth/login');
@@ -207,10 +207,10 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
                 <div className="flex gap-3">
                   <button
                     type="submit"
-                  disabled={isSubmitting}
+                    disabled={isSubmitting}
                     className="flex-1 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition font-bold shadow-lg shadow-primary/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                  {isSubmitting ? 'Đang xử lý...' : '  Tiếp tục'}
+                    {isSubmitting ? 'Đang xử lý...' : '  Tiếp tục'}
                   </button>
                   <button
                     type="button"
@@ -225,40 +225,40 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
           </div>
         )}
 
-      {/* Buy Now Confirmation Modal */}
-      {showBuyNowConfirm && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-slide-up">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="p-4 bg-green-500/10 rounded-full">
-                <Zap className="w-8 h-8 text-green-500 fill-current" />
-              </div>
-              <h3 className="text-2xl font-bold text-white">Xác nhận Mua Ngay</h3>
-              <p className="text-gray-300">
-                Bạn có chắc chắn muốn mua ngay sản phẩm này với giá <span className="text-green-400 font-bold text-lg">{formatPrice(auction.buyNowPrice)}</span>?
-              </p>
-              <div className="w-full grid grid-cols-2 gap-3 mt-4">
-                <button
-                  onClick={() => setShowBuyNowConfirm(false)}
-                  className="py-3 px-4 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-bold transition"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  onClick={async () => {
-                    // Use simple optimistic UI: close immediately
-                    onPlaceBid(auction.buyNowPrice);
-                    setShowBuyNowConfirm(false); 
-                  }}
-                  className="py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-600/20 transition"
-                >
-                 Xác nhận mua
-                </button>
+        {/* Buy Now Confirmation Modal */}
+        {showBuyNowConfirm && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-slide-up">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="p-4 bg-green-500/10 rounded-full">
+                  <Zap className="w-8 h-8 text-green-500 fill-current" />
+                </div>
+                <h3 className="text-2xl font-bold text-white">Xác nhận Mua Ngay</h3>
+                <p className="text-gray-300">
+                  Bạn có chắc chắn muốn mua ngay sản phẩm này với giá <span className="text-green-400 font-bold text-lg">{formatPrice(auction.buyNowPrice)}</span>?
+                </p>
+                <div className="w-full grid grid-cols-2 gap-3 mt-4">
+                  <button
+                    onClick={() => setShowBuyNowConfirm(false)}
+                    className="py-3 px-4 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-bold transition"
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    onClick={async () => {
+                      // Use simple optimistic UI: close immediately
+                      onPlaceBid(auction.buyNowPrice);
+                      setShowBuyNowConfirm(false);
+                    }}
+                    className="py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-600/20 transition"
+                  >
+                    Xác nhận mua
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
 
       <BidConfirmationModal
