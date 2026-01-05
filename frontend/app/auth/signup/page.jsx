@@ -212,12 +212,16 @@ export default function SignupPage() {
           {/* HEADER */}
           <div className="flex justify-center mb-8">
                <Link to="/" className="flex items-center gap-3 shrink-0 group">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-all duration-300 border border-white/10">
-                    <Gavel className="w-6 h-6 fill-white/20" />
-                </div>
-                <span className="font-extrabold text-3xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
-                    AuctionHub
-                </span>
+                 <div className="w-12 h-12 flex items-center justify-center">
+                    <img 
+                        src="/images/logo-kab.png" 
+                        alt="KKABB Auction" 
+                        className="w-full h-full object-contain rounded-xl" 
+                    />
+                 </div>
+                 <span className="font-extrabold text-3xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
+                     KKABB
+                 </span>
                 </Link>
           </div>
           <div className="text-center mb-8">

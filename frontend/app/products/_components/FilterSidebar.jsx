@@ -23,7 +23,7 @@ const FilterSidebar = ({
                 onClick={onReset}
                 className="text-xs text-gray-500 hover:text-primary dark:text-gray-400 flex items-center gap-1 transition-colors"
             >
-                <RotateCcw className="w-3 h-3" /> Reset
+                <RotateCcw className="w-3 h-3" /> Đặt lại
             </button>
         </div>
 
@@ -41,7 +41,7 @@ const FilterSidebar = ({
                     : 'hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white'
                 }`}
               >
-                {cat}
+                {cat === 'All' ? 'Tất cả' : cat}
                 {selectedCategory === cat && <ChevronDown className="w-4 h-4 -rotate-90" />}
               </button>
             ))}
@@ -63,10 +63,10 @@ const FilterSidebar = ({
                       const val = parseInt(e.target.value.replace(/\./g, ''));
                       onPriceRangeChange([isNaN(val) ? 0 : val, priceRange[1]]);
                     }}
-                    placeholder="Min"
+                    placeholder="Tối thiểu"
                     className="w-full px-3 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 text-gray-900 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder-gray-400 dark:placeholder-gray-500 font-bold"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₫</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">VNĐ</span>
               </div>
               <span className="text-gray-400 font-bold">-</span>
               <div className="relative flex-1">
@@ -77,10 +77,10 @@ const FilterSidebar = ({
                       const val = parseInt(e.target.value.replace(/\./g, ''));
                       onPriceRangeChange([priceRange[0], isNaN(val) ? Infinity : val]);
                     }}
-                    placeholder="Max"
+                    placeholder="Tối đa"
                     className="w-full px-3 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 text-gray-900 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder-gray-400 dark:placeholder-gray-500 font-bold"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₫</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">VNĐ</span>
               </div>
             </div>
           </div>

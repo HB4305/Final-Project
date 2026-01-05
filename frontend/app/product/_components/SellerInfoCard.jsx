@@ -38,9 +38,9 @@ export default function SellerInfoCard({ seller }) {
         </div>
         
         <div className="flex-1 min-w-0">
-          <Link to={`/profile/ratings/${seller._id}`} className="font-bold text-lg text-white hover:text-primary transition truncate block">
+<div className="font-bold text-lg text-white truncate block">
             {seller.username}
-          </Link>
+          </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Tham gia {seller.createdAt ? new Date(seller.createdAt).getFullYear() : 'N/A'}</span>
              {seller.address?.city && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {seller.address.city}</span>}
@@ -52,14 +52,14 @@ export default function SellerInfoCard({ seller }) {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
-           <div className="col-span-2 bg-white/5 p-3 rounded-xl border border-white/10 text-center hover:bg-white/10 transition-colors">
+           <Link to={`/profile/ratings/${seller._id}`} className="col-span-2 bg-white/5 p-3 rounded-xl border border-white/10 text-center hover:bg-white/10 transition-colors block">
                 <p className="text-xs text-gray-400 mb-1">Đánh giá trung bình</p>
                 <div className="flex items-center justify-center gap-1 font-bold text-white text-lg">
                     {/* <Star className="w-5 h-5 text-yellow-500 fill-current" /> */}
                     {averageRating}%
                     <span className="text-gray-400 font-normal text-sm">({ratingCount} lượt)</span>
                 </div>
-           </div>
+           </Link>
 
       </div>
 

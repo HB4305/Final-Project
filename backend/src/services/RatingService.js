@@ -90,7 +90,12 @@ export class RatingService {
    */
   async _updateUserRatingSummary(userId) {
     const stats = await Rating.aggregate([
-      { $match: { rateeId: userId } },
+      { 
+        $match: { 
+          rateeId: userId,
+          context: { $in: ['buyer_to_seller', 'seller_to_buyer'] }
+        } 
+      },
       {
         $group: {
           _id: null,
@@ -141,9 +146,14 @@ export class RatingService {
     const skip = (page - 1) * limit;
 
     const query = type === "given" ? { raterId: resolvedUserId } : { rateeId: resolvedUserId };
+    
     if (filter) {
       query.context = filter;
+    } else {
+      // Default: Only show real transactions (buyer<->seller)
+      query.context = { $in: ['buyer_to_seller', 'seller_to_buyer'] };
     }
+    
     const populateField = type === "given" ? "rateeId" : "raterId";
 
     const [ratings, total] = await Promise.all([

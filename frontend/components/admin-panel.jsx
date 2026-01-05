@@ -29,13 +29,6 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-muted-foreground">
-            Quản lý người dùng và yêu cầu nâng cấp tài khoản
-          </p>
-        </div>
-
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-border">
           <button
@@ -47,7 +40,7 @@ export default function AdminPanel() {
             }`}
           >
             <Users className="w-5 h-5" />
-            Người dùng
+            Danh sách tài khoản
           </button>
           <button
             onClick={() => setActiveTab("upgrades")}
@@ -278,7 +271,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
               filteredUsers.map((user) => (
                 <tr 
                   key={user._id} 
-                  className="hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="bg-white/5 border-b border-gray-800 hover:bg-white/10 cursor-pointer transition-colors"
                   onClick={() => {
                     setSelectedUser(user);
                     setShowDetailModal(true);
@@ -313,10 +306,10 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-semibold">
-                      {user.ratingSummary?.score?.toFixed(1)} ★
+                      {((user.ratingSummary?.score || 0) / 5 * 100).toFixed(0)}%
                     </span>
                     <span className="text-xs text-muted-foreground ml-1">
-                      ({user.ratingSummary?.score || 0})
+                      ({user.ratingSummary?.totalCount || 0})
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -361,14 +354,14 @@ function UserManagement({ searchQuery, setSearchQuery }) {
       {/* User Detail Modal */}
       {showDetailModal && selectedUser && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+          <div className="bg-slate-900 border border-gray-700 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-gray-700 p-6 z-10">
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-bold mb-2">Thông tin người dùng</h2>
-                  <p className="text-blue-100">Chi tiết tài khoản</p>
+                  <h2 className="text-2xl font-bold mb-2 text-white">Thông tin người dùng</h2>
+                  <p className="text-gray-400">Chi tiết tài khoản</p>
                 </div>
-                <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition">
+                <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-gray-800 text-gray-400 hover:text-white rounded-lg transition">
                   <XCircle className="w-6 h-6" />
                 </button>
               </div>
@@ -378,22 +371,22 @@ function UserManagement({ searchQuery, setSearchQuery }) {
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Tên đăng nhập</label>
-                  <p className="text-lg font-bold text-gray-900 mt-1">{selectedUser.username}</p>
+                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Tên đăng nhập</label>
+                  <p className="text-lg font-bold text-white mt-1">{selectedUser.username}</p>
                 </div>
                 <div className="col-span-2">
-                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Họ tên</label>
-                  <p className="text-lg text-gray-900 mt-1">{selectedUser.fullName || 'Chưa cập nhật'}</p>
+                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Họ tên</label>
+                  <p className="text-lg text-white mt-1">{selectedUser.fullName || 'Chưa cập nhật'}</p>
                 </div>
                 <div className="col-span-2">
-                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Email</label>
-                  <p className="text-lg text-gray-900 mt-1">{selectedUser.email}</p>
+                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Email</label>
+                  <p className="text-lg text-white mt-1">{selectedUser.email}</p>
                 </div>
               </div>
 
               {/* Roles */}
               <div>
-                <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Vai trò</label>
+                <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2 block">Vai trò</label>
                 <div className="flex flex-wrap gap-2">
                   {selectedUser.roles?.map((role) => (
                     <span
@@ -414,21 +407,21 @@ function UserManagement({ searchQuery, setSearchQuery }) {
 
               {/* Rating & Stats */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
-                  <label className="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Xếp hạng</label>
-                  <p className="text-2xl font-bold text-yellow-900 mt-1">
-                    {selectedUser.ratingSummary?.score?.toFixed(1) || '0.0'} ★
+                <div className="bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20">
+                  <label className="text-sm font-semibold text-yellow-500 uppercase tracking-wide">Xếp hạng</label>
+                  <p className="text-2xl font-bold text-yellow-500 mt-1">
+                    {((selectedUser.ratingSummary?.score || 0) / 5 * 100).toFixed(0)}%
                   </p>
-                  <p className="text-xs text-yellow-600 mt-1">({selectedUser.ratingSummary?.totalCount || 0} đánh giá)</p>
+                  <p className="text-xs text-yellow-600/80 mt-1">({selectedUser.ratingSummary?.totalCount || 0} đánh giá)</p>
                 </div>
                 <div className={`p-4 rounded-xl border ${
-                  selectedUser.status ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                  selectedUser.status ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'
                 }`}>
                   <label className={`text-sm font-semibold uppercase tracking-wide ${
-                    selectedUser.status ? 'text-green-700' : 'text-red-700'
+                    selectedUser.status ? 'text-green-500' : 'text-red-500'
                   }`}>Trạng thái</label>
                   <p className={`text-2xl font-bold mt-1 ${
-                    selectedUser.status ? 'text-green-900' : 'text-red-900'
+                    selectedUser.status ? 'text-green-400' : 'text-red-400'
                   }`}>
                     {selectedUser.status ? 'Đang hoạt động' : 'Không hoạt động'}
                   </p>
@@ -436,30 +429,30 @@ function UserManagement({ searchQuery, setSearchQuery }) {
               </div>
 
               {/* Additional Info */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-800">
                 <div>
-                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Ngày tham gia</label>
-                  <p className="text-gray-900 mt-1">{new Date(selectedUser.createdAt).toLocaleDateString('vi-VN')}</p>
+                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Ngày tham gia</label>
+                  <p className="text-white mt-1">{new Date(selectedUser.createdAt).toLocaleDateString('vi-VN')}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Cập nhật cuối</label>
-                  <p className="text-gray-900 mt-1">{new Date(selectedUser.updatedAt).toLocaleDateString('vi-VN')}</p>
+                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Cập nhật cuối</label>
+                  <p className="text-white mt-1">{new Date(selectedUser.updatedAt).toLocaleDateString('vi-VN')}</p>
                 </div>
               </div>
 
               {/* Contact Info */}
               {selectedUser.phoneNumber && (
                 <div>
-                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Số điện thoại</label>
-                  <p className="text-gray-900 mt-1">{selectedUser.phoneNumber}</p>
+                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Số điện thoại</label>
+                  <p className="text-white mt-1">{selectedUser.phoneNumber}</p>
                 </div>
               )}
 
               {/* Address */}
               {selectedUser.address && (
                 <div>
-                  <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Địa chỉ</label>
-                  <p className="text-gray-900 mt-1">
+                  <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Địa chỉ</label>
+                  <p className="text-white mt-1">
                     {typeof selectedUser.address === 'object' 
                       ? `${selectedUser.address.street || ''}, ${selectedUser.address.city || ''}`.trim().replace(/^,\s*/, '').replace(/,\s*$/, '')
                       : selectedUser.address}
@@ -468,13 +461,13 @@ function UserManagement({ searchQuery, setSearchQuery }) {
               )}
 
               {/* User ID */}
-              <div className="bg-gray-50 p-4 rounded-xl">
-                <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">User ID</label>
-                <p className="text-xs text-gray-600 mt-1 font-mono break-all">{selectedUser._id}</p>
+              <div className="bg-slate-950 p-4 rounded-xl border border-gray-800">
+                <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide">User ID</label>
+                <p className="text-xs text-gray-500 mt-1 font-mono break-all">{selectedUser._id}</p>
               </div>
             </div>
 
-            <div className="bg-gray-50 px-6 py-4 flex justify-end">
+            <div className="bg-slate-900/95 backdrop-blur px-6 py-4 flex justify-end border-t border-gray-700 sticky bottom-0">
               <button
                 onClick={() => setShowDetailModal(false)}
                 className="px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
@@ -787,7 +780,7 @@ function UpgradeRequests() {
               requests.map((request) => (
                 <tr 
                   key={request._id} 
-                  className="hover:bg-muted/50 cursor-pointer transition"
+                  className="bg-white/5 border-b border-gray-800 hover:bg-white/10 cursor-pointer transition"
                   onClick={(e) => {
                     // Không mở detail nếu click vào button
                     if (!e.target.closest('button')) {
@@ -811,9 +804,7 @@ function UpgradeRequests() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-semibold">
-                      {request.user?.ratingSummary?.score.toFixed(1) ||
-                        "0"}{" "}
-                      ★
+                      {((request.user?.ratingSummary?.score || 0) / 5 * 100).toFixed(0)}%
                     </span>
                   </td>
                   <td className="px-4 py-3">{request.user?.ratingSummary?.countPositive || 0}</td>
@@ -873,11 +864,11 @@ function UpgradeRequests() {
       {/* Detail Modal */}
       {showDetailModal && selectedRequest && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+          <div className="bg-slate-900 border border-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-gray-700 p-6 flex items-center justify-between z-10">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Chi tiết yêu cầu nâng cấp</h3>
-                <p className="text-sm text-gray-600 mt-1">Thông tin đầy đủ về yêu cầu</p>
+                <h3 className="text-xl font-bold text-white">Chi tiết yêu cầu nâng cấp</h3>
+                <p className="text-sm text-gray-400 mt-1">Thông tin đầy đủ về yêu cầu</p>
               </div>
               <button
                 onClick={() => {
@@ -892,9 +883,9 @@ function UpgradeRequests() {
             
             <div className="p-6 space-y-6">
               {/* User Info Section */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-blue-600" />
+              <div className="bg-white/5 rounded-lg p-4 border border-gray-700/50">
+                <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-400" />
                   Thông tin người dùng
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
@@ -923,8 +914,8 @@ function UpgradeRequests() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Địa chỉ</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-gray-400">Địa chỉ</p>
+                    <p className="font-semibold text-white">
                       {selectedRequest.user?.address || selectedRequest.userId?.address || 'Chưa cập nhật'}
                     </p>
                   </div>
@@ -958,9 +949,9 @@ function UpgradeRequests() {
                 </h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Điểm đánh giá</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {selectedRequest.user?.ratingSummary?.score?.toFixed(1) || '0.0'} ★
+                    <p className="text-sm text-gray-400">Điểm đánh giá</p>
+                    <p className="text-2xl font-bold text-blue-400">
+                      {Math.round(((selectedRequest.user?.ratingSummary?.score || 0) / 5) * 100)}%
                     </p>
                   </div>
                   <div>
@@ -979,9 +970,9 @@ function UpgradeRequests() {
               </div>
 
               {/* Request Info Section */}
-              <div className="bg-yellow-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <RefreshCw className="w-5 h-5 text-yellow-600" />
+              <div className="bg-yellow-500/10 rounded-lg p-4 border border-yellow-500/20">
+                <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-yellow-500" />
                   Thông tin yêu cầu
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
@@ -1071,18 +1062,18 @@ function UpgradeRequests() {
       {/* Confirm Approve Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+          <div className="bg-slate-900 rounded-lg max-w-md w-full p-6 shadow-xl border border-gray-700">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-500" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Chấp nhận yêu cầu</h3>
-                <p className="text-sm text-gray-600">Xác nhận nâng cấp tài khoản</p>
+                <h3 className="text-lg font-semibold text-white">Chấp nhận yêu cầu</h3>
+                <p className="text-sm text-gray-400">Xác nhận nâng cấp tài khoản</p>
               </div>
             </div>
             
-            <p className="text-gray-700 mb-6">
+            <p className="text-gray-300 mb-6">
               Bạn có chắc chắn muốn chấp nhận yêu cầu nâng cấp này không? Người dùng sẽ trở thành người bán trong 7 ngày.
             </p>
             
@@ -1092,7 +1083,7 @@ function UpgradeRequests() {
                   setShowConfirmModal(false);
                   setSelectedRequestId(null);
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium"
+                className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-800 transition font-medium"
               >
                 Hủy
               </button>
@@ -1110,26 +1101,26 @@ function UpgradeRequests() {
       {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+          <div className="bg-slate-900 rounded-lg max-w-md w-full p-6 shadow-xl border border-gray-700">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <XCircle className="w-6 h-6 text-red-600" />
+              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
+                <XCircle className="w-6 h-6 text-red-500" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Từ chối yêu cầu</h3>
-                <p className="text-sm text-gray-600">Cung cấp lý do từ chối</p>
+                <h3 className="text-lg font-semibold text-white">Từ chối yêu cầu</h3>
+                <p className="text-sm text-gray-400">Cung cấp lý do từ chối</p>
               </div>
             </div>
             
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Lý do từ chối <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Nhập lý do từ chối (tối thiểu 10 ký tự)..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 bg-slate-950 border border-gray-700 text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none placeholder:text-gray-600"
                 rows="4"
                 autoFocus
               />
@@ -1145,7 +1136,7 @@ function UpgradeRequests() {
                   setSelectedRequestId(null);
                   setRejectReason("");
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium"
+                className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-800 transition font-medium"
               >
                 Hủy
               </button>

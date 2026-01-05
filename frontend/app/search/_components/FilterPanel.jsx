@@ -1,8 +1,9 @@
-import { X, SlidersHorizontal } from 'lucide-react';
+import { X, Filter, RotateCcw, ChevronDown } from 'lucide-react';
 
 /**
  * Filter Panel Component
  * Sidebar filter với category và price range
+ * Matched style with Products FilterSidebar for consistency
  */
 const FilterPanel = ({ 
   categories = [], 
@@ -17,81 +18,97 @@ const FilterPanel = ({
 }) => {
   return (
     <div className={`${isVisible ? 'block' : 'hidden'} lg:block`}>
-      <div className="bg-background border border-border rounded-lg p-6 sticky top-24">
+      <div className="glass-card bg-[#1e293b]/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sticky top-24 shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-bold text-lg flex items-center gap-2">
-            <SlidersHorizontal className="w-5 h-5" />
+          <h2 className="font-bold text-lg flex items-center gap-2 text-white">
+            <Filter className="w-5 h-5 text-primary" />
             Bộ lọc
           </h2>
-          <button
-            onClick={onToggle}
-            className="lg:hidden p-2 hover:bg-muted rounded-lg transition"
-            aria-label="Đóng bộ lọc"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Category Filter */}
-        <div className="mb-6">
-          <h3 className="font-semibold mb-3 text-sm">Danh mục</h3>
-          <select
-            value={selectedCategory}
-            onChange={(e) => onCategoryChange(e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">Tất cả danh mục</option>
-            {categories.map((cat) => (
-              <option key={cat._id} value={cat._id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <hr className="border-border my-6" />
-
-        {/* Price Range Filter */}
-        <div className="mb-6">
-          <h3 className="font-semibold mb-3 text-sm">Khoảng giá</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">
-                Giá tối thiểu
-              </label>
-              <input
-                type="number"
-                value={minPrice}
-                onChange={(e) => onPriceChange('min', e.target.value)}
-                placeholder="0"
-                min="0"
-                className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">
-                Giá tối đa
-              </label>
-              <input
-                type="number"
-                value={maxPrice}
-                onChange={(e) => onPriceChange('max', e.target.value)}
-                placeholder="Không giới hạn"
-                min="0"
-                className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+          <div className="flex items-center gap-2">
+              <button 
+                onClick={onReset}
+                className="text-xs text-gray-400 hover:text-primary flex items-center gap-1 transition-colors"
+                title="Đặt lại bộ lọc"
+              >
+                  <RotateCcw className="w-3 h-3" /> Đặt lại
+              </button>
+              <button
+                onClick={onToggle}
+                className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition text-gray-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
           </div>
         </div>
 
-        {/* Reset Button */}
-        <button 
-          onClick={onReset}
-          className="w-full px-4 py-2 border border-border rounded-lg hover:bg-muted transition text-sm font-medium"
-        >
-          Xóa bộ lọc
-        </button>
+        {/* Category Filter - Button List Style */}
+        <div className="mb-6">
+          <h3 className="font-bold text-sm mb-4 text-gray-200">Danh mục</h3>
+          <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            <button
+               onClick={() => onCategoryChange("")}
+               className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm font-medium flex items-center justify-between group ${
+                 !selectedCategory
+                   ? 'bg-primary text-white shadow-lg shadow-primary/25'
+                   : 'hover:bg-white/10 text-gray-400 hover:text-white'
+               }`}
+             >
+               Tất cả danh mục
+               {!selectedCategory && <ChevronDown className="w-4 h-4 -rotate-90" />}
+             </button>
+            {categories.map((cat) => (
+              <button
+                key={cat._id}
+                onClick={() => onCategoryChange(cat._id)}
+                className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm font-medium flex items-center justify-between group ${
+                  selectedCategory === cat._id
+                    ? 'bg-primary text-white shadow-lg shadow-primary/25'
+                    : 'hover:bg-white/10 text-gray-400 hover:text-white'
+                }`}
+              >
+                {cat.name}
+                {selectedCategory === cat._id && <ChevronDown className="w-4 h-4 -rotate-90" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-px bg-white/10 my-6" />
+
+        {/* Price Range Filter - Side by Side */}
+        <div className="mb-6">
+          <h3 className="font-bold text-sm mb-4 text-gray-200">Khoảng giá</h3>
+          <div className="flex items-center gap-2">
+               <div className="relative flex-1">
+                 <input
+                   type="text"
+                   value={minPrice ? parseInt(minPrice).toLocaleString('vi-VN') : ''}
+                   onChange={(e) => {
+                     const val = e.target.value.replace(/\./g, '');
+                     if (!isNaN(val)) onPriceChange('min', val);
+                   }}
+                   placeholder="Tối thiểu"
+                   className="w-full px-3 py-2.5 border border-white/10 rounded-xl bg-white/5 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder-gray-500 font-bold"
+                 />
+                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold pointer-events-none">VNĐ</span>
+               </div>
+               <span className="text-gray-400 font-bold">-</span>
+               <div className="relative flex-1">
+                 <input
+                   type="text"
+                   value={maxPrice ? parseInt(maxPrice).toLocaleString('vi-VN') : ''}
+                   onChange={(e) => {
+                     const val = e.target.value.replace(/\./g, '');
+                     if (!isNaN(val)) onPriceChange('max', val);
+                   }}
+                   placeholder="Tối đa"
+                   className="w-full px-3 py-2.5 border border-white/10 rounded-xl bg-white/5 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder-gray-500 font-bold"
+                 />
+                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold pointer-events-none">VNĐ</span>
+               </div>
+          </div>
+        </div>
       </div>
     </div>
   );

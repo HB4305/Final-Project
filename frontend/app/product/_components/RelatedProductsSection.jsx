@@ -14,7 +14,7 @@ export default function RelatedProductsSection({ products = [] }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-bold">Sản phẩm liên quan</h3>
+        <h3 className="text-2xl font-bold px-2 border-l-4 border-primary text-white">Sản phẩm liên quan</h3>
         <span className="text-sm text-muted-foreground">
           {products.length} sản phẩm
         </span>

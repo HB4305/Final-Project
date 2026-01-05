@@ -7,8 +7,10 @@ import {
   RejectedBidder,
   SystemSetting,
   User,
-  Product
+  Product,
+  Rating
 } from "../models/index.js";
+import mongoose from "mongoose";
 import { AppError } from "../utils/errors.js";
 import { AUCTION_STATUS, ERROR_CODES } from "../lib/constants.js";
 import {
@@ -82,23 +84,52 @@ export class BidService {
       );
     }
 
-    // 4. Kiểm tra User & Rating
+    // 4. Validate Rating for Open Bidding (requireBidderApproval = false)
+    const product = await Product.findById(auction.productId);
+    if (!product) throw new AppError("Sản phẩm không tồn tại", 404);
+
+    // Prevent Seller from bidding on their own product
+    if (product.sellerId.toString() === bidderId.toString()) {
+      throw new AppError("Bạn không thể tự đấu giá sản phẩm của chính mình", 403);
+    }
+
     const bidder = await User.findById(bidderId);
     if (!bidder) {
       throw new AppError("Không tìm thấy người dùng", 404);
     }
 
-    const ratingSummary = bidder.ratingSummary || { score: 0, totalRatings: 0 };
-    
-    // Allow new users (0 ratings) to bid
-    if (ratingSummary.totalCount > 0) {
-      // Use Strict Percentage Scale (0-100) as requested
-      // Recalculate from counts to ensure consistency with Frontend
-      const ratingPercentage = (ratingSummary.countPositive / ratingSummary.totalCount) * 100;
+    if (!product.requireBidderApproval) {
+      // 1. Real-time stats from Rating collection
+      const ratingStats = await Rating.aggregate([
+        { $match: { rateeId: new mongoose.Types.ObjectId(bidderId) } },
+        { $group: {
+            _id: null,
+            total: { $sum: 1 },
+            positive: { $sum: { $cond: [{ $eq: ["$score", 1] }, 1, 0] } }
+          }
+        }
+      ]);
+      const realtimeStats = ratingStats[0] || { total: 0, positive: 0 };
+      let realtimePercent = 0;
+      if (realtimeStats.total > 0) {
+        realtimePercent = (realtimeStats.positive / realtimeStats.total) * 100;
+      }
 
-      if (ratingPercentage < 80) {
+      // 2. Cached stats from User Profile
+      const profileStats = bidder.ratingSummary || { totalCount: 0, countPositive: 0 };
+      let profilePercent = 0;
+      if (profileStats.totalCount > 0) {
+        profilePercent = (profileStats.countPositive / profileStats.totalCount) * 100;
+      }
+
+      // 3. Use the Best Rating available (Benefit of the doubt)
+      const effectivePercent = Math.max(realtimePercent, profilePercent);
+      const hasRatingData = realtimeStats.total > 0 || profileStats.totalCount > 0;
+
+      // Strict 80% Rule (Only if user has ratings)
+      if (hasRatingData && effectivePercent < 80) {
         throw new AppError(
-          `Bạn cần có đánh giá tích cực >= 80% để tham gia (Hiện tại: ${Math.round(ratingPercentage)}%)`,
+          `Điểm uy tín của bạn (${effectivePercent.toFixed(0)}%) thấp hơn mức yêu cầu (80%) để tham gia đấu giá tự do.`,
           403,
           ERROR_CODES.RATING_TOO_LOW
         );

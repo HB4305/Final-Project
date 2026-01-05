@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Laptop, Shirt, Home, Sparkles, Palette, Watch, Book, Grid, Image as ImageIcon, Car, Music, Camera } from 'lucide-react';
+import { Zap, Laptop, Shirt, Home, Sparkles, Palette, Watch, Book, Grid, Image as ImageIcon, Car, Music, Camera, Building2, Armchair, Dumbbell } from 'lucide-react';
 import Navigation from '../../components/navigation';
 import categoryService from '../services/categoryService';
 import { useAuth } from '../context/AuthContext';
@@ -9,14 +9,16 @@ import { useAuth } from '../context/AuthContext';
 const iconMap = {
   'dien-tu': Laptop,
   'thoi-trang': Shirt,
-  'nha-cua-doi-song': Home,
+  'nha-cua': Armchair,
+  'nha-cua-doi-song': Armchair,
   'suu-tam': Sparkles,
   'nghe-thuat': Palette,
   'trang-suc': Watch,
   'sach': Book,
   'xe-co': Car,
-  'bat-dong-san': Home,
-  'the-thao': Zap,
+  'bat-dong-san': Building2,
+  'the-thao': Dumbbell,
+  'mac-dinh': Grid,
   'default': Grid
 };
 
@@ -70,8 +72,10 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      {/* Categories Grid */}
       <main className="max-w-7xl mx-auto px-4 py-12">
+        {/* Popular Categories Section Removed by User Request */}
+
+        {/* Categories Grid */}
         {loading ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[1,2,3,4,5,6,7,8].map(i => (
@@ -91,8 +95,8 @@ export default function CategoriesPage() {
                 >
                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     
-                    <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ring-1 ring-blue-500/20 group-hover:ring-primary/40">
-                       <IconComponent className="w-8 h-8 text-blue-400 group-hover:text-primary transition-colors" />
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ring-1 ring-white/10 group-hover:ring-primary/50 shadow-inner">
+                       <IconComponent className="w-10 h-10 text-cyan-400 group-hover:text-primary transition-colors drop-shadow-md" />
                     </div>
                     <h3 className="text-xl font-bold mb-2 text-white group-hover:text-primary transition-colors">
                        {category.name}
@@ -105,7 +109,7 @@ export default function CategoriesPage() {
                          {category.productCount || 0} sản phẩm
                      </span>
                      <span className="text-sm text-blue-400 group-hover:text-primary transition-colors flex items-center font-medium">
-                         Xem ngay <Zap className="w-3 h-3 ml-1" />
+                         Xem ngay
                      </span>
                     </div>
                 </button>
@@ -114,53 +118,7 @@ export default function CategoriesPage() {
             </div>
         )}
 
-        {/* Popular Categories Section */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-6 text-white border-l-4 border-primary pl-3">Xu hướng tuần này</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass-card bg-slate-800 border border-white/20 rounded-2xl p-6 text-white relative overflow-hidden group hover:border-blue-500/50 hover:shadow-lg transition-all shadow-md">
-              <div className="relative z-10">
-                 <h3 className="text-xl font-bold mb-2 text-blue-400">Đồ Điện Tử</h3>
-                 <p className="text-gray-400 mb-6 text-sm">Săn deal công nghệ, điện thoại, laptop với giá cực hời mỗi ngày.</p>
-                 <button 
-                    onClick={() => handleCategoryClick('Điện tử')}
-                    className="px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-lg hover:bg-blue-500/20 transition font-bold text-sm"
-                 >
-                    Khám phá ngay
-                 </button>
-              </div>
-              <Laptop className="absolute bottom-[-20px] right-[-20px] w-32 h-32 text-white/5 rotate-12 group-hover:rotate-0 group-hover:text-blue-500/10 transition-all" />
-            </div>
-            
-            <div className="glass-card bg-slate-800 border border-white/20 rounded-2xl p-6 text-white relative overflow-hidden group hover:border-pink-500/50 hover:shadow-lg transition-all shadow-md">
-               <div className="relative z-10">
-                 <h3 className="text-xl font-bold mb-2 text-pink-400">Thời Trang</h3>
-                 <p className="text-gray-400 mb-6 text-sm">Bộ sưu tập quần áo, phụ kiện hàng hiệu đang được đấu giá sôi nổi.</p>
-                 <button 
-                    onClick={() => handleCategoryClick('Thời trang')}
-                    className="px-4 py-2 bg-pink-500/10 border border-pink-500/30 text-pink-400 rounded-lg hover:bg-pink-500/20 transition font-bold text-sm"
-                 >
-                    Khám phá ngay
-                 </button>
-               </div>
-               <Shirt className="absolute bottom-[-20px] right-[-20px] w-32 h-32 text-white/5 rotate-12 group-hover:rotate-0 group-hover:text-pink-500/10 transition-all" />
-            </div>
-            
-            <div className="glass-card bg-slate-800 border border-white/20 rounded-2xl p-6 text-white relative overflow-hidden group hover:border-orange-500/50 hover:shadow-lg transition-all shadow-md">
-               <div className="relative z-10">
-                 <h3 className="text-xl font-bold mb-2 text-orange-400">Sưu Tầm</h3>
-                 <p className="text-gray-400 mb-6 text-sm">Những món đồ cổ, tem, tiền xu và vật phẩm hiếm có khó tìm.</p>
-                 <button 
-                    onClick={() => handleCategoryClick('Sưu tầm')}
-                    className="px-4 py-2 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg hover:bg-orange-500/20 transition font-bold text-sm"
-                 >
-                    Khám phá ngay
-                 </button>
-               </div>
-               <Sparkles className="absolute bottom-[-20px] right-[-20px] w-32 h-32 text-white/5 rotate-12 group-hover:rotate-0 group-hover:text-orange-500/10 transition-all" />
-            </div>
-          </div>
-        </div>
+
       </main>
     </div>
   );

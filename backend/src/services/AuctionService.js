@@ -201,25 +201,66 @@ export class AuctionService {
    * @returns {Array} Danh sách cuộc đấu giá
    */
   async getMostViewedAuctions(limit = 5) {
-    // 1. Lấy danh sách sản phẩm có views cao nhất
-    const products = await Product.find({ isActive: true })
-      .sort({ views: -1 })
-      .limit(limit * 2) // Lấy dư ra để filter auction
-      .select('_id');
+    // Sử dụng Aggregation để join và sort chính xác theo views của Product
+    const auctions = await Auction.aggregate([
+      // 1. Chỉ lấy các auction đang active
+      { $match: { status: AUCTION_STATUS.ACTIVE } },
+      
+      // 2. Lookup để lấy thông tin Product
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'productId',
+          foreignField: '_id',
+          as: 'product'
+        }
+      },
+      
+      // 3. Unwind mảng product (vì lookup trả về mảng)
+      { $unwind: '$product' },
+      
+      // 4. Chỉ lấy auction của product active (nếu cần thiết)
+      { $match: { 'product.isActive': true } },
+      
+      // 5. Sort theo product.views giảm dần
+      { $sort: { 'product.views': -1 } },
+      
+      // 6. Limit số lượng
+      { $limit: limit },
+      
+      // 7. Lookup thông tin bidder (để match format cũ)
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'currentHighestBidderId',
+          foreignField: '_id',
+          as: 'currentHighestBidder'
+        }
+      },
+      
+      // 8. Unwind bidder (preserveNullAndEmptyArrays để giữ auction nếu chưa có bidder)
+      {
+        $unwind: {
+          path: '$currentHighestBidder',
+          preserveNullAndEmptyArrays: true
+        }
+      },
 
-    const productIds = products.map(p => p._id);
-
-    // 2. Tìm active auction cho các sản phẩm này
-    const auctions = await Auction.find({
-      productId: { $in: productIds },
-      status: AUCTION_STATUS.ACTIVE
-    })
-      .populate('productId', 'title primaryImageUrl views')
-      .populate('currentHighestBidderId', 'username')
-      .limit(limit);
-
-    // Sắp xếp lại theo views của product (vì query $in không giữ thứ tự)
-    auctions.sort((a, b) => (b.productId?.views || 0) - (a.productId?.views || 0));
+      // 9. Project lại structure để khớp với mongoose populate (tránh frontend bị lỗi access path)
+      // Tuy nhiên, aggregate trả về plain object.
+      // Frontend access: auction.productId.title -> auction.product.title
+      // Backend cũ populate 'productId' -> biến thành object trong field productId.
+      // Nên ta cần map 'product' field vào 'productId' field để frontend không phải sửa.
+      {
+        $addFields: {
+          productId: '$product',
+          currentHighestBidderId: '$currentHighestBidder'
+        }
+      },
+      
+      // Xóa các field tạm
+      { $project: { product: 0, currentHighestBidder: 0 } }
+    ]);
 
     return auctions;
   }
@@ -280,6 +321,41 @@ export class AuctionService {
 
     // TODO: Gửi notification cho tất cả bidders
     return auction;
+  }
+  /**
+   * Lấy danh sách cuộc đấu giá (generic)
+   * @param {Object} params - { page, limit, status, sort }
+   */
+  async getAuctions({ page = 1, limit = 10, status, sort }) {
+    const query = {};
+    if (status) query.status = status;
+
+    const sortOption = {};
+    if (sort) {
+       const parts = sort.split(':');
+       const field = parts[0];
+       const order = parts[1] === 'desc' ? -1 : 1;
+       sortOption[field] = order;
+       // Handle simple -createdAt syntax from frontend
+       if (sort.startsWith('-')) {
+           sortOption[sort.substring(1)] = -1;
+       } else {
+           sortOption[sort] = 1;
+       }
+    } else {
+        sortOption.createdAt = -1;
+    }
+
+    const auctions = await Auction.find(query)
+      .populate('productId', 'title primaryImageUrl')
+      .populate('currentHighestBidderId', 'username')
+      .sort(sortOption)
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const total = await Auction.countDocuments(query);
+
+    return { auctions, total, page, pages: Math.ceil(total / limit) };
   }
 }
 

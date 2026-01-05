@@ -507,9 +507,10 @@ export default function ProductDetailPage() {
 
         {/* Related Products Section */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold mb-6 px-2 border-l-4 border-primary text-white">Sản phẩm tương tự</h2>
+
           <RelatedProductsSection products={product.relatedProducts} />
         </div>
+
       </main>
     </div>
   );

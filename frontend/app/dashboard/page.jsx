@@ -482,8 +482,17 @@ export default function DashboardPage() {
                       {participatingAuctions.length === 0 ? (
                         <EmptyState message="Bạn chưa tham gia đấu giá nào." />
                       ) : (
-                        participatingAuctions.map((auction) => (
-                          <div key={auction._id} className="group relative glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl p-4 hover:bg-white/5 transition-all duration-300">
+                        participatingAuctions.map((auction) => {
+                          // Determine card style based on status
+                          let cardStyle = "bg-[#1e293b]/40 border-white/10 hover:bg-white/5";
+                          if (auction.isWinning) {
+                            cardStyle = "bg-green-500/5 border-green-500/50 hover:bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.1)]";
+                          } else if (auction.userHighestBid?.amount < auction.currentPrice) {
+                            cardStyle = "bg-red-500/5 border-red-500/30 hover:bg-red-500/10"; 
+                          }
+
+                          return (
+                          <div key={auction._id} className={`group relative glass-card border rounded-xl p-4 transition-all duration-300 ${cardStyle}`}>
                             <div className="flex flex-col sm:flex-row gap-4">
                               <div className="w-full sm:w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden">
                                 <img
@@ -524,13 +533,13 @@ export default function DashboardPage() {
                                   <div className="space-y-1">
                                     <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Giá của bạn</p>
                                     <p className="text-lg font-bold text-primary">
-                                      {auction.userHighestBid?.amount?.toLocaleString()} ₫
+                                      {auction.userHighestBid?.amount?.toLocaleString('vi-VN')} VNĐ
                                     </p>
                                   </div>
                                   <div className="space-y-1">
                                     <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Giá hiện tại</p>
                                     <p className="text-lg font-bold text-foreground">
-                                      {auction.currentPrice?.toLocaleString()} ₫
+                                      {auction.currentPrice?.toLocaleString('vi-VN')} VNĐ
                                     </p>
                                   </div>
                                   <div className="ml-auto">
@@ -542,7 +551,8 @@ export default function DashboardPage() {
                               </div>
                             </div>
                           </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   )}
@@ -644,7 +654,7 @@ export default function DashboardPage() {
                               />
                               <div className="flex-1 text-center sm:text-left">
                                 <h3 className="font-bold text-lg mb-1 text-gray-200">{auction.productId?.title}</h3>
-                                <p className="text-green-400 font-bold mb-1">Giá thắng: {auction.currentPrice?.toLocaleString()} ₫</p>
+                                <p className="text-green-400 font-bold mb-1">Giá thắng: {auction.currentPrice?.toLocaleString('vi-VN')} VNĐ</p>
                                 <p className="text-xs text-gray-400">
                                   Người bán: <Link to={`/profile/ratings/${auction.sellerId?._id}`} className="text-primary hover:underline">{auction.sellerId?.username}</Link>
                                 </p>
@@ -709,33 +719,33 @@ export default function DashboardPage() {
                                     onClick={() => handleToggleBidderApproval(auction.productId?._id, auction.productId?.requireBidderApproval)}
                                     disabled={togglingProductId === auction.productId?._id}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                                      auction.productId?.requireBidderApproval
+                                      !auction.productId?.requireBidderApproval
                                         ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
                                         : 'bg-gray-500/20 text-gray-400 border border-gray-500/30 hover:bg-gray-500/30'
                                     }`}
-                                    title={auction.productId?.requireBidderApproval ? "Tắt phê duyệt bidder" : "Bật phê duyệt bidder"}
+                                    title={!auction.productId?.requireBidderApproval ? "Tắt chế độ cho phép người mới" : "Bật chế độ cho phép người mới"}
                                   >
                                     {togglingProductId === auction.productId?._id ? (
                                       <>
                                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                         <span>Đang cập nhật...</span>
                                       </>
-                                    ) : auction.productId?.requireBidderApproval ? (
+                                    ) : !auction.productId?.requireBidderApproval ? (
                                       <>
-                                        <ShieldCheck className="w-3.5 h-3.5" />
-                                        <span>Yêu cầu phê duyệt</span>
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                        <span>Đã bật cho phép người mới</span>
                                       </>
                                     ) : (
                                       <>
-                                        <ShieldOff className="w-3.5 h-3.5" />
-                                        <span>Tự do đặt giá</span>
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                        <span>Cho phép bidder mới</span>
                                       </>
                                     )}
                                   </button>
                                 </div>
                               </div>
                               <div className="flex flex-col gap-2 items-end">
-                                <p className="text-lg font-bold text-primary mb-1">{auction.currentPrice?.toLocaleString()} ₫</p>
+                                <p className="text-lg font-bold text-primary mb-1">{auction.currentPrice?.toLocaleString('vi-VN')} VNĐ</p>
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => {
@@ -794,7 +804,7 @@ export default function DashboardPage() {
                               />
                               <div className="flex-1 text-center sm:text-left">
                                 <h3 className="font-bold text-lg mb-1 text-gray-200">{auction.productId?.title}</h3>
-                                <p className="text-indigo-400 font-bold">Giá bán: {auction.currentPrice?.toLocaleString()} ₫</p>
+                                <p className="text-indigo-400 font-bold">Giá bán: {auction.currentPrice?.toLocaleString('vi-VN')} VNĐ</p>
                                 <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
                                   <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Hoàn tất</span>
                                   <span className="text-xs text-muted-foreground">Người mua: {auction.currentHighestBidderId?.username}</span>

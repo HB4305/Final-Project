@@ -50,13 +50,54 @@ export const getAllCategories = async (req, res, next) => {
       .lean();
 
 
-    // Kết hợp: mỗi parent category chứa children array
-    const categoriesWithChildren = parentCategories.map(parent => ({
-      ...parent,
-      children: childCategories.filter(child =>
+    // Aggregation: Đếm số lượng sản phẩm đang có AUCTION ACTIVE cho mỗi danh mục
+    // Fix: Chỉ đếm những sản phẩm thực sự đang đấu giá (Auction status='active' & chưa hết hạn)
+    const auctionCounts = await Auction.aggregate([
+      { 
+        $match: { 
+          status: 'active',
+          endAt: { $gt: new Date() } 
+        } 
+      },
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'productId',
+          foreignField: '_id',
+          as: 'product'
+        }
+      },
+      { $unwind: '$product' },
+      { $match: { 'product.isActive': true } },
+      { $group: { _id: '$product.categoryId', count: { $sum: 1 } } }
+    ]);
+
+    // Convert to lookup map: { categoryId: count }
+    const countMap = {};
+    auctionCounts.forEach(item => {
+      countMap[item._id.toString()] = item.count;
+    });
+
+    // Kết hợp: mỗi parent category chứa children array và tính toán productCount
+    const categoriesWithChildren = parentCategories.map(parent => {
+      // Find children for this parent
+      const children = childCategories.filter(child =>
         child.parentId.toString() === parent._id.toString()
-      )
-    }));
+      ).map(child => ({
+        ...child,
+        productCount: countMap[child._id.toString()] || 0
+      }));
+
+      // Calculate total count for parent (own products + children's products)
+      const ownCount = countMap[parent._id.toString()] || 0;
+      const childrenCount = children.reduce((sum, child) => sum + child.productCount, 0);
+
+      return {
+        ...parent,
+        productCount: ownCount + childrenCount,
+        children
+      };
+    });
 
     res.status(200).json({
       status: 'success',

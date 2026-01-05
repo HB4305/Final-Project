@@ -98,9 +98,7 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
              <span className="text-xs font-medium px-2 py-0.5 rounded bg-blue-50 dark:bg-white/10 text-blue-600 dark:text-blue-200 border border-blue-100 dark:border-white/10">
                 {product.category}
              </span>
-             <div className="flex items-center gap-1">
-                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{product.rating ? `${product.rating}%` : 'N/A'}</span>
-             </div>
+
           </div>
 
           {/* Title */}

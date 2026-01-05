@@ -32,18 +32,22 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
     e.preventDefault();
 
     // Check user rating
+    // Check user rating
     if (user) {
-      const ratingScore = user.ratingSummary?.score || 0;
       const totalRatings = user.ratingSummary?.totalCount || 0;
+      const countPositive = user.ratingSummary?.countPositive || 0;
 
       // Rule: Nếu đã có đánh giá (totalRatings > 0), điểm phải > 80%
-      if (totalRatings >= 0 && ratingScore <= 80) {
-        if (onShowToast) {
-          onShowToast("error", `Điểm uy tín của bạn phải lớn hơn 80% để tham gia đấu giá sản phẩm này`);
-        } else {
-          alert(`Điểm uy tín của bạn phải lớn hơn 80% để tham gia đấu giá sản phẩm này`);
+      if (totalRatings > 0) {
+        const percentage = (countPositive / totalRatings) * 100;
+        if (percentage < 80) {
+          if (onShowToast) {
+            onShowToast("error", `Điểm uy tín của bạn phải lớn hơn 80% để tham gia đấu giá (Hiện tại: ${Math.round(percentage)}%)`);
+          } else {
+            alert(`Điểm uy tín của bạn phải lớn hơn 80% để tham gia đấu giá (Hiện tại: ${Math.round(percentage)}%)`);
+          }
+          return;
         }
-        return;
       }
     }
 
@@ -77,10 +81,9 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
 
         {/* Current Price */}
         <div className="relative">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> Giá cao nhất hiện tại
-            </span>
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <span className="text-sm font-bold text-primary uppercase tracking-wider">Giá cao nhất hiện tại</span>
           </div>
           <p className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 flex items-baseline gap-2 flex-wrap">
             <span className="text-3xl md:text-4xl tracking-tight">{auction?.currentPrice?.toLocaleString('vi-VN')}</span>
@@ -104,13 +107,48 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
           </div>
         </div>
 
+        {/* Highest Bidder Info */}
+        {auction?.topBidders?.[0] && !time.isEnded && (
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Người giữ giá cao nhất</p>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white">
+                  {auction.topBidders[0].bidderUsername 
+                    ? (auction.topBidders[0].bidderUsername.length > 3 
+                        ? auction.topBidders[0].bidderUsername.slice(0, 3) + '****' 
+                        : '****')
+                    : 'Ẩn danh'}
+                </span>
+                <span className={`px-2 py-0.5 text-xs rounded font-bold border flex items-center gap-1 ${
+                  (auction.topBidders[0].bidderRatingCount || 0) > 0 
+                    ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" 
+                    : "bg-gray-500/20 text-gray-400 border-gray-500/30"
+                }`}>
+                  {(auction.topBidders[0].bidderRatingCount || 0) > 0 ? (
+                    <>
+                      ★ {(auction.topBidders[0].bidderRating * 100).toFixed(0)}%
+                    </>
+                  ) : (
+                    "Chưa có đánh giá"
+                  )}
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Thời điểm đặt</p>
+              <p className="text-sm text-gray-300">
+                {new Date(auction.topBidders[0].createdAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Buy Now Price */}
         {auction?.buyNowPrice && !time.isEnded && (
           <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-bold text-green-700 flex items-center gap-1 mb-1">
-                <Zap className="w-4 h-4 fill-current" /> Mua ngay
-              </p>
+
               <p className="text-xl md:text-2xl font-bold text-green-400 flex items-baseline gap-1.5 flex-wrap">
                 {auction?.buyNowPrice?.toLocaleString('vi-VN')} <span className="text-sm text-green-600/70 font-medium">VNĐ</span>
               </p>

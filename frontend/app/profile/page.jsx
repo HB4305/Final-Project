@@ -317,7 +317,7 @@ export default function ProfilePage() {
                   </h1>
                   {profile?.role === "admin" && (
                     <span className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold uppercase rounded-full self-center md:self-auto">
-                      Admin
+                      Quản trị viên
                     </span>
                   )}
                 </div>
@@ -357,13 +357,6 @@ export default function ProfilePage() {
                 >
                   <Settings className="w-5 h-5" />
                 </Link>
-                <button
-                  onClick={handleLogout}
-                  className="p-2.5 bg-red-500/10 border border-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition"
-                  title="Đăng xuất"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
               </div>
             </div>
           </div>
@@ -569,7 +562,22 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <UpgradeRequest currentUser={profile} />
+            {/* Upgrade Request Component - Only show if NOT seller or admin */}
+            {!profile?.roles?.includes("seller") && !profile?.roles?.includes("admin") && (
+                <UpgradeRequest currentUser={profile} />
+            )}
+            
+            {/* If Seller, show some seller info/dashboard link maybe? Or just hide it as requested */}
+            {profile?.roles?.includes("seller") && (
+                 <div className="glass-card p-6 rounded-2xl border border-green-500/20 bg-green-500/5">
+                    <h2 className="flex items-center gap-2 text-xl font-bold text-green-400 mb-2">
+                        <Shield className="w-6 h-6" /> Bạn là Người bán
+                    </h2>
+                    <p className="text-gray-300">
+                        Bạn đã được xác thực là người bán. Bạn có thể đăng bán sản phẩm và quản lý gian hàng của mình.
+                    </p>
+                 </div>
+            )}
           </div>
 
           {/* Right Column: Stats & Reviews */}
@@ -654,13 +662,25 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-400">Vai trò</span>
                   <span className="text-sm font-medium capitalize text-white">
-                    {profile?.role}
+                    {profile?.roles?.includes("admin") 
+                        ? "Quản trị viên" 
+                        : profile?.roles?.includes("seller") 
+                            ? "Người bán" 
+                            : "Người mua"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">Điểm uy tín</span>
-                  <span className="text-sm font-bold text-primary">High</span>
-                </div>
+                
+                {/* Seller Expiration Date */}
+                {profile?.roles?.includes("seller") && profile?.sellerExpiresAt && (
+                     <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-400">Hết hạn quyền bán</span>
+                        <span className="text-sm font-medium text-orange-400">
+                            {new Date(profile.sellerExpiresAt).toLocaleDateString('vi-VN')}
+                        </span>
+                     </div>
+                )}
+
+                {/* Removed redundant credit score */}
               </div>
             </div>
           </div>

@@ -12,10 +12,10 @@ export default function AdminDashboardPage() {
   const { currentUser } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <AdminNavigation />
       
-      <div className="pt-32">
+      <div className="max-w-7xl mx-auto px-4 pt-16 pb-12">
         {/* Admin Panel Component */}
         <AdminPanel />
       </div>

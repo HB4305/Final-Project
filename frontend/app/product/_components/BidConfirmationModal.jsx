@@ -1,6 +1,8 @@
 import { AlertTriangle, X, Check } from "lucide-react";
 import { formatPrice } from "./utils";
 
+import { createPortal } from "react-dom";
+
 export default function BidConfirmationModal({
     isOpen,
     onClose,
@@ -10,9 +12,11 @@ export default function BidConfirmationModal({
 }) {
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-[#1e293b] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-in">
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-slate-900/95 backdrop-blur-xl border border-white/20 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-in ring-1 ring-white/10">
                 {/* Header */}
                 <div className="p-6 border-b border-white/10 flex items-center justify-between">
                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -69,6 +73,7 @@ export default function BidConfirmationModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

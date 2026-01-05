@@ -9,6 +9,7 @@ import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import Auction from "../models/Auction.js";
 import Bid from "../models/Bid.js";
+import Rating from "../models/Rating.js";
 import { AppError } from "../utils/errors.js";
 import mongoose from "mongoose";
 
@@ -849,13 +850,73 @@ export class ProductService {
         .select("amount createdAt bidderId")
         .lean();
 
-      const formattedBidders = topBidders.map((bid) => ({
-        amount: bid.amount,
-        bidderId: bid.bidderId?._id,
-        bidderUsername: bid.bidderId?.username || "Unknown",
-        bidderRating: bid.bidderId?.ratingSummary?.score || 0,
-        createdAt: bid.createdAt,
-      }));
+      // Get unique bidder IDs for fetching real-time ratings
+      const uniqueBidderIds = [...new Set(topBidders.map(b => b.bidderId?._id?.toString()).filter(Boolean))];
+
+      // Calculate ratings directly from Rating collection
+      const ratingStats = await Rating.aggregate([
+        { $match: { rateeId: { $in: uniqueBidderIds.map(id => new mongoose.Types.ObjectId(id)) } } },
+        { $group: {
+            _id: "$rateeId",
+            total: { $sum: 1 },
+            positive: { $sum: { $cond: [{ $eq: ["$score", 1] }, 1, 0] } }
+          }
+        }
+      ]);
+
+      // Create lookup map
+      const ratingsMap = ratingStats.reduce((acc, stat) => {
+        acc[stat._id.toString()] = {
+          total: stat.total,
+          score: stat.total > 0 ? (stat.positive / stat.total) : 0
+        };
+        return acc;
+      }, {});
+
+      const formattedBidders = topBidders.map((bid) => {
+        const bidderIdStr = bid.bidderId?._id?.toString();
+        const realtimeStats = bidderIdStr ? ratingsMap[bidderIdStr] : null;
+        const profileStats = bid.bidderId?.ratingSummary;
+
+        // Calculate Realtime %
+        let realtimeScore = 0;
+        if (realtimeStats && realtimeStats.total > 0) {
+          realtimeScore = realtimeStats.score;
+        }
+
+        // Calculate Profile %
+        let profileScore = 0;
+        if (profileStats && profileStats.totalCount > 0) {
+           // Use totalCount/countPositive if score is not reliable, or use score
+           // Profile score is usually 0-1 or 0-100? User data showed 0.90099.
+           profileScore = profileStats.score || (profileStats.countPositive / profileStats.totalCount);
+        }
+
+        // Determine Best Rating
+        const bestScore = Math.max(realtimeScore, profileScore);
+
+        // Determine Count based on best source
+        // If profile is better (or equal), use profile count (might be lower but higher quality?)
+        // Actually, if we use profile rating, we should show profile count.
+        let finalCount = 0;
+        if (bestScore === profileScore && profileStats?.totalCount > 0) {
+            finalCount = profileStats.totalCount;
+        } else if (bestScore === realtimeScore && realtimeStats?.total > 0) {
+            finalCount = realtimeStats.total;
+        } else {
+            // Fallback
+            finalCount = Math.max(realtimeStats?.total || 0, profileStats?.totalCount || 0);
+        }
+
+        return {
+          amount: bid.amount,
+          bidderId: bid.bidderId?._id,
+          bidderUsername: bid.bidderId?.username || "Unknown",
+          bidderRating: bestScore,
+          bidderRatingCount: finalCount,
+          createdAt: bid.createdAt,
+        };
+      });
 
       const categoryIdRef = productObj.categoryId?._id || productObj.categoryId;
 

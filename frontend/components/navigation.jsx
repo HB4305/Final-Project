@@ -63,12 +63,15 @@ export default function Navigation() {
       <div className="py-3">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-all duration-300 border border-white/10">
-              <Gavel className="w-5 h-5 fill-white/20" />
-            </div>
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 shrink-0 group">
+            <img 
+              src="/images/logo-kab.png" 
+              alt="KAB Auction" 
+              className="h-10 md:h-12 w-auto object-contain group-hover:scale-105 transition-transform duration-300 rounded-xl" 
+            />
             <span className="font-extrabold text-2xl hidden sm:inline bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
-              AuctionHub
+              KKABB
             </span>
           </Link>
 

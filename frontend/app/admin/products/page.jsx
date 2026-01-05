@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Eye, RefreshCw, XCircle, AlertTriangle } from "lucide-react";
+import { Trash2, Eye, RefreshCw, X, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminNavigation from "../../../components/admin-navigation";
 import productService from "../../services/productService";
@@ -65,7 +65,7 @@ export default function AdminProductsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       <AdminNavigation />
       {toast && (
         <Toast
@@ -75,20 +75,13 @@ export default function AdminProductsPage() {
         />
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-32">
-        <div className="bg-white shadow-lg rounded-lg p-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Quản lý Sản phẩm
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Xem và xóa các danh sách đấu giá
-              </p>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 pt-24 pb-12">
+        <div className="bg-background border border-border rounded-lg overflow-hidden">
+          <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
+            <h2 className="font-semibold">Sản phẩm đang đấu giá</h2>
             <button
               onClick={fetchProducts}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
+              className="px-4 py-2 bg-muted text-foreground border border-border rounded-lg hover:bg-muted/80 transition flex items-center gap-2"
             >
               <RefreshCw className="w-5 h-5" />
               Làm mới
@@ -98,54 +91,58 @@ export default function AdminProductsPage() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="relative mb-6">
-                <div className="w-20 h-20 border-4 border-blue-200 rounded-full"></div>
-                <div className="w-20 h-20 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                <div className="w-20 h-20 border-4 border-primary/20 rounded-full"></div>
+                <div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg animate-pulse shadow-lg"></div>
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-xl font-bold text-gray-900 mb-2">Đang tải sản phẩm</p>
-                <p className="text-sm text-gray-500">Đang lấy dữ liệu từ hệ thống...</p>
-                <div className="flex gap-1 justify-center mt-4">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
-                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                </div>
+                <p className="text-xl font-bold text-foreground mb-2">
+                  Đang tải sản phẩm
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Đang lấy dữ liệu từ hệ thống...
+                </p>
               </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-100">
+                <thead className="bg-muted">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Sản phẩm
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Giá hiện tại
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Trạng thái
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Hành động
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-border">
                   {products.map((product) => (
-                    <tr 
-                      key={product._id} 
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    <tr
+                      key={product._id}
+                      className="bg-white/5 border-b border-gray-800 hover:bg-white/10 cursor-pointer transition-colors"
                       onClick={async () => {
                         setShowDetailModal(true);
                         setLoadingDetails(true);
-                        const response = await getProductAdminDetails(product._id);
+                        const response = await getProductAdminDetails(
+                          product._id
+                        );
                         if (response.success) {
                           setSelectedProduct(response.data);
                         } else {
-                          setToast({ message: "Không thể tải chi tiết sản phẩm", type: "error" });
+                          setToast({
+                            message: "Không thể tải chi tiết sản phẩm",
+                            type: "error",
+                          });
                           setShowDetailModal(false);
                         }
                         setLoadingDetails(false);
@@ -156,49 +153,51 @@ export default function AdminProductsPage() {
                           <img
                             src={product.primaryImageUrl || "/placeholder.svg"}
                             alt={product.title}
-                            className="h-16 w-16 object-cover rounded-lg"
+                            className="h-16 w-16 object-cover rounded-lg border border-border"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-900 truncate">
+                            <p className="text-sm font-bold text-foreground truncate">
                               {product.title}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {typeof product.category === "object"
                                 ? product.category?.name
                                 : product.category}
                             </p>
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-xs text-muted-foreground/80 mt-0.5">
                               {product.auction.bidCount} lượt đặt
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <p className="text-lg font-bold text-gray-900">
-                          ${(
+                        <span className="text-lg font-bold text-primary">
+                          {(
                             product.auction.currentPrice ||
                             product.auction.currentBid ||
                             0
-                          ).toLocaleString()}
-                        </p>
+                          ).toLocaleString('vi-VN')} VNĐ
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${
-                          product.auction.status === 'active' 
-                            ? 'bg-green-100 text-green-800'
-                            : product.auction.status === 'ended'
-                            ? 'bg-blue-100 text-blue-800'
-                            : product.auction.status === 'scheduled'
-                            ? 'bg-gray-100 text-gray-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+                        <span
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
+                            product.auction.status === "active"
+                              ? "bg-green-500/10 text-green-500 border-green-500/20"
+                              : product.auction.status === "ended"
+                              ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                              : product.auction.status === "scheduled"
+                              ? "bg-gray-500/10 text-gray-500 border-gray-500/20"
+                              : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                          }`}
+                        >
                           {product.auction.status || "active"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <Link
                           to={`/product/${product._id}`}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
+                          className="text-blue-500 hover:text-blue-400 mr-4 transition"
                           onClick={(e) => e.stopPropagation()}
                           title="Xem trên trang"
                         >
@@ -209,7 +208,7 @@ export default function AdminProductsPage() {
                             e.stopPropagation();
                             handleDelete(product);
                           }}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-red-500 hover:text-red-400 transition"
                           title="Xóa sản phẩm"
                         >
                           <Trash2 className="w-5 h-5 inline" />
@@ -221,276 +220,307 @@ export default function AdminProductsPage() {
               </table>
 
               {products.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-muted-foreground">
                   Không tìm thấy sản phẩm nào.
                 </div>
               )}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Product Detail Modal */}
-      {showDetailModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">Chi tiết sản phẩm (Admin)</h2>
-                  <p className="text-blue-100">Thông tin đầy đủ về sản phẩm và phiên đấu giá</p>
-                </div>
-                <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition">
-                  <XCircle className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-            
-            {loadingDetails ? (
-              <div className="flex justify-center items-center p-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              </div>
-            ) : selectedProduct ? (
-              <div className="p-6 space-y-6">
-                {/* Product Image & Basic Info */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="flex justify-center">
-                    <img
-                      src={selectedProduct.product?.primaryImageUrl || "/placeholder.svg"}
-                      alt={selectedProduct.product?.title}
-                      className="max-h-64 rounded-xl shadow-lg object-cover"
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Tên sản phẩm</label>
-                      <p className="text-2xl font-bold text-gray-900 mt-1">{selectedProduct.product?.title}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Danh mục</label>
-                      <p className="text-gray-900 mt-1">{selectedProduct.product?.categoryId?.name}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Người bán</label>
-                      <p className="text-gray-900 mt-1">{selectedProduct.product?.sellerId?.username}</p>
-                      <p className="text-xs text-gray-500">{selectedProduct.product?.sellerId?.email}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Auction Stats */}
-                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-2xl">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Thống kê đấu giá</h3>
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-white p-4 rounded-xl border border-blue-200">
-                      <label className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Giá hiện tại</label>
-                      <p className="text-2xl font-bold text-blue-900 mt-1">
-                        ${(selectedProduct.auction?.currentPrice || 0).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl border border-green-200">
-                      <label className="text-xs font-semibold text-green-700 uppercase tracking-wide">Tổng số bid</label>
-                      <p className="text-2xl font-bold text-green-900 mt-1">
-                        {selectedProduct.stats?.totalBids || 0}
-                      </p>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl border border-purple-200">
-                      <label className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Người đặt</label>
-                      <p className="text-2xl font-bold text-purple-900 mt-1">
-                        {selectedProduct.stats?.uniqueBidders || 0}
-                      </p>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl border border-orange-200">
-                      <label className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Trạng thái</label>
-                      <p className="text-lg font-bold text-orange-900 mt-1">
-                        {selectedProduct.auction?.status || 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Auction Details */}
-                <div className="grid grid-cols-3 gap-4">
+        {/* Modal chi tiết sản phẩm */}
+        {showDetailModal && selectedProduct && (
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowDetailModal(false)}
+          >
+            <div
+              className="bg-background border border-border rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+                <div className="flex justify-between items-start">
                   <div>
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Giá khởi điểm</label>
-                    <p className="text-lg font-bold text-gray-900 mt-1">${(selectedProduct.auction?.startPrice || 0).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Bước giá</label>
-                    <p className="text-lg font-bold text-gray-900 mt-1">${(selectedProduct.auction?.priceStep || 0).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Giá mua ngay</label>
-                    <p className="text-lg font-bold text-gray-900 mt-1">
-                      {selectedProduct.auction?.buyNowPrice 
-                        ? `$${selectedProduct.auction.buyNowPrice.toLocaleString()}` 
-                        : 'Không có'}
+                    <h2 className="text-2xl font-bold mb-2">
+                      Chi tiết sản phẩm (Admin)
+                    </h2>
+                    <p className="text-blue-100">
+                      Thông tin đầy đủ về sản phẩm và phiên đấu giá
                     </p>
                   </div>
-                </div>
-
-                {/* Auto Extend Info */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Tự động gia hạn</label>
-                    <p className={`text-lg font-bold mt-1 ${selectedProduct.auction?.autoExtendEnabled ? 'text-green-600' : 'text-red-600'}`}>
-                      {selectedProduct.auction?.autoExtendEnabled ? 'Bật' : 'Tắt'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Số lần gia hạn</label>
-                    <p className="text-lg font-bold text-gray-900 mt-1">{selectedProduct.auction?.autoExtendCount || 0}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Cửa sổ gia hạn</label>
-                    <p className="text-lg font-bold text-gray-900 mt-1">{selectedProduct.auction?.autoExtendWindowSec || 0}s</p>
-                  </div>
-                </div>
-
-                {/* Time Info */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Thời gian bắt đầu</label>
-                    <p className="text-gray-900 mt-1">{selectedProduct.auction?.startAt ? new Date(selectedProduct.auction.startAt).toLocaleString('vi-VN') : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Thời gian kết thúc</label>
-                    <p className="text-gray-900 mt-1">{selectedProduct.auction?.endAt ? new Date(selectedProduct.auction.endAt).toLocaleString('vi-VN') : 'N/A'}</p>
-                  </div>
-                </div>
-
-                {/* Current Highest Bidder */}
-                {selectedProduct.auction?.currentHighestBidder && (
-                  <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
-                    <label className="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Người đặt giá cao nhất</label>
-                    <p className="text-lg font-bold text-yellow-900 mt-1">
-                      {selectedProduct.auction.currentHighestBidder.username}
-                    </p>
-                    <p className="text-xs text-yellow-600">{selectedProduct.auction.currentHighestBidder.email}</p>
-                  </div>
-                )}
-
-                {/* Recent Bids */}
-                {selectedProduct.bids && selectedProduct.bids.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Lịch sử đặt giá (5 gần nhất)</h3>
-                    <div className="bg-gray-50 rounded-xl overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-100">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Người đặt</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số tiền</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời gian</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {selectedProduct.bids.slice(0, 5).map((bid, idx) => (
-                            <tr key={idx} className={idx === 0 ? 'bg-green-50' : ''}>
-                              <td className="px-4 py-3 text-sm">
-                                <div>
-                                  <p className="font-medium text-gray-900">{bid.bidder?.username}</p>
-                                  <p className="text-xs text-gray-500">{bid.bidder?.email}</p>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-sm font-bold text-gray-900">
-                                ${bid.amount?.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-600">
-                                {new Date(bid.createdAt).toLocaleString('vi-VN')}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* IDs */}
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                  <div className="bg-gray-50 p-4 rounded-xl">
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Product ID</label>
-                    <p className="text-xs text-gray-600 mt-1 font-mono break-all">{selectedProduct.product?._id}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-xl">
-                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Auction ID</label>
-                    <p className="text-xs text-gray-600 mt-1 font-mono break-all">{selectedProduct.auction?._id}</p>
-                  </div>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="p-2 hover:bg-white/20 rounded-lg transition"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
-            ) : null}
 
-            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
-              >
-                Đóng
-              </button>
-              {selectedProduct?.product?._id && (
-                <Link
-                  to={`/product/${selectedProduct.product._id}`}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  Xem trên trang
-                </Link>
+              {loadingDetails && (
+                <div className="flex justify-center items-center p-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
               )}
+              {!loadingDetails && (
+                <div className="p-8">
+                  <div className="flex flex-col md:flex-row gap-8">
+                    {/* Product Image */}
+                    <div className="w-full md:w-5/12">
+                      <div className="aspect-square rounded-xl overflow-hidden border border-border shadow-md bg-white flex items-center justify-center p-4">
+                        <img
+                          src={
+                            selectedProduct.product?.primaryImageUrl ||
+                            "/placeholder.svg"
+                          }
+                          alt={selectedProduct.product?.title}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                    {/* Info */}
+                    <div className="w-full md:w-7/12 space-y-6">
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1 block">
+                          Tên sản phẩm
+                        </label>
+                        <h3 className="text-2xl font-bold text-foreground">
+                          {selectedProduct.title ||
+                            selectedProduct.product?.title}
+                        </h3>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-6">
+                        <div>
+                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1 block">
+                            Danh mục
+                          </label>
+                          <p className="text-foreground">
+                            {selectedProduct.category?.name ||
+                              selectedProduct.product?.categoryId?.name ||
+                              "N/A"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1 block">
+                            Người bán
+                          </label>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground">
+                              {selectedProduct.seller?.username ||
+                                selectedProduct.product?.sellerId?.username ||
+                                "Unknown"}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {selectedProduct.seller?.email ||
+                                selectedProduct.product?.sellerId?.email}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-muted/30 rounded-xl p-6 border border-border">
+                        <h4 className="font-semibold mb-4 text-foreground">
+                          Thống kê đấu giá
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-background p-4 rounded-lg border border-border shadow-sm">
+                            <span className="text-xs text-muted-foreground font-bold uppercase block mb-1">
+                              Giá hiện tại
+                            </span>
+                            <span className="text-xl font-bold text-blue-500">{(selectedProduct.auction?.currentPrice || 0).toLocaleString('vi-VN')} VNĐ</span>
+                          </div>
+                          <div className="bg-background p-4 rounded-lg border border-border shadow-sm">
+                            <span className="text-xs text-muted-foreground font-bold uppercase block mb-1">
+                              Tổng số Bid
+                            </span>
+                            <span className="text-xl font-bold text-green-500">
+                              {selectedProduct.auction?.bids?.length || 0}
+                            </span>
+                          </div>
+                          <div className="bg-background p-4 rounded-lg border border-border shadow-sm">
+                            <span className="text-xs text-muted-foreground font-bold uppercase block mb-1">
+                              Người đặt
+                            </span>
+                            <span className="text-xl font-bold text-purple-500">
+                              {
+                                new Set(
+                                  selectedProduct.auction?.bids?.map(
+                                    (b) => b.bidder
+                                  ) || []
+                                ).size
+                              }
+                            </span>
+                          </div>
+                          <div className="bg-background p-4 rounded-lg border border-border shadow-sm">
+                            <span className="text-xs text-muted-foreground font-bold uppercase block mb-1">
+                              Trạng thái
+                            </span>
+                            <span
+                              className={`text-xl font-bold capitalize ${
+                                selectedProduct.auction?.status === "active"
+                                  ? "text-green-500"
+                                  : selectedProduct.auction?.status === "ended"
+                                  ? "text-blue-500"
+                                  : "text-yellow-500"
+                              }`}
+                            >
+                              {selectedProduct.auction?.status || "active"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                        <div>
+                        <span className="text-muted-foreground block mb-1 font-bold">
+                          Giá khởi điểm
+                        </span>
+                        <span className="text-foreground font-medium text-base">
+                          {(
+                            selectedProduct.auction?.startPrice || 0
+                          ).toLocaleString('vi-VN')} VNĐ
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block mb-1 font-bold">
+                          Bước giá
+                        </span>
+                        <span className="text-foreground font-medium text-base">
+                          {(
+                            selectedProduct.auction?.priceStep || 0
+                          ).toLocaleString('vi-VN')} VNĐ
+                        </span>
+                      </div>
+                      <div>
+                          <span className="text-muted-foreground block mb-1 font-bold">
+                            Tự động gia hạn
+                          </span>
+                          <span
+                            className={`font-medium text-base ${
+                              selectedProduct.auction?.autoExtendEnabled
+                                ? "text-green-500"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {selectedProduct.auction?.autoExtendEnabled
+                              ? "Bật"
+                              : "Tắt"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1 font-bold">
+                            Thời gian bắt đầu
+                          </span>
+                          <span className="text-foreground font-medium">
+                            {selectedProduct.auction?.startAt
+                              ? new Date(
+                                  selectedProduct.auction.startAt
+                                ).toLocaleString('vi-VN')
+                              : "N/A"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1 font-bold">
+                            Thời gian kết thúc
+                          </span>
+                          <span className="text-foreground font-medium">
+                            {selectedProduct.auction?.endAt
+                              ? new Date(
+                                  selectedProduct.auction.endAt
+                                ).toLocaleString('vi-VN')
+                              : "Chưa xác định"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1 font-bold">
+                            Giá mua ngay
+                          </span>
+                          <span className="text-foreground font-medium text-base">
+                            {(
+                              selectedProduct.auction?.buyNowPrice || 0
+                            ).toLocaleString('vi-VN')} VNĐ
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="bg-muted/50 px-8 py-4 flex justify-end">
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="px-6 py-2 bg-muted text-foreground hover:bg-muted/80 border border-border rounded-lg transition font-medium"
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={() => setShowDeleteModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Xác nhận xóa sản phẩm
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Hành động này không thể hoàn tác
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Xác nhận xóa sản phẩm</h3>
-                  <p className="text-sm text-gray-500 mt-1">Hành động này không thể hoàn tác</p>
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <p className="text-sm text-gray-700 mb-2">
-                  Bạn có chắc chắn muốn xóa sản phẩm:
-                </p>
-                <p className="font-semibold text-gray-900 mb-3">
-                  "{productToDelete?.title}"
-                </p>
-                <div className="space-y-1 text-xs text-gray-600">
-                  <p>• Tất cả bids liên quan sẽ bị xóa</p>
-                  <p>• Phiên đấu giá sẽ bị hủy</p>
-                  <p>• Người dùng đã bid sẽ nhận email thông báo</p>
-                </div>
-              </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setProductToDelete(null);
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
-                >
-                  Xóa sản phẩm
-                </button>
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-700 mb-2">
+                    Bạn có chắc chắn muốn xóa sản phẩm:
+                  </p>
+                  <p className="font-semibold text-gray-900 mb-3">
+                    "{productToDelete?.title}"
+                  </p>
+                  <div className="space-y-1 text-xs text-gray-600">
+                    <p>• Tất cả bids liên quan sẽ bị xóa</p>
+                    <p>• Phiên đấu giá sẽ bị hủy</p>
+                    <p>• Người dùng đã bid sẽ nhận email thông báo</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setProductToDelete(null);
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                  >
+                    Xóa sản phẩm
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

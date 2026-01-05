@@ -70,70 +70,68 @@ export default function AdminNavigation() {
 
   // Admin menu items
   const adminMenuItems = [
-    { path: "/admin/dashboard", label: "Trang chủ", icon: BarChart3 },
+    { path: "/admin/dashboard", label: "Người dùng", icon: Users },
     { path: "/admin/products", label: "Sản phẩm", icon: Package },
     { path: "/admin/categories", label: "Danh mục", icon: Tag },
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-gradient-to-r from-orange-600 to-orange-700 z-50 shadow-lg">
+    <nav className="fixed top-0 left-0 right-0 z-50 shadow-lg flex flex-col">
       {/* Main Header */}
-      <div className="bg-gradient-to-r from-orange-600 to-orange-700 text-white py-3">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#0f172a]/95 backdrop-blur-xl border-b border-white/5 text-white transition-all duration-300">
+        <div className="py-3">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
           {/* Logo & Admin Badge */}
-          <div className="flex items-center gap-4">
-            <Link
-              to="/admin/dashboard"
-              className="flex items-center gap-2 shrink-0"
-            >
-              <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-                <Shield className="w-5 h-5 text-orange-600" />
-              </div>
-              <div className="hidden sm:block">
-                <span className="font-bold text-lg block leading-tight">
-                  Admin Panel
-                </span>
-                <span className="text-xs text-orange-100">Online Auction</span>
-              </div>
-            </Link>
-          </div>
-
-          {/* Search Bar
-          <form
-            onSubmit={handleSearch}
-            className="hidden xl:flex items-center flex-1 max-w-xl bg-white/10 backdrop-blur-sm rounded-lg border border-white/20"
-          >
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search users, products, categories..."
-              className="flex-1 px-4 py-2 bg-transparent text-white placeholder-orange-200 outline-none text-sm"
+          <Link to="/admin/dashboard" className="flex items-center gap-3 shrink-0 group">
+            <img 
+              src="/images/logo-kab.png" 
+              alt="Admin Panel" 
+              className="h-10 md:h-12 w-auto object-contain group-hover:scale-105 transition-transform duration-300 rounded-xl" 
             />
-            <button 
-              type="submit"
-              className="px-4 py-2 text-white hover:bg-white/10 transition rounded-r-lg"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-          </form> */}
+            <div className="flex flex-col">
+              <span className="font-extrabold text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm leading-none">
+                KKABB
+              </span>
+              <span className="text-[10px] font-bold tracking-widest text-blue-400 uppercase">
+                Admin Panel
+              </span>
+            </div>
+          </Link>
+          
+          {/* Main Navigation Items - Moved from secondary bar */}
+          <div className="hidden md:flex items-center gap-1 mx-4 flex-1">
+            {adminMenuItems.map((item) => {
+              const active = isActive(item.path);
+
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`text-sm font-medium transition-all duration-200 relative py-1 mx-3 ${
+                    active
+                      ? "text-blue-400"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {item.label}
+                  {active && (
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-400 rounded-full animate-fade-in"></span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
 
           {/* Right Actions */}
           <div className="flex items-center gap-3">
             {/* Back to Site */}
             <Link
               to="/"
-              className="hidden sm:flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition text-sm font-medium"
+              className="hidden sm:flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition text-sm font-medium text-slate-300 hover:text-white"
             >
               <Home className="w-4 h-4" />
               <span className="hidden lg:inline">Quay lại trang chính</span>
             </Link>
-
-            {/* Notifications */}
-            <button className="relative p-2 hover:bg-white/20 rounded-lg transition">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-300 rounded-full"></span>
-            </button>
 
             {/* User Menu */}
             <div className="relative" ref={userMenuRef}>
@@ -148,7 +146,7 @@ export default function AdminNavigation() {
                   <div className="text-sm font-medium">
                     {currentUser?.username || "Admin"}
                   </div>
-                  <div className="text-xs text-orange-100">
+                  <div className="text-xs text-slate-400">
                     {currentUser?.roles?.includes("superadmin")
                       ? "Siêu Quản trị viên"
                       : "Quản trị viên"}
@@ -158,12 +156,12 @@ export default function AdminNavigation() {
 
               {/* User Dropdown Menu */}
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
-                  <div className="px-4 py-3 bg-gradient-to-r from-orange-50 to-orange-100 border-b border-orange-200">
-                    <p className="text-sm font-semibold text-gray-900">
+                <div className="absolute right-0 mt-2 w-56 bg-slate-900 rounded-lg shadow-xl border border-slate-700 overflow-hidden z-50">
+                  <div className="px-4 py-3 bg-slate-800 border-b border-slate-700">
+                    <p className="text-sm font-semibold text-white">
                       {currentUser?.username}
                     </p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-gray-400">
                       {currentUser?.email}
                     </p>
                   </div>
@@ -171,7 +169,7 @@ export default function AdminNavigation() {
                   <Link
                     to="/profile"
                     onClick={() => setIsUserMenuOpen(false)}
-                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
+                    className="block px-4 py-3 text-sm text-gray-300 hover:bg-slate-800 transition"
                   >
                     <User className="w-4 h-4 inline mr-2" />
                     Hồ sơ cá nhân
@@ -179,31 +177,22 @@ export default function AdminNavigation() {
                   <Link
                     to="/profile/settings"
                     onClick={() => setIsUserMenuOpen(false)}
-                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
+                    className="block px-4 py-3 text-sm text-gray-300 hover:bg-slate-800 transition"
                   >
                     <Settings className="w-4 h-4 inline mr-2" />
                     Cài đặt
                   </Link>
 
-                  <hr className="border-gray-200" />
 
-                  <Link
-                    to="/"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="block px-4 py-3 text-sm text-blue-600 hover:bg-blue-50 transition"
-                  >
-                    <Home className="w-4 h-4 inline mr-2" />
-                    Quay lại trang chính
-                  </Link>
 
-                  <hr className="border-gray-200" />
+                  <hr className="border-gray-700" />
 
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
                       handleLogout();
                     }}
-                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition"
+                    className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-slate-800 transition"
                   >
                     Đăng xuất
                   </button>
@@ -223,51 +212,27 @@ export default function AdminNavigation() {
               )}
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Admin Menu Bar */}
-      <div className="hidden md:block bg-white/10 backdrop-blur-sm border-t border-white/20">
-        <div className="max-w-7xl mx-auto px-4 py-2">
-          <div className="flex items-center gap-1">
-            {adminMenuItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${
-                    active
-                      ? "bg-white text-orange-600 shadow-sm"
-                      : "text-white hover:bg-white/10"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
           </div>
         </div>
       </div>
 
+
+
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200">
+        <div className="md:hidden bg-[#0f172a] border-t border-white/10 text-gray-300">
           <div className="flex flex-col p-4 gap-2">
             {/* Mobile Search */}
             <form
               onSubmit={handleSearch}
-              className="flex items-center bg-gray-100 rounded-lg mb-2"
+              className="flex items-center bg-white/5 border border-white/10 rounded-lg mb-2"
             >
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm..."
-                className="flex-1 px-3 py-2 bg-transparent text-gray-900 placeholder-gray-500 outline-none text-sm"
+                className="flex-1 px-3 py-2 bg-transparent text-white placeholder-gray-500 outline-none text-sm"
               />
               <button type="submit" className="px-3 text-orange-600">
                 <Search className="w-4 h-4" />

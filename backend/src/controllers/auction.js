@@ -160,3 +160,25 @@ export const cancelAuction = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Controller lấy danh sách cuộc đấu giá (generic)
+ */
+export const getAuctions = async (req, res, next) => {
+  try {
+    const { page, limit, status, sort } = req.query;
+    const result = await auctionService.getAuctions({
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10,
+        status,
+        sort
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};

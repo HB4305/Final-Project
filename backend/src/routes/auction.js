@@ -9,7 +9,8 @@ import {
   getHighestPriceAuctions,
   getAuctionDetail,
   endAuction,
-  cancelAuction
+  cancelAuction,
+  getAuctions
 } from '../controllers/auction.js';
 import { authenticate } from '../middlewares/auth.js';
 import { authorize } from '../middlewares/roles.js';
@@ -33,6 +34,12 @@ router.post(
   validateAuctionInput,
   createAuction
 );
+
+/**
+ * GET /api/auctions
+ * Lấy danh sách cuộc đấu giá (generic)
+ */
+router.get('/', getAuctions);
 
 /**
  * GET /api/auctions/ending-soon

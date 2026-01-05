@@ -34,25 +34,55 @@ export default function Home() {
   }, [searchParams, loginWithToken, navigate, setSearchParams, isProcessingToken]);
 
   const [heroAuction, setHeroAuction] = React.useState(null);
+  // Debug log removed as per fix plan
+  // const [debugLog, setDebugLog] = React.useState({}); 
 
   useEffect(() => {
     const fetchHeroAuction = async () => {
       try {
         const auctionService = await import("./services/auctionService");
-        let res = await auctionService.getMostViewedAuctions({ limit: 1 });
         
-        // If no trending auctions, fallback to highest price active auctions
-        if (!res.data?.auctions?.length) {
-            res = await auctionService.getHighestPriceAuctions({ limit: 1 });
+        // Helper to check validity
+        const hasValidAuction = (response) => {
+            const auctions = response?.data?.auctions || response?.data?.data?.auctions; 
+            if (!Array.isArray(auctions)) return false;
+            return auctions.some(a => a.productId);
+        };
+
+        const getValidAuction = (response) => {
+            const auctions = response?.data?.auctions || response?.data?.data?.auctions;
+            return auctions.find(a => a.productId);
         }
 
-        if (res.data?.auctions?.length > 0) {
-           // Find the first auction that has a valid product
-           const validAuction = res.data.auctions.find(a => a.productId);
-           if (validAuction) {
-             setHeroAuction(validAuction);
-           }
+        // 1. Try Most Viewed (Trending)
+        let res = await auctionService.getMostViewedAuctions({ limit: 5 });
+        let finalAuction = getValidAuction(res);
+        
+        // 2. Fallback: Highest Price
+        if (!finalAuction) {
+            console.log("Hero: No valid trending auction, trying highest price...");
+            res = await auctionService.getHighestPriceAuctions({ limit: 5 });
+            finalAuction = getValidAuction(res);
         }
+
+        // 3. Fallback: Generic Active (Newest)
+        if (!finalAuction) {
+             console.log("Hero: No valid highest price auction, trying generic active...");
+             // getAuctions returns full axios response, others return response.data
+             const genericRes = await auctionService.getAuctions({ limit: 1, status: 'active', sort: '-createdAt' });
+             // genericRes.data is the payload { status, data: { auctions: [] } }
+             if (genericRes.data?.data?.auctions) {
+                 finalAuction = genericRes.data.data.auctions.find(a => a.productId);
+             }
+        }
+
+        if (finalAuction) {
+             console.log("Hero: Selected auction:", finalAuction);
+             setHeroAuction(finalAuction);
+        } else {
+             console.log("Hero: No valid auction found in any category.");
+        }
+
       } catch (error) {
         console.error("Failed to fetch hero auction", error);
       }
@@ -203,11 +233,15 @@ export default function Home() {
       <footer className="bg-black/40 border-t border-white/10 py-12 px-4 mt-12 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12 mb-12">
           <div>
-            <div className="flex items-center gap-2 mb-6">
-               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center font-bold text-white shadow-lg border border-white/10">
-                  <Gavel className="w-4 h-4 text-white/90" />
-               </div>
-               <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">AuctionHub</span>
+            <div className="flex items-center gap-3 mb-6">
+               <img 
+                  src="/images/logo-kab.png" 
+                  alt="KKABB Auction" 
+                  className="h-12 w-auto object-contain rounded-xl" 
+               />
+               <span className="font-extrabold text-3xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 tracking-tight drop-shadow-sm">
+                  KKABB
+               </span>
             </div>
             <p className="text-muted-foreground max-w-xs">
               Nền tảng đấu giá trực tuyến uy tín và hiện đại nhất.
@@ -242,7 +276,7 @@ export default function Home() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto text-center text-sm text-gray-600 border-t border-gray-800 pt-8">
-          <p>&copy; 2025 AuctionHub. All rights reserved.</p>
+          <p>&copy; 2025 KKABB. All rights reserved.</p>
         </div>
       </footer>
     </div>
