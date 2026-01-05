@@ -78,10 +78,6 @@ export const getAllProducts = async (req, res, next) => {
       );
     }
 
-    console.log(
-      `[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}, status=${status}`
-    );
-
     const filters = {
         minPrice, 
         maxPrice, 
@@ -125,10 +121,6 @@ export const sellerDeleteProduct = async (req, res, next) => {
       throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
     }
 
-    console.log(
-      `[PRODUCT CONTROLLER] DELETE /api/products/${productId}/seller - Seller: ${userId}`
-    );
-
     // Find product
     const product = await Product.findById(productId);
     if (!product) {
@@ -167,7 +159,6 @@ export const sellerDeleteProduct = async (req, res, next) => {
       deletePromises.push(Auction.findByIdAndDelete(auction._id));
       deletePromises.push(AutoBid.deleteMany({ auctionId: auction._id }));
       deletePromises.push(Bid.deleteMany({ auctionId: auction._id }));
-      console.log(`[PRODUCT CONTROLLER] Xóa auction và related data: ${auction._id}`);
     }
 
     deletePromises.push(Watchlist.deleteMany({ productId: productId }));
@@ -206,7 +197,6 @@ export const sellerDeleteProduct = async (req, res, next) => {
       );
 
       await Promise.all(emailPromises);
-      console.log(`[PRODUCT CONTROLLER] Đã gửi email thông báo cho ${bidders.length} bidder(s)`);
     }
 
     res.status(200).json({
@@ -252,10 +242,6 @@ export const deleteProduct = async (req, res, next) => {
     if (!isSeller && !isAdmin) {
       throw new AppError("Bạn không có quyền xóa sản phẩm này", 403, "FORBIDDEN");
     }
-
-    console.log(
-      `[PRODUCT CONTROLLER] DELETE /api/products/${productId} - User: ${userId} (${isSeller ? 'Seller' : 'Admin'})`
-    );
 
     // Find associated auction
     const auction = await Auction.findOne({ productId: productId });
@@ -331,9 +317,6 @@ export const deleteProduct = async (req, res, next) => {
       deletePromises.push(Auction.findByIdAndDelete(auction._id));
       deletePromises.push(AutoBid.deleteMany({ auctionId: auction._id }));
       deletePromises.push(Bid.deleteMany({ auctionId: auction._id }));
-      console.log(
-        `[PRODUCT CONTROLLER] Xóa auction, bids và auto bids: ${auction._id}`
-      );
     }
 
     // Delete all watchlist entries for this product
@@ -349,10 +332,6 @@ export const deleteProduct = async (req, res, next) => {
     deletePromises.push(Product.findByIdAndDelete(productId));
 
     await Promise.all(deletePromises);
-
-    console.log(
-      `[PRODUCT CONTROLLER] Đã xóa sản phẩm ${productId} và tất cả dữ liệu liên quan`
-    );
 
     res.status(200).json({
       status: "success",
@@ -381,10 +360,6 @@ export const deleteProduct = async (req, res, next) => {
  */
 export const getTopProducts = async (req, res, next) => {
   try {
-    console.log(
-      "[PRODUCT CONTROLLER] GET /api/products/home/top - Lấy top products"
-    );
-
     const topProducts = await productService.getTopProducts();
 
     res.status(200).json({
@@ -418,13 +393,6 @@ export const getProductsByCategory = async (req, res, next) => {
       limit = PAGINATION.DEFAULT_LIMIT,
       sortBy = "newest",
     } = req.query;
-
-    console.log(
-      `[PRODUCT CONTROLLER] GET /api/products/category/${categoryId}`
-    );
-    console.log(
-      `[PRODUCT CONTROLLER] Tham số: page=${page}, limit=${limit}, sortBy=${sortBy}`
-    );
 
     // Validate categoryId
     if (!isValidObjectId(categoryId)) {
@@ -500,11 +468,6 @@ export const searchProducts = async (req, res, next) => {
       limit = PAGINATION.DEFAULT_LIMIT,
     } = req.query;
 
-    console.log(`[PRODUCT CONTROLLER] GET /api/products/search?q="${q}"`);
-    console.log(
-      `[PRODUCT CONTROLLER] Tham số lọc: categoryId=${categoryId}, minPrice=${minPrice}, maxPrice=${maxPrice}, sortBy=${sortBy}`
-    );
-
     // Validate search query
     if (!q || q.trim().length < 2) {
       throw new AppError(
@@ -569,8 +532,6 @@ export const getProductDetail = async (req, res, next) => {
   try {
     const { productId } = req.params;
 
-    console.log(`[PRODUCT CONTROLLER] GET /api/products/${productId}`);
-
     // Validate productId
     if (!isValidObjectId(productId)) {
       throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
@@ -598,8 +559,6 @@ export const getProductAdminDetails = async (req, res, next) => {
   try {
     const { productId } = req.params;
 
-    console.log(`[PRODUCT CONTROLLER] GET /api/products/${productId}/admin-details`);
-
     // Validate productId
     if (!isValidObjectId(productId)) {
       throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
@@ -626,8 +585,6 @@ export const getProductAdminDetails = async (req, res, next) => {
  */
 export const postProduct = async (req, res) => {
   try {
-    console.log("[PRODUCT CONTROLLER] POST /api/products - Đăng sản phẩm mới");
-
     // 1. Lấy dữ liệu từ request
     const {
       title,
@@ -643,11 +600,6 @@ export const postProduct = async (req, res) => {
 
     // 2. Lấy files đã upload (từ multer middleware)
     const uploadedFiles = req.files;
-
-    console.log(
-      `[PRODUCT CONTROLLER] Files uploaded:`,
-      uploadedFiles ? Object.keys(uploadedFiles) : 'none'
-    );
 
     // Lấy primaryImage và additional images
     const primaryImageFile = uploadedFiles?.['primaryImage']?.[0];
@@ -894,29 +846,19 @@ export const postProduct = async (req, res) => {
 
     // Nếu có middleware upload
     if (primaryImageFile && additionalImageFiles.length > 0) {
-      console.log(
-        `[PRODUCT CONTROLLER] Processing 1 primary + ${additionalImageFiles.length} additional images...`
-      );
 
       // Convert primary image to base64
       const primaryB64 = Buffer.from(primaryImageFile.buffer).toString('base64');
       primaryImageUrl = "data:" + primaryImageFile.mimetype + ";base64," + primaryB64;
-      console.log(`[PRODUCT CONTROLLER] ✓ Primary image converted to base64`);
 
       // Convert additional images to base64 URLs
       imageUrls = additionalImageFiles.map((file) => {
         const b64 = Buffer.from(file.buffer).toString('base64');
         return "data:" + file.mimetype + ";base64," + b64;
       });
-
-      console.log(`[PRODUCT CONTROLLER] ✓ Đã convert ${imageUrls.length} ảnh phụ sang base64`);
     }
     // Nếu không có middleware (test mode)
     else {
-      console.log(
-        "[PRODUCT CONTROLLER] ⚠️ TEST MODE: Sử dụng placeholder image URLs"
-      );
-
       imageUrls = PLACEHOLDER_IMAGES.PRODUCT;
       primaryImageUrl = imageUrls[0];
     }
@@ -979,7 +921,6 @@ export const postProduct = async (req, res) => {
     });
 
     const savedProduct = await newProduct.save();
-    console.log(`[PRODUCT CONTROLLER] Product created: ${savedProduct._id}`);
 
     // ========================================
     // 9. TẠO AUCTION SESSION
@@ -1011,11 +952,6 @@ export const postProduct = async (req, res) => {
     const newAuction = new Auction(auctionData);
 
     const savedAuction = await newAuction.save();
-    console.log(`[PRODUCT CONTROLLER] Auction created: ${savedAuction._id}`);
-
-    // ========================================
-    // 10. TRẢ VỀ RESPONSE
-    // ========================================
     await savedProduct.populate("categoryId", "name slug");
 
     const isTestMode = !primaryImageFile || additionalImageFiles.length === 0;
@@ -1173,10 +1109,6 @@ export const updateProductDescription = async (req, res, next) => {
     const userId = req.user?._id;
     const userRoles = req.user?.roles || [];
 
-    console.log(
-      `[PRODUCT CONTROLLER] PUT /api/products/${productId}/description`
-    );
-
     // Validate productId
     if (!isValidObjectId(productId)) {
       return res.status(400).json({
@@ -1247,14 +1179,11 @@ export const updateProductDescription = async (req, res, next) => {
         createdAt: new Date(),
         authorId: userId,
       });
-
-      console.log("[PRODUCT CONTROLLER] Added new description to history");
     }
 
     // Update metadata nếu có
     if (metadata !== undefined) {
       product.metadata = { ...product.metadata, ...metadata };
-      console.log("[PRODUCT CONTROLLER] Updated metadata");
     }
 
     product.updatedAt = new Date();
@@ -1308,11 +1237,6 @@ export const rejectBidder = async (req, res, next) => {
     const { bidderId, reason } = req.body;
     const userId = req.user?._id;
     const userRoles = req.user?.roles || [];
-
-    console.log(
-      `[PRODUCT CONTROLLER] POST /api/products/${productId}/reject-bidder`
-    );
-    console.log(`[PRODUCT CONTROLLER] Rejecting bidder: ${bidderId}`);
 
     // Validate input
     if (!isValidObjectId(productId)) {
@@ -1420,11 +1344,6 @@ export const withdrawBid = async (req, res, next) => {
     const { productId } = req.params;
     const { reason } = req.body;
     const userId = req.user?._id;
-
-    console.log(
-      `[PRODUCT CONTROLLER] POST /api/products/${productId}/withdraw-bid`
-    );
-    console.log(`[PRODUCT CONTROLLER] User ${userId} withdrawing bid`);
 
     // Validate input
     if (!isValidObjectId(productId)) {

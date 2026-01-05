@@ -60,10 +60,6 @@ export class ProductService {
           if (maxPrice) auctionMatch.currentPrice.$lte = parseInt(maxPrice);
       }
 
-      console.log(
-        `[PRODUCT SERVICE] getAllProducts (Aggregation) - Filters:`, filters
-      );
-
       const pipeline = [
         // 1. Match active auctions (and price)
         { $match: auctionMatch },
@@ -194,8 +190,6 @@ export class ProductService {
    */
   async getTopProducts() {
     try {
-      console.log("[PRODUCT SERVICE] Lấy Top 5 sản phẩm cho Homepage");
-
       // Execute queries in parallel
       const [endingSoon, mostBids, highestPrice] = await Promise.all([
         // Top 10 gần kết thúc (To ensure 5 valid ones after filtering)
@@ -244,8 +238,6 @@ export class ProductService {
           .lean(),
       ]);
 
-      console.log("[PRODUCT SERVICE] Top products fetched successfully");
-
       return {
         endingSoon: this._formatTopProducts(endingSoon),
         mostBids: this._formatTopProducts(mostBids),
@@ -279,29 +271,15 @@ export class ProductService {
       if (!category) {
         throw new AppError("Danh mục không tồn tại", 404, "CATEGORY_NOT_FOUND");
       }
-      console.log(
-        "[PRODUCT SERVICE] Category found:",
-        category.name,
-        "Level:",
-        category.level
-      );
 
       const categoryObjectId = new mongoose.Types.ObjectId(categoryId);
 
       // FIX: If parent category (level 1), get all child categories
       let categoryIds = [categoryObjectId];
       if (category.level === 1) {
-        console.log(
-          "[PRODUCT SERVICE] Parent category detected, finding child categories..."
-        );
         const childCategories = await Category.find({
           parentId: categoryObjectId,
         });
-        console.log(
-          "[PRODUCT SERVICE] Found",
-          childCategories.length,
-          "child categories"
-        );
         categoryIds = childCategories.map(
           (cat) => new mongoose.Types.ObjectId(cat._id)
         );
@@ -426,15 +404,9 @@ export class ProductService {
       ];
 
       // FIX: Execute aggregation
-      console.log("[PRODUCT SERVICE] Executing aggregation pipeline...");
       const products = await Product.aggregate(pipeline);
-      console.log(
-        "[PRODUCT SERVICE] ✅ Aggregation done, found:",
-        products.length
-      );
 
       // FIX: Get total count - chỉ count products có auction active
-      console.log("[PRODUCT SERVICE] Counting total...");
       const totalPipeline = [
         {
           $match: {
@@ -468,10 +440,6 @@ export class ProductService {
 
       const totalResult = await Product.aggregate(totalPipeline);
       const total = totalResult.length > 0 ? totalResult[0].total : 0;
-
-      console.log(
-        `[PRODUCT SERVICE] ✅ API 1.3 complete - Found ${products.length} products, total: ${total}`
-      );
 
       return {
         data: products,
@@ -511,9 +479,44 @@ export class ProductService {
     try {
 
       const skip = (page - 1) * limit;
-      const searchTerm = searchQuery?.trim();
+      const searchTerm = searchQuery?.trim().toLowerCase();
 
-      // 1. Resolve categoryIds (including children if parent category)
+      // 1. SMART KEYWORD DETECTION - Phát hiện từ khóa đặc biệt
+      let detectedSort = null;
+      let actualSearchTerm = searchTerm; // Từ khóa thực để search sau khi loại bỏ keyword đặc biệt
+      
+      // Detect keywords nếu sortBy là relevance (mặc định) hoặc không có
+      if (searchTerm && (!filters.sortBy || filters.sortBy === 'relevance')) {
+        // Định nghĩa các từ khóa đặc biệt
+        const keywordMap = {
+          newest: ['mới nhất', 'mới', 'sản phẩm mới', 'vừa đăng', 'vừa lên'],
+          ending_soon: ['sắp kết thúc', 'gần kết thúc', 'sắp hết hạn', 'sắp đóng'],
+          most_bids: ['hot', 'nổi bật', 'nhiều lượt', 'nhiều người đấu', 'đấu giá nhiều', 'phổ biến'],
+          price_desc: ['giá cao', 'đắt nhất', 'cao nhất', 'giá cao nhất'],
+          price_asc: ['giá thấp', 'rẻ nhất', 'giá rẻ', 'thấp nhất', 'giá thấp nhất']
+        };
+
+        // Kiểm tra từng nhóm keyword
+        for (const [sortType, keywords] of Object.entries(keywordMap)) {
+          for (const keyword of keywords) {
+            if (searchTerm.includes(keyword)) {
+              detectedSort = sortType;
+              // Loại bỏ keyword đặc biệt ra khỏi search term
+              actualSearchTerm = searchTerm.replace(new RegExp(keyword, 'gi'), '').trim();
+              break;
+            }
+          }
+          if (detectedSort) break;
+        }
+
+        // Nếu chỉ gõ "đấu giá" hoặc "đang đấu giá" → return tất cả active auctions, sort mới nhất
+        if (searchTerm.match(/^(đấu giá|đang đấu giá)$/i)) {
+          detectedSort = 'newest';
+          actualSearchTerm = ''; // Không search gì cả, chỉ filter active auctions
+        }
+      }
+
+      // 2. Resolve categoryIds (including children if parent category)
       let categoryIds = [];
       if (filters.categoryId && mongoose.Types.ObjectId.isValid(filters.categoryId)) {
         const categoryObjId = new mongoose.Types.ObjectId(filters.categoryId);
@@ -525,38 +528,38 @@ export class ProductService {
           if (category.level === 1) {
             const childCategories = await Category.find({ parentId: categoryObjId });
             categoryIds = [...categoryIds, ...childCategories.map(c => c._id)];
-            console.log(`[PRODUCT SERVICE] 📦 Parent category "${category.name}" - Included ${childCategories.length} child categories`);
           }
         }
       }
 
-      // 2. Build initial match query
+      // 3. Build initial match query
       let initialMatch = { isActive: true };
 
-      // 3. Build regex pattern cho tiếng Việt
+      // 4. Build regex pattern cho tiếng Việt
       let searchPattern = null;
-      if (searchTerm) {
+      if (actualSearchTerm) {
         // Escape special regex characters và tách từ
-        const words = searchTerm.split(/\s+/);
-        searchPattern = words.map(word => 
-          word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        ).join('|'); // OR operator between words
-        
-        console.log(`[PRODUCT SERVICE] 🔎 Search pattern: /${searchPattern}/i`);
+        const words = actualSearchTerm.split(/\s+/).filter(w => w.length > 0);
+        if (words.length > 0) {
+          searchPattern = words.map(word => 
+            word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          ).join('|'); // OR operator between words
+        }
       }
 
-      // 4. Xác định sort order
+      // 5. Xác định sort order (ưu tiên: detected keyword > user filter > default)
       let sortQuery = { _id: -1 };
+      const finalSort = detectedSort || filters.sortBy || 'newest';
       
-      if (filters.sortBy === "price_asc") {
+      if (finalSort === "price_asc") {
         sortQuery = { "auction.currentPrice": 1, _id: -1 };
-      } else if (filters.sortBy === "price_desc") {
+      } else if (finalSort === "price_desc") {
         sortQuery = { "auction.currentPrice": -1, _id: -1 };
-      } else if (filters.sortBy === "ending_soon") {
+      } else if (finalSort === "ending_soon") {
         sortQuery = { "auction.endAt": 1, _id: -1 };
-      } else if (filters.sortBy === "most_bids") {
+      } else if (finalSort === "most_bids") {
         sortQuery = { "auction.bidCount": -1, _id: -1 };
-      } else if (filters.sortBy === "newest") {
+      } else if (finalSort === "newest") {
         sortQuery = { "createdAt": -1, _id: -1 };
       }
 
@@ -752,7 +755,6 @@ export class ProductService {
       ];
 
       // 7. Execute pipelines
-      console.log(`[PRODUCT SERVICE] 🚀 Executing search aggregation...`);
       const [products, totalResult] = await Promise.all([
         Product.aggregate(pipeline),
         Product.aggregate(countPipeline)
@@ -760,9 +762,8 @@ export class ProductService {
 
       const total = totalResult.length > 0 ? totalResult[0].total : 0;
 
-      console.log(`[PRODUCT SERVICE] ✅ Search complete: Found ${products.length}/${total} results`);
       if (products.length > 0) {
-        console.log(`[PRODUCT SERVICE] 📝 Sample result:`, {
+        console.log(`[PRODUCT SERVICE] Sample result:`, {
           title: products[0].title,
           category: products[0].category?.name
         });
@@ -783,11 +784,12 @@ export class ProductService {
             min: filters.minPrice || null,
             max: filters.maxPrice || null
           },
-          sortBy: filters.sortBy || 'newest'
+          sortBy: finalSort, // Hiển thị sort đã được detect hoặc user chọn
+          detectedKeyword: detectedSort ? true : false // Flag để frontend biết có keyword đặc biệt
         }
       };
     } catch (error) {
-      console.error("[PRODUCT SERVICE] ❌ Search error:", error);
+      console.error("[PRODUCT SERVICE] Search error:", error);
       throw error;
     }
   }
@@ -805,7 +807,6 @@ export class ProductService {
    */
   async getProductDetail(productId) {
     try {
-      console.log(`[PRODUCT SERVICE] Lấy chi tiết sản phẩm: ${productId}`);
 
       const product = await Product.findByIdAndUpdate(
         productId,
@@ -889,8 +890,6 @@ export class ProductService {
           },
         },
       ]);
-
-      console.log(`[PRODUCT SERVICE] Chi tiết sản phẩm lấy thành công`);
 
       // Normalize seller rating (0..5) for frontend convenience
       if (
@@ -982,8 +981,6 @@ export class ProductService {
       // Tính thời gian còn lại
       const timeRemaining = new Date(auction.endAt) - new Date();
       const isAuctionActive = timeRemaining > 0 && auction.status === 'active';
-
-      console.log(`[PRODUCT SERVICE] Chi tiết admin lấy thành công`);
 
       return {
         product: {

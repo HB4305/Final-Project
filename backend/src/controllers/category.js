@@ -36,7 +36,6 @@ import { isValidObjectId } from '../utils/validators.js';
  */
 export const getAllCategories = async (req, res, next) => {
   try {
-    console.log('[CATEGORY CONTROLLER] GET /api/categories - Lấy tất cả danh mục');
 
     // Lấy tất cả parent categories (level = 1)
     const parentCategories = await Category.find({ parentId: null })
@@ -117,8 +116,6 @@ export const createCategory = async (req, res, next) => {
     const { name, slug, parentId, level } = req.body;
     const userId = req.user._id;
 
-    console.log(`[CATEGORY CONTROLLER] POST /api/categories - Admin: ${userId}`);
-
     // Validate required fields
     if (!name) {
       throw new AppError('Tên danh mục là bắt buộc', 400, 'MISSING_FIELDS');
@@ -137,8 +134,6 @@ export const createCategory = async (req, res, next) => {
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .replace(/(^-|-$)/g, '');
-      
-      console.log(`[CATEGORY CONTROLLER] Auto-generated slug: ${categorySlug}`);
     }
 
     // Only admin or superadmin can create categories
@@ -179,9 +174,6 @@ export const createCategory = async (req, res, next) => {
     });
 
     await category.save();
-
-    console.log(`[CATEGORY CONTROLLER] Đã tạo danh mục: ${category._id}`);
-
     res.status(201).json({
       success: true,
       message: 'Tạo danh mục thành công',
@@ -203,8 +195,6 @@ export const updateCategory = async (req, res, next) => {
     const { categoryId } = req.params;
     const { name, slug, isActive } = req.body;
     const userId = req.user._id;
-
-    console.log(`[CATEGORY CONTROLLER] PUT /api/categories/${categoryId} - Admin: ${userId}`);
 
     // Validate categoryId
     if (!isValidObjectId(categoryId)) {
@@ -237,8 +227,6 @@ export const updateCategory = async (req, res, next) => {
     category.updatedAt = Date.now();
 
     await category.save();
-
-    console.log(`[CATEGORY CONTROLLER] Đã cập nhật danh mục: ${categoryId}`);
 
     res.status(200).json({
       success: true,
@@ -275,10 +263,8 @@ export const deleteCategory = async (req, res, next) => {
       throw new AppError('ID danh mục không hợp lệ', 400, 'INVALID_CATEGORY_ID');
     }
 
-    console.log(`[CATEGORY CONTROLLER] DELETE /api/categories/${categoryId} - Admin: ${userId}`);
 
     // Only admin or superadmin can delete categories
-    console.log("Role: ", req.user.roles);
     if (!['admin', 'superadmin'].some(role => req.user.roles.includes(role))) {
       throw new AppError('Bạn không có quyền xóa danh mục', 403, 'FORBIDDEN');
     }
@@ -293,8 +279,6 @@ export const deleteCategory = async (req, res, next) => {
     const products = await Product.find({ categoryId: categoryId });
     
     if (products.length > 0) {
-      console.log(`[CATEGORY CONTROLLER] Tìm thấy ${products.length} sản phẩm trong danh mục`);
-
       // Check each product's auction status
       const productIds = products.map(p => p._id);
       const auctions = await Auction.find({ productId: { $in: productIds } });
@@ -323,8 +307,6 @@ export const deleteCategory = async (req, res, next) => {
         );
       }
 
-      // Delete all products and their related data
-      console.log(`[CATEGORY CONTROLLER] Xóa tất cả sản phẩm và dữ liệu liên quan...`);
 
       for (const product of products) {
         const auction = auctions.find(a => a.productId.toString() === product._id.toString());
@@ -345,8 +327,6 @@ export const deleteCategory = async (req, res, next) => {
 
         await Promise.all(deletePromises);
       }
-
-      console.log(`[CATEGORY CONTROLLER] Đã xóa ${products.length} sản phẩm và dữ liệu liên quan`);
     }
 
     // If this is a parent category (level 1), also delete child categories
@@ -399,14 +379,12 @@ export const deleteCategory = async (req, res, next) => {
           await Category.findByIdAndDelete(childCat._id);
         }
 
-        console.log(`[CATEGORY CONTROLLER] Đã xóa ${childCategories.length} danh mục con`);
       }
     }
 
     // Delete the category
     await Category.findByIdAndDelete(categoryId);
     
-    console.log(`[CATEGORY CONTROLLER] Đã xóa danh mục: ${categoryId}`);
 
     res.status(200).json({
       success: true,
