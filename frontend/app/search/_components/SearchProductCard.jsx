@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Clock, TrendingUp, Heart } from 'lucide-react';
+import { Clock, TrendingUp, Heart, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FALLBACK_IMAGE } from './constants.js';
-import { formatPrice, calculateTimeLeft, isEndingSoon, isHotProduct } from './utils.js';
+import { formatPrice, calculateTimeLeft, isEndingSoon, isHotProduct, isNewProduct } from './utils.js';
 import watchlistService from '../../services/watchlistService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,6 +15,7 @@ const SearchProductCard = ({ product }) => {
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const endingSoon = isEndingSoon(product.auction?.endAt);
   const isHot = isHotProduct(product.auction?.bidCount);
+  const isNew = isNewProduct(product.createdAt);
   const displayPrice = product.auction?.currentPrice || product.auction?.startPrice;
 
   useEffect(() => {
@@ -68,7 +69,12 @@ const SearchProductCard = ({ product }) => {
           />
 
           {/* Status Badges */}
-          <div className="absolute top-2 left-2 flex gap-2">
+          <div className="absolute top-2 left-2 flex flex-wrap gap-2">
+            {isNew && (
+              <span className="px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded flex items-center gap-1 shadow-sm animate-pulse">
+                <Sparkles className="w-3 h-3" /> Mới đăng
+              </span>
+            )}
             {endingSoon && (
               <span className="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded flex items-center gap-1 shadow-sm">
                 <Clock className="w-3 h-3" /> Sắp kết thúc

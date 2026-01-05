@@ -397,16 +397,6 @@ export default function ProductDetailPage() {
                   <DescriptionTab
                     description={product.description}
                     descriptionHistory={product.descriptionHistory}
-                    bidHistory={product.auction?.topBidders}
-                    productId={id}
-                    isSeller={user && product.sellerId?._id === user._id}
-                    onReject={async () => {
-                      await refetch();
-                      setToast({
-                        type: "success",
-                        message: "Đã từ chối bidder thành công!",
-                      });
-                    }}
                   />
                 )}
                 {activeTab === "details" && <DetailsTab product={product} />}

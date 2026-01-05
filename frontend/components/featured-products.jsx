@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Heart, Clock, TrendingUp, Loader } from "lucide-react";
+import { Heart, Clock, TrendingUp, Loader, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import productService from "../app/services/productService";
 import watchlistService from "../app/services/watchlistService";
@@ -9,6 +9,7 @@ const FALLBACK_IMAGE =
 const FETCH_CONFIG = { limit: 12, sortBy: "newest", status: "active", page: 1 };
 const ENDING_SOON_HOURS = 24;
 const HOT_BID_THRESHOLD = 10;
+const NEW_PRODUCT_THRESHOLD_MINUTES = 60; // 60 phút = 1 giờ
 
 // Helper functions
 const calculateTimeRemaining = (endAt) => {
@@ -29,9 +30,22 @@ const isEndingSoon = (endAt) => {
   return hoursRemaining > 0 && hoursRemaining < ENDING_SOON_HOURS;
 };
 
+const isNewProduct = (createdAt) => {
+  if (!createdAt) return false;
+  const created = new Date(createdAt);
+  const now = new Date();
+  const minutesSinceCreation = (now - created) / (1000 * 60);
+  return minutesSinceCreation >= 0 && minutesSinceCreation <= NEW_PRODUCT_THRESHOLD_MINUTES;
+};
+
 // Sub-components
-const ProductBadges = ({ auction }) => (
-  <div className="absolute top-2 left-2 flex gap-2">
+const ProductBadges = ({ auction, createdAt }) => (
+  <div className="absolute top-2 left-2 flex flex-wrap gap-2">
+    {isNewProduct(createdAt) && (
+      <span className="px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-sm flex items-center gap-1 shadow-sm animate-pulse">
+        <Sparkles className="w-3 h-3" /> Mới đăng
+      </span>
+    )}
     {isEndingSoon(auction?.endAt) && (
       <span className="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-sm flex items-center gap-1 shadow-sm">
         <Clock className="w-3 h-3" /> Sắp kết thúc
@@ -106,7 +120,7 @@ const ProductCard = ({ product, isWatched, onToggleWatchlist }) => (
     <div className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer h-full flex flex-col border border-border">
       <div className="relative">
         <ProductImage product={product} />
-        <ProductBadges auction={product.auction} />
+        <ProductBadges auction={product.auction} createdAt={product.createdAt} />
         <WatchlistButton
           productId={product._id}
           isWatched={isWatched}

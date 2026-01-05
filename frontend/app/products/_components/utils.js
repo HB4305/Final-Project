@@ -9,6 +9,9 @@ import { useLocation } from "react-router-dom";
 export const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop";
 
+// Thời gian hiển thị badge "Mới đăng" (phút)
+export const NEW_PRODUCT_THRESHOLD_MINUTES = 60; // 60 phút = 1 giờ
+
 // Sort options - sync với backend API
 export const SORT_OPTIONS = [
   { label: "Mới nhất", value: "newest" },
@@ -31,6 +34,20 @@ export const calculateTimeLeft = (endDate) => {
 
   const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
   return days === 1 ? "1 day" : `${days} days`;
+};
+
+/**
+ * Kiểm tra xem sản phẩm có được đăng trong N phút gần đây không
+ * @param {string|Date} createdAt - Thời gian tạo sản phẩm
+ * @param {number} thresholdMinutes - Ngưỡng thời gian (phút)
+ * @returns {boolean}
+ */
+export const isNewProduct = (createdAt, thresholdMinutes = NEW_PRODUCT_THRESHOLD_MINUTES) => {
+  if (!createdAt) return false;
+  const created = new Date(createdAt);
+  const now = new Date();
+  const minutesSinceCreation = (now - created) / (1000 * 60);
+  return minutesSinceCreation >= 0 && minutesSinceCreation <= thresholdMinutes;
 };
 
 const getImageUrl = (url) => {

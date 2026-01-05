@@ -1,4 +1,4 @@
-import { ENDING_SOON_HOURS, HOT_BIDS_THRESHOLD } from './constants';
+import { ENDING_SOON_HOURS, HOT_BIDS_THRESHOLD, NEW_PRODUCT_THRESHOLD_MINUTES } from './constants';
 
 /**
  * Format Price
@@ -58,6 +58,21 @@ export const isHotProduct = (bidCount) => {
 };
 
 /**
+ * Is New Product
+ * Kiểm tra xem sản phẩm có được đăng trong N phút gần đây không
+ * @param {string|Date} createdAt - Thời gian tạo sản phẩm
+ * @param {number} thresholdMinutes - Ngưỡng thời gian (phút)
+ * @returns {boolean}
+ */
+export const isNewProduct = (createdAt, thresholdMinutes = NEW_PRODUCT_THRESHOLD_MINUTES) => {
+  if (!createdAt) return false;
+  const created = new Date(createdAt);
+  const now = new Date();
+  const minutesSinceCreation = (now - created) / (1000 * 60);
+  return minutesSinceCreation >= 0 && minutesSinceCreation <= thresholdMinutes;
+};
+
+/**
  * Get Display Price
  * Lấy giá hiển thị (giá hiện tại hoặc giá khởi điểm)
  * @param {Object} auction - Object auction
@@ -80,6 +95,7 @@ export const transformSearchProduct = (product) => {
     displayPrice: getDisplayPrice(product.auction),
     isEndingSoon: isEndingSoon(product.auction?.endAt),
     isHot: isHotProduct(product.auction?.bidCount),
+    isNew: isNewProduct(product.createdAt),
     timeLeft: calculateTimeLeft(product.auction?.endAt),
   };
 };

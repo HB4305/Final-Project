@@ -7,6 +7,22 @@ export const formatPrice = (price) => {
 };
 
 /**
+ * Thời gian hiển thị badge "Mới đăng" (phút)
+ */
+export const NEW_PRODUCT_THRESHOLD_MINUTES = 60; // 60 phút = 1 giờ
+
+/**
+ * Kiểm tra xem sản phẩm có được đăng trong N phút gần đây không
+ */
+export const isNewProduct = (createdAt, thresholdMinutes = NEW_PRODUCT_THRESHOLD_MINUTES) => {
+  if (!createdAt) return false;
+  const created = new Date(createdAt);
+  const now = new Date();
+  const minutesSinceCreation = (now - created) / (1000 * 60);
+  return minutesSinceCreation >= 0 && minutesSinceCreation <= thresholdMinutes;
+};
+
+/**
  * Format ngày giờ đầy đủ
  */
 export const formatDateTime = (dateString) => {

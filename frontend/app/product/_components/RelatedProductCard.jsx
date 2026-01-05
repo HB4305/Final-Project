@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { Clock } from 'lucide-react';
+import { Clock, Sparkles } from 'lucide-react';
 import { useCountdown } from './hooks';
-import { formatPrice } from './utils';
+import { formatPrice, isNewProduct } from './utils';
 import { FALLBACK_IMAGE } from './constants';
 
 export default function RelatedProductCard({ product }) {
@@ -31,16 +31,26 @@ export default function RelatedProductCard({ product }) {
           }}
         />
         
-        {/* Status Badge */}
-        {time.isEnded ? (
-          <div className="absolute top-2 right-2 px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded">
-            Đã kết thúc
-          </div>
-        ) : time.days === 0 && time.hours < 24 && (
-          <div className="absolute top-2 right-2 px-2 py-1 bg-orange-600 text-white text-xs font-semibold rounded animate-pulse">
-            🔥 Sắp kết thúc
-          </div>
-        )}
+        {/* Status Badges */}
+        <div className="absolute top-2 left-2 flex flex-col gap-2">
+          {isNewProduct(product.createdAt) && (
+            <span className="px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-lg animate-pulse">
+              <Sparkles className="w-3 h-3" /> Mới đăng
+            </span>
+          )}
+        </div>
+
+        <div className="absolute top-2 right-2">
+          {time.isEnded ? (
+            <span className="px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded">
+              Đã kết thúc
+            </span>
+          ) : time.days === 0 && time.hours < 24 && (
+            <span className="px-2 py-1 bg-orange-600 text-white text-xs font-semibold rounded animate-pulse">
+              🔥 Sắp kết thúc
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}

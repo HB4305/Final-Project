@@ -1,7 +1,7 @@
-import { Heart, Clock, TrendingUp, User, ShoppingBag } from 'lucide-react';
+import { Heart, Clock, TrendingUp, User, ShoppingBag, Sparkles } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { formatPrice, FALLBACK_IMAGE } from './utils';
+import { formatPrice, FALLBACK_IMAGE, isNewProduct } from './utils';
 
 const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
   const [imgSrc, setImgSrc] = React.useState(product.image || FALLBACK_IMAGE);
@@ -19,6 +19,7 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
   };
 
   const isHot = product.bids > 10;
+  const isNew = isNewProduct(product.createdAt);
 
   return (
     <Link to={`/product/${product.id}`} className="group h-full">
@@ -49,6 +50,11 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+            {isNew && (
+              <span className="px-2.5 py-1 bg-gradient-to-r from-purple-500 to-pink-500 backdrop-blur-md text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-lg animate-pulse">
+                <Sparkles className="w-3 h-3" /> Mới đăng
+              </span>
+            )}
             {isEndingSoon() && (
               <span className="px-2.5 py-1 bg-red-500/90 backdrop-blur-md text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-lg">
                 <Clock className="w-3 h-3" /> Sắp kết thúc

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Clock, Heart, Gavel } from "lucide-react";
+import { Clock, Heart, Gavel, Sparkles } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import productService from "../app/services/productService";
 import watchlistService from "../app/services/watchlistService";
@@ -8,6 +8,15 @@ import { useAuth } from "../app/context/AuthContext";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=300&fit=crop";
+const NEW_PRODUCT_THRESHOLD_MINUTES = 60; // 60 phút = 1 giờ
+
+const isNewProduct = (createdAt) => {
+  if (!createdAt) return false;
+  const created = new Date(createdAt);
+  const now = new Date();
+  const minutesSinceCreation = (now - created) / (1000 * 60);
+  return minutesSinceCreation >= 0 && minutesSinceCreation <= NEW_PRODUCT_THRESHOLD_MINUTES;
+};
 
 /**
  * Component hiển thị Top 5 sản phẩm
@@ -267,6 +276,15 @@ function ProductCard({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </Link>
+
+        {/* New Product Badge */}
+        {isNewProduct(product.product?.createdAt) && (
+          <div className="absolute top-3 left-3">
+            <span className="px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-lg animate-pulse">
+              <Sparkles className="w-3 h-3" /> Mới đăng
+            </span>
+          </div>
+        )}
 
         {/* Favorite Button */}
         <button

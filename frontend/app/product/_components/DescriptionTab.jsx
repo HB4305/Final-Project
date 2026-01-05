@@ -1,8 +1,6 @@
-import { History } from 'lucide-react';
 import { formatDateTime } from './utils';
-import RejectBidder from '../../../components/reject-bidder';
 
-export default function DescriptionTab({ description, descriptionHistory = [], bidHistory = [], productId, isSeller, onReject }) {
+export default function DescriptionTab({ description, descriptionHistory = [] }) {
   // Get current description - either from description prop or latest from history
   const currentDescription = description || 
     (descriptionHistory.length > 0 ? descriptionHistory[descriptionHistory.length - 1]?.text : null);
@@ -45,75 +43,6 @@ export default function DescriptionTab({ description, descriptionHistory = [], b
                   </span>
                 </div>
                 <p className="text-sm whitespace-pre-wrap line-clamp-3">{entry.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Bid History Section */}
-      {bidHistory && bidHistory.length > 0 && (
-        <div className="pt-8 border-t border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <History className="w-5 h-5 text-primary" />
-            <h4 className="text-lg font-bold">Lịch sử đấu giá</h4>
-            <span className="text-sm text-muted-foreground">
-              ({bidHistory.length} lượt)
-            </span>
-          </div>
-
-          {/* Timeline */}
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {bidHistory.map((bid, index) => (
-              <div 
-                key={bid._id || index}
-                className="flex items-start gap-4 p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition"
-              >
-                {/* Timeline Dot */}
-                <div className="flex flex-col items-center pt-1">
-                  <div className={`w-3 h-3 rounded-full ${
-                    index === 0 
-                      ? 'bg-primary ring-4 ring-primary/20' 
-                      : 'bg-muted-foreground'
-                  }`} />
-                  {index < bidHistory.length - 1 && (
-                    <div className="w-0.5 h-full bg-border mt-1" />
-                  )}
-                </div>
-
-                {/* Bid Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold">
-                        {bid.bidderUsername || bid.username || `Người dùng ${bid.bidderId}`}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDateTime(bid.createdAt)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <p className={`font-bold text-lg ${
-                        index === 0 ? 'text-primary' : 'text-foreground'
-                      }`}>
-                        {(bid.amount || 0).toLocaleString('vi-VN')} ₫
-                      </p>
-                      
-                      {/* Reject Button - Only visible to seller */}
-                      {isSeller && productId && bid.bidderId && (
-                        <RejectBidder
-                          productId={productId}
-                          bidder={{
-                            _id: bid.bidderId,
-                            username: bid.bidderUsername || bid.username,
-                            currentBid: bid.amount
-                          }}
-                          onReject={onReject}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
               </div>
             ))}
           </div>

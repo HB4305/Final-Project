@@ -43,6 +43,12 @@ export const ENDING_SOON_HOURS = 24;
 export const HOT_BIDS_THRESHOLD = 10;
 
 /**
+ * New Product Threshold Minutes
+ * Số phút để xác định sản phẩm mới đăng
+ */
+export const NEW_PRODUCT_THRESHOLD_MINUTES = 60; // 60 phút = 1 giờ
+
+/**
  * Default Pagination
  * Giá trị mặc định cho phân trang
  */
