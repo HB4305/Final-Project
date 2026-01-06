@@ -317,8 +317,8 @@ export default function ProductDetailPage() {
           )}
         </nav>
 
-        {/* Order Completion Link - Show when auction ended, user is participant, and order is NOT completed/cancelled */}
-        {product.auction?.status === "ended" && isParticipant && order?.status !== 'completed' && order?.status !== 'cancelled' && (
+        {/* Order Access Card - Show when auction ended, user is participant */}
+        {product.auction?.status === "ended" && isParticipant && (
           <div className="mb-12 animate-slide-up">
             {orderLoading ? (
               <div className="glass-card bg-white p-8 text-center rounded-2xl">
@@ -326,32 +326,84 @@ export default function ProductDetailPage() {
                 <p className="text-gray-500">Đang tải thông tin đơn hàng...</p>
               </div>
             ) : order ? (
-              <div className="glass-card bg-primary/5 border border-primary/20 rounded-2xl p-8 text-center shadow-lg backdrop-blur-md relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20 border border-primary/20 relative z-10">
-                  <ShieldCheck className="w-8 h-8 text-primary" />
+              <div className={`glass-card rounded-2xl p-8 text-center shadow-lg backdrop-blur-md relative overflow-hidden group border ${
+                 order.status === 'completed' 
+                  ? "bg-green-500/5 border-green-500/20"
+                  : order.status === 'cancelled'
+                  ? "bg-red-500/5 border-red-500/20"
+                  : "bg-primary/5 border-primary/20"
+              }`}>
+                <div className={`absolute inset-0 bg-gradient-to-tr opacity-50 group-hover:opacity-100 transition-opacity duration-500 ${
+                  order.status === 'completed'
+                    ? "from-green-500/10 to-transparent"
+                    : order.status === 'cancelled'
+                    ? "from-red-500/10 to-transparent"
+                    : "from-primary/10 to-transparent"
+                }`}></div>
+                
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border relative z-10 ${
+                  order.status === 'completed'
+                    ? "bg-green-500/10 text-green-500 shadow-green-500/20 border-green-500/20"
+                    : order.status === 'cancelled'
+                    ? "bg-red-500/10 text-red-500 shadow-red-500/20 border-red-500/20"
+                    : "bg-primary/10 text-primary shadow-primary/20 border-primary/20"
+                }`}>
+                  {order.status === 'completed' ? (
+                     <ShieldCheck className="w-8 h-8" />
+                  ) : order.status === 'cancelled' ? (
+                     <AlertCircle className="w-8 h-8" />
+                  ) : (
+                     <Trophy className="w-8 h-8" />
+                  )}
                 </div>
+
                 <h3 className="text-2xl font-bold text-foreground mb-2 relative z-10">
-                  {userRole === 'buyer'
+                  {order.status === 'completed' 
+                    ? "Đơn hàng đã hoàn tất"
+                    : order.status === 'cancelled'
+                    ? "Đơn hàng đã bị hủy"
+                    : userRole === 'buyer'
                     ? "Chúc mừng! Bạn đã thắng phiên đấu giá này"
                     : "Phiên đấu giá đã kết thúc"}
                 </h3>
+                
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto relative z-10">
-                  {userRole === 'buyer'
+                  {order.status === 'completed'
+                    ? "Giao dịch đã hoàn thành thành công. Bạn có thể xem lại chi tiết đơn hàng."
+                    : order.status === 'cancelled'
+                    ? "Giao dịch này đã bị hủy bỏ."
+                    : userRole === 'buyer'
                     ? "Hãy tiến hành hoàn tất đơn hàng để nhận sản phẩm. Quá trình này bao gồm thanh toán và xác nhận giao hàng."
                     : "Người thắng cuộc đang tiến hành các bước hoàn tất đơn hàng. Vui lòng theo dõi trạng thái đơn hàng."}
                 </p>
+
                 <Link
                   to={`/orders/${order._id}`}
-                  className="relative z-10 inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/30 hover:scale-105 transition-all duration-300"
+                  className={`relative z-10 inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:scale-105 transition-all duration-300 ${
+                    order.status === 'completed'
+                       ? "bg-green-600 text-white hover:shadow-green-500/30"
+                       : order.status === 'cancelled'
+                       ? "bg-gray-600 text-white hover:bg-gray-700 hover:shadow-gray-500/30"
+                       : "bg-primary text-primary-foreground hover:shadow-primary/30"
+                  }`}
                 >
                   <FileText className="w-5 h-5" />
-                  {userRole === 'buyer' ? "Tiến hành Hoàn tất Đơn hàng" : "Xem chi tiết Đơn hàng"}
+                  {order.status === 'completed' || order.status === 'cancelled' 
+                    ? "Xem chi tiết Đơn hàng" 
+                    : userRole === 'buyer' 
+                    ? "Tiến hành Hoàn tất Đơn hàng" 
+                    : "Theo dõi Đơn hàng"}
                 </Link>
               </div>
             ) : (
-              <div className="text-center p-6 text-gray-400">
-                Không tìm thấy thông tin đơn hàng.
+              <div className="glass-card bg-red-500/5 border border-red-500/20 rounded-2xl p-6 text-center">
+                 <p className="text-red-400 mb-4">Không tìm thấy thông tin đơn hàng.</p>
+                 <button 
+                   onClick={() => fetchOrderData()}
+                   className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-gray-300 transition"
+                 >
+                   Thử tải lại
+                 </button>
               </div>
             )}
           </div>

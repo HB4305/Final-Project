@@ -178,6 +178,7 @@ export default function OrderCompletion({
         message: "Đã xác nhận thanh toán và đánh dấu đã gửi hàng.",
         type: "success",
       });
+      window.location.reload();
     } catch (error) {
       setToast({
         message:
@@ -202,6 +203,7 @@ export default function OrderCompletion({
         message: "Đã xác nhận nhận hàng thành công.",
         type: "success",
       });
+      window.location.reload();
     } catch (error) {
       setToast({
         message: "Lỗi: " + (error.message || "Không thể xác nhận nhận hàng"),
