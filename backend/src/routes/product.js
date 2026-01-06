@@ -17,7 +17,10 @@ import {
   postProduct,
   toggleAutoExtend,
   updateProductDescription,
-
+  rejectBidder,
+  approveFirstTimeBidder,
+  toggleBidderApproval,
+  deleteProduct,
 } from '../controllers/product.js';
 
 import {
