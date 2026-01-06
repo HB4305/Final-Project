@@ -33,15 +33,15 @@ export default function RejectBidder({ productId, bidder, onReject }) {
     try {
       console.log('[REJECT BIDDER] Bidder object:', bidder);
       console.log('[REJECT BIDDER] Bidder ID:', bidder._id || bidder.id);
-      
+
       const bidderId = bidder._id || bidder.id || bidder.bidderId;
-      
+
       if (!bidderId) {
         setError("Không tìm thấy ID của bidder");
         setLoading(false);
         return;
       }
-      
+
       const response = await productService.rejectBidder(
         productId,
         bidderId,
@@ -51,9 +51,8 @@ export default function RejectBidder({ productId, bidder, onReject }) {
       if (response.success) {
         setToast({
           type: "success",
-          message: `✅ Đã từ chối bidder ${
-            bidder.username || bidder.name
-          } thành công!`,
+          message: `Đã từ chối bidder ${bidder.username || bidder.name
+            } thành công!`,
           onClose: () => {
             setShowModal(false);
             if (onReject) {
@@ -136,22 +135,6 @@ export default function RejectBidder({ productId, bidder, onReject }) {
                 </div>
               </div>
             )}
-
-            {/* Warning */}
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
-              <p className="text-sm font-semibold text-yellow-400 mb-2">
-                ⚠️ Hành động này sẽ:
-              </p>
-              <ul className="list-disc list-inside text-sm text-yellow-300/90 space-y-1">
-                <li>Vô hiệu hóa tất cả bids của bidder này</li>
-                <li>Xóa các auto-bids đã đặt</li>
-                <li>Chuyển người thắng sang bidder thứ 2 (nếu đang thắng)</li>
-                <li>Chặn không cho bidder này đặt giá lại</li>
-                <li>
-                  <strong className="text-yellow-400">Không thể hoàn tác</strong>
-                </li>
-              </ul>
-            </div>
 
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">

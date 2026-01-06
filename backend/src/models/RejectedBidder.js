@@ -6,10 +6,18 @@ const rejectedBidderSchema = new mongoose.Schema({
     ref: 'Product',
     required: true
   },
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product'
+  },
   bidderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  bidder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   rejectedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -31,7 +39,7 @@ const rejectedBidderSchema = new mongoose.Schema({
 });
 
 // Indexes
-rejectedBidderSchema.index({ productId: 1, bidderId: 1 }, { unique: true });
+rejectedBidderSchema.index({ productId: 1, bidderId: 1 });
 rejectedBidderSchema.index({ productId: 1 });
 rejectedBidderSchema.index({ bidderId: 1 });
 

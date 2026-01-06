@@ -79,10 +79,10 @@ export const getAllProducts = async (req, res, next) => {
     }
 
     const filters = {
-        minPrice, 
-        maxPrice, 
-        categoryId, 
-        search: search || q // Support both 'search' and 'q' params
+      minPrice,
+      maxPrice,
+      categoryId,
+      search: search || q // Support both 'search' and 'q' params
     };
 
     const result = await productService.getAllProducts(
@@ -141,13 +141,13 @@ export const sellerDeleteProduct = async (req, res, next) => {
       const bids = await Bid.find({ auctionId: auction._id })
         .populate('bidderId', 'email username fullName')
         .lean();
-      
+
       // Get unique bidders
       const uniqueBidderIds = [...new Set(bids.map(bid => bid.bidderId._id.toString()))];
       bidders = bids
         .filter(bid => uniqueBidderIds.includes(bid.bidderId._id.toString()))
         .map(bid => bid.bidderId)
-        .filter((bidder, index, self) => 
+        .filter((bidder, index, self) =>
           index === self.findIndex(b => b._id.toString() === bidder._id.toString())
         );
     }
@@ -170,7 +170,7 @@ export const sellerDeleteProduct = async (req, res, next) => {
     // Send email notifications to all bidders
     if (bidders.length > 0) {
       const { sendEmail } = await import('../utils/email.js');
-      const emailPromises = bidders.map(bidder => 
+      const emailPromises = bidders.map(bidder =>
         sendEmail({
           to: bidder.email,
           subject: `Thông báo: Sản phẩm "${product.title}" đã bị xóa`,
@@ -260,16 +260,16 @@ export const deleteProduct = async (req, res, next) => {
     // Get all bidders and send notifications (for seller deletion)
     let notifiedBidders = [];
     if (isSeller && auction) {
-      const bids = await Bid.find({ 
-        auctionId: auction._id 
+      const bids = await Bid.find({
+        auctionId: auction._id
       })
-      .populate('bidderId', 'email name')
-      .select('bidderId');
+        .populate('bidderId', 'email name')
+        .select('bidderId');
 
       // Get unique bidders
       const uniqueBidderIds = [...new Set(bids.map(b => b.bidderId?._id?.toString()).filter(Boolean))];
       const uniqueBidders = bids
-        .filter((bid) => 
+        .filter((bid) =>
           bid.bidderId && uniqueBidderIds.includes(bid.bidderId._id.toString())
         )
         .reduce((acc, bid) => {
@@ -284,7 +284,7 @@ export const deleteProduct = async (req, res, next) => {
       // Send email notifications to bidders
       if (notifiedBidders.length > 0) {
         const { sendEmail } = await import('../utils/email.js');
-        
+
         for (const bidder of notifiedBidders) {
           await sendEmail({
             to: bidder.email,
@@ -918,12 +918,12 @@ export const postProduct = async (req, res) => {
     // ========================================
     // 9. TẠO AUCTION SESSION
     // ========================================
-    
+
     // Nếu auction bắt đầu trong vòng 1 phút (60 giây), coi như đấu giá ngay
     // và set status = ACTIVE để hiển thị trên trang auction ngay lập tức
     const timeUntilStart = startDate - now;
     const isImmediateAuction = timeUntilStart <= 60000; // 60 seconds
-    
+
     const auctionData = {
       productId: savedProduct._id,
       sellerId,
@@ -1072,9 +1072,8 @@ export const toggleAutoExtend = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: `Auto-extend ${
-        autoExtendEnabled ? "enabled" : "disabled"
-      } successfully`,
+      message: `Auto-extend ${autoExtendEnabled ? "enabled" : "disabled"
+        } successfully`,
       data: {
         productId,
         auctionId: auction._id,
@@ -1350,6 +1349,7 @@ export const rejectBidder = async (req, res, next) => {
     const result = await bidService.rejectBidder(
       productId,
       bidderId,
+      userId.toString(),
       reason
     );
 
@@ -1383,74 +1383,7 @@ export const rejectBidder = async (req, res, next) => {
   }
 };
 
-/**
- * ============================================
- * API 3.3: Bidder tự rút lại bid
- * POST /api/products/:productId/withdraw-bid
- * ============================================
- * Bidder có thể tự rút lại tất cả bids của mình
- */
-export const withdrawBid = async (req, res, next) => {
-  try {
-    const { productId } = req.params;
-    const { reason } = req.body;
-    const userId = req.user?._id;
 
-    // Validate input
-    if (!isValidObjectId(productId)) {
-      return res.status(400).json({
-        success: false,
-        message: "ID sản phẩm không hợp lệ",
-      });
-    }
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Vui lòng đăng nhập",
-      });
-    }
-
-    // Call BidService to handle withdrawal logic
-    const { BidService: BidServiceClass } = await import(
-      "../services/BidService.js"
-    );
-    const bidService = new BidServiceClass();
-
-    const result = await bidService.withdrawBid(
-      productId,
-      userId.toString(),
-      reason || "Bidder tự rút lại giá"
-    );
-
-    res.json({
-      success: true,
-      message: "Rút giá thành công",
-      data: result,
-    });
-  } catch (error) {
-    console.error("[PRODUCT CONTROLLER] Error in withdrawBid:", error);
-
-    if (error.message.includes("not found")) {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    if (
-      error.message.includes("no active bids") ||
-      error.message.includes("only withdraw")
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    next(error);
-  }
-};
 
 /**
  * POST Approve First-Time Bidder
@@ -1498,8 +1431,8 @@ export const toggleBidderApproval = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: product.requireBidderApproval 
-        ? "Đã tắt chế độ cho phép người mới (Yêu cầu phê duyệt)" 
+      message: product.requireBidderApproval
+        ? "Đã tắt chế độ cho phép người mới (Yêu cầu phê duyệt)"
         : "Đã bật chế độ cho phép người mới tham gia",
       data: {
         productId: product._id,

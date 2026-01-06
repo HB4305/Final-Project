@@ -17,11 +17,7 @@ import {
   postProduct,
   toggleAutoExtend,
   updateProductDescription,
-  rejectBidder,
-  approveFirstTimeBidder,
-  withdrawBid,
-  deleteProduct,
-  toggleBidderApproval,
+
 } from '../controllers/product.js';
 
 import {
@@ -133,16 +129,7 @@ router.post('/:productId/toggle-approval',
   toggleBidderApproval
 );
 
-/**
- * API 3.3: Bidder tự rút lại bid
- * POST /api/products/:productId/withdraw-bid
- * Requires: Authentication
- * Body: { reason } (optional)
- */
-router.post('/:productId/withdraw-bid',
-  authenticate,
-  withdrawBid
-);
+
 
 /**
  * API: Toggle auto-extend

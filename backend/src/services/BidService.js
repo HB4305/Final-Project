@@ -144,13 +144,13 @@ export class BidService {
       // Rule 3: New Bidders (No Rating)
       // Condition: Allowed ONLY IF requireBidderApproval is FALSE (Open Mode)
       // OR if they are specifically Approved in whitelist
-      
+
       if (product.requireBidderApproval) {
         // Restricted Mode: Check Whitelist
         const isApproved = product.approvedBidders && product.approvedBidders.some(id => id.toString() === bidderId.toString());
-        
+
         if (!isApproved) {
-           throw new AppError(
+          throw new AppError(
             "Sản phẩm này yêu cầu phê duyệt cho người mới. Vui lòng gửi yêu cầu tham gia.",
             403,
             "BIDDER_APPROVAL_REQUIRED"
@@ -270,7 +270,7 @@ export class BidService {
               winnerEmail: bidder.email,
               winnerPhone: bidder.phoneNumber || "N/A",
               finalPrice: auction.buyNowPrice.toLocaleString('vi-VN'),
-            startPrice: auction.startPrice.toLocaleString('vi-VN'),
+              startPrice: auction.startPrice.toLocaleString('vi-VN'),
               totalBids: updatedAuction.bidCount,
               endTime: now,
               orderUrl: `${process.env.FRONTEND_URL}/orders` // Link tới quản lý đơn hàng
@@ -657,11 +657,30 @@ export class BidService {
       if (!auction) throw new AppError("Không tìm thấy cuộc đấu giá", 404);
 
       // 2. Chặn bidder (Lưu vào danh sách đen)
-      await RejectedBidder.findOneAndUpdate(
-        { productId, bidderId },
-        { reason, rejectedBy: sellerId, createdAt: new Date() },
-        { upsert: true, session }
-      );
+      // Sử dụng explicit create thay vì upsert để kiểm soát field tốt hơn
+      const existingRejection = await RejectedBidder.findOne({
+        productId,
+        bidderId
+      }).session(session);
+
+      if (existingRejection) {
+        throw new AppError('Bidder này đã bị từ chối trước đó', 400, 'BIDDER_ALREADY_REJECTED');
+      }
+
+      console.log(`[BID SERVICE] Creating rejection with: productId=${productId}, bidderId=${bidderId}`);
+
+      const rejection = new RejectedBidder({
+        productId: new mongoose.Types.ObjectId(productId),
+        bidderId: new mongoose.Types.ObjectId(bidderId),
+        rejectedBy: new mongoose.Types.ObjectId(sellerId),
+        reason,
+        createdAt: new Date(),
+        product: new mongoose.Types.ObjectId(productId), // Explicit cast
+        bidder: new mongoose.Types.ObjectId(bidderId)    // Explicit cast
+      });
+
+      console.log('[BID SERVICE] Rejection object before save:', rejection);
+      await rejection.save({ session });
 
       // 3. Vô hiệu hóa AutoBid
       await AutoBid.updateMany(
@@ -682,201 +701,46 @@ export class BidService {
       );
 
       // 5. Quan trọng: Tính toán lại người thắng cuộc bằng logic cốt lõi
-      // Sử dụng hàm _resolveAuction đã viết sẵn để đảm bảo tính nhất quán
       const result = await this._resolveAuction(auction, session);
 
       await session.commitTransaction();
-      return result;
-    } catch (error) {
-      await session.abortTransaction();
-      console.error("[BID SERVICE] Reject Error:", error);
-      throw error; // Ném lỗi để Controller xử lý
-    } finally {
-      session.endSession();
-    }
-  }
 
-  /**
-   * Từ chối lượt ra giá của một bidder cho sản phẩm
-   * Nếu bidder hiện là highest bidder, chuyển cho bidder thứ 2
-   * @param {string} productId - ID sản phẩm
-   * @param {string} bidderId - ID bidder bị từ chối
-   * @param {string} reason - Lý do từ chối
-   * @returns {Object} Thông tin rejection
-   */
-  async rejectBidder(productId, bidderId, reason = "") {
-    try {
-      console.log(`[BID SERVICE] Rejecting bidder ${bidderId} for product ${productId}`);
+      // 6. Gửi email thông báo (Sau khi commit thành công)
+      // Lấy thông tin để gửi email
+      try {
+        const rejectedUser = await User.findById(bidderId);
+        const product = await Product.findById(productId);
+        const seller = await User.findById(sellerId);
 
-      // 1. Kiểm tra xem bidder đã bị reject chưa
-      const existingRejection = await RejectedBidder.findOne({ 
-        productId: productId, 
-        bidderId: bidderId 
-      });
-      if (existingRejection) {
-        throw new AppError('Bidder này đã bị từ chối trước đó', 400, 'BIDDER_ALREADY_REJECTED');
-      }
-
-      // 2. Tìm product và auction
-      const product = await Product.findById(productId);
-      if (!product) {
-        throw new AppError('Sản phẩm không tồn tại', 404, 'PRODUCT_NOT_FOUND');
-      }
-
-      const auction = await Auction.findOne({ productId });
-      if (!auction) {
-        throw new AppError('Phiên đấu giá không tồn tại', 404, 'AUCTION_NOT_FOUND');
-      }
-
-      // 3. Tìm tất cả bids của bidder này trong auction
-      const bidderBids = await Bid.find({
-        auctionId: auction._id,
-        bidderId: bidderId
-      }).sort({ amount: -1 });
-
-      console.log(`[BID SERVICE] Found ${bidderBids.length} bids from rejected bidder`);
-
-      // 4. Xóa tất cả bids của bidder bị reject
-      if (bidderBids.length > 0) {
-        await Bid.deleteMany({
-          auctionId: auction._id,
-          bidderId: bidderId
-        });
-        
-        // Xóa AutoBid nếu có
-        await AutoBid.deleteMany({
-          auctionId: auction._id,
-          bidderId: bidderId
-        });
-
-        console.log(`[BID SERVICE] Deleted all bids and autobids from rejected bidder`);
-      }
-
-      // 5. Nếu bidder này là highest bidder, chuyển sang bidder thứ 2
-      const isHighestBidder = auction.currentHighestBidderId?.toString() === bidderId.toString();
-      
-      if (isHighestBidder) {
-        console.log(`[BID SERVICE] Rejected bidder was highest bidder, finding next highest bid`);
-        
-        // Tìm bid cao nhất còn lại (sau khi đã xóa bids của rejected bidder)
-        const nextHighestBid = await Bid.findOne({
-          auctionId: auction._id,
-          bidderId: { $ne: bidderId }
-        })
-          .sort({ amount: -1, createdAt: 1 })
-          .populate('bidderId', 'username email');
-
-        if (nextHighestBid) {
-          // Update auction với highest bidder mới
-          auction.currentPrice = nextHighestBid.amount;
-          auction.currentHighestBidId = nextHighestBid._id;
-          auction.currentHighestBidderId = nextHighestBid.bidderId._id;
-          auction.bidCount = await Bid.countDocuments({ auctionId: auction._id });
-          auction.updatedAt = new Date();
-          await auction.save();
-
-          console.log(`[BID SERVICE] Transferred to next highest bidder: ${nextHighestBid.bidderId.username} with bid $${nextHighestBid.amount}`);
-
-          // Gửi email thông báo cho bidder mới là highest
-          try {
-            const productUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/product/${productId}`;
-            await sendPriceUpdatedNotification({
-              email: nextHighestBid.bidderId.email,
-              bidderName: nextHighestBid.bidderId.username,
-              productTitle: product.title,
-              newPrice: nextHighestBid.amount,
-              productUrl
-            });
-            console.log(`[BID SERVICE] Sent notification to new highest bidder`);
-          } catch (emailError) {
-            console.error(`[BID SERVICE] Failed to send email to new highest bidder:`, emailError);
-          }
-        } else {
-          // Không có bid nào khác, reset auction về giá khởi điểm
-          auction.currentPrice = auction.startPrice;
-          auction.currentHighestBidId = null;
-          auction.currentHighestBidderId = null;
-          auction.bidCount = 0;
-          auction.updatedAt = new Date();
-          await auction.save();
-
-          console.log(`[BID SERVICE] No other bids found, reset auction to start price`);
-        }
-      } else {
-        // Chỉ cập nhật bidCount nếu không phải highest bidder
-        auction.bidCount = await Bid.countDocuments({ auctionId: auction._id });
-        auction.updatedAt = new Date();
-        await auction.save();
-      }
-
-      // 6. Thêm bidder vào rejected list
-      console.log(`[BID SERVICE] Creating rejection entry - productId: ${productId}, bidderId: ${bidderId}`);
-      const rejection = new RejectedBidder({
-        productId: productId,
-        bidderId: bidderId,
-        rejectedBy: product.sellerId, // Seller là người reject
-        reason: reason || 'Không phù hợp'
-      });
-      await rejection.save();
-
-      console.log(`[BID SERVICE] Added bidder to rejected list - Entry ID: ${rejection._id}`);
-      console.log(`[BID SERVICE] Rejection details:`, { 
-        productId: rejection.productId, 
-        bidderId: rejection.bidderId,
-        rejectedBy: rejection.rejectedBy 
-      });
-
-      // 7. Lấy thông tin đầy đủ để gửi email
-      const rejectedUser = await User.findById(bidderId);
-      const seller = await User.findById(product.sellerId);
-      
-      console.log(`[BID SERVICE] Email preparation - Rejected User:`, rejectedUser?.email);
-      console.log(`[BID SERVICE] Email preparation - Seller:`, seller?.fullName || seller?.username);
-      console.log(`[BID SERVICE] Email preparation - Rejection Date:`, rejection.rejectedAt);
-      
-      if (rejectedUser && rejectedUser.email) {
-        try {
-          const productUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/product/${productId}`;
-          
-          // Format rejectedDate từ rejection.rejectedAt
-          const rejectedDate = new Date(rejection.rejectedAt).toLocaleString('vi-VN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
+        if (rejectedUser && rejectedUser.email) {
+          const rejectedDate = new Date().toLocaleString('vi-VN', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', hour12: false
           });
-          
-          console.log(`[BID SERVICE] Formatted rejection date:`, rejectedDate);
-          
+
           await sendBidRejectedNotification({
             bidderEmail: rejectedUser.email,
             bidderName: rejectedUser.fullName || rejectedUser.username,
             productTitle: product.title,
             sellerName: seller?.fullName || seller?.username || 'Người bán',
-            reason: rejection.reason,
+            reason: reason,
             rejectedDate: rejectedDate,
             homeUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
           });
           console.log(`[BID SERVICE] Sent rejection email to ${rejectedUser.email}`);
-        } catch (emailError) {
-          console.error(`[BID SERVICE] Failed to send rejection email:`, emailError);
-          // Không throw error, vì rejection đã thành công
         }
+      } catch (emailError) {
+        console.error(`[BID SERVICE] Email Error:`, emailError);
+        // Không throw lỗi vì transaction đã commit
       }
 
-      return {
-        rejection,
-        bidsRemoved: bidderBids.length,
-        newHighestBidder: auction.currentHighestBidderId ? {
-          bidderId: auction.currentHighestBidderId,
-          amount: auction.currentPrice
-        } : null
-      };
+      return result;
     } catch (error) {
-      console.error('[BID SERVICE] Error rejecting bidder:', error);
+      await session.abortTransaction();
+      console.error("[BID SERVICE] Reject Error:", error);
       throw error;
+    } finally {
+      session.endSession();
     }
   }
 
@@ -917,193 +781,7 @@ export class BidService {
     return await Bid.countDocuments({ auctionId, bidderId });
   }
 
-  /**
-   * ============================================
-   * API 3.3: Bidder tự rút lại bid của mình
-   * ============================================
-   * Bidder có thể tự rút lại tất cả bids của mình
-   * Nếu bidder hiện là highest bidder, chuyển cho bidder thứ 2
-   * @param {string} productId - ID sản phẩm
-   * @param {string} bidderId - ID bidder muốn rút bid
-   * @param {string} reason - Lý do rút bid
-   * @returns {Object} Thông tin withdrawal với winner mới
-   */
-  async withdrawBid(productId, bidderId, reason = "Bidder withdrew bid") {
-    const session = await Auction.startSession();
-    session.startTransaction();
 
-    try {
-      console.log(
-        `[BID SERVICE] Bidder ${bidderId} withdrawing bids for product ${productId}`
-      );
-      console.log(`[BID SERVICE] Reason: ${reason}`);
-
-      // 1. Tìm cuộc đấu giá cho sản phẩm
-      const auction = await Auction.findOne({ productId: productId }).session(
-        session
-      );
-      if (!auction) {
-        throw new AppError("Auction not found for this product", 404);
-      }
-
-      // Chỉ cho phép withdraw trong auction active
-      if (auction.status !== AUCTION_STATUS.ACTIVE) {
-        throw new AppError("Can only withdraw bids in active auctions", 400);
-      }
-
-      // 2. Kiểm tra bidder có bids nào không
-      const bidCount = await Bid.countDocuments({
-        auctionId: auction._id,
-        bidderId: bidderId,
-        isValid: true,
-      }).session(session);
-
-      if (bidCount === 0) {
-        throw new AppError("You have no active bids for this product", 400);
-      }
-
-      const previousWinnerId = auction.currentHighestBidderId
-        ? auction.currentHighestBidderId.toString()
-        : null;
-      const isCurrentWinner = previousWinnerId === bidderId;
-
-      console.log(`[BID SERVICE] Current winner: ${previousWinnerId}`);
-      console.log(
-        `[BID SERVICE] Is withdrawing bidder current winner? ${isCurrentWinner}`
-      );
-
-      // 3. Invalidate ALL bids của bidder
-      const invalidatedResult = await Bid.updateMany(
-        {
-          auctionId: auction._id,
-          bidderId: bidderId,
-          isValid: true,
-        },
-        {
-          isValid: false,
-          invalidatedAt: new Date(),
-          invalidatedReason: reason,
-        },
-        { session }
-      );
-
-      console.log(
-        `[BID SERVICE] Invalidated ${invalidatedResult.modifiedCount} bids from withdrawing bidder`
-      );
-
-      let newWinner = null;
-      let newPrice = auction.currentPrice;
-
-      // 4. Nếu bidder đang là winner, tìm winner mới
-      if (isCurrentWinner) {
-        console.log(`[BID SERVICE] Finding new winner...`);
-
-        // Tìm highest valid bid (không phải của withdrawing bidder)
-        const newHighestBid = await Bid.findOne({
-          auctionId: auction._id,
-          bidderId: { $ne: bidderId },
-          isValid: true,
-        })
-          .sort({ amount: -1, createdAt: -1 })
-          .session(session);
-
-        if (newHighestBid) {
-          // Có winner mới
-          auction.currentPrice = newHighestBid.amount;
-          auction.currentHighestBidderId = newHighestBid.bidderId;
-          auction.currentHighestBidId = newHighestBid._id;
-          newWinner = newHighestBid.bidderId.toString();
-          newPrice = newHighestBid.amount;
-
-          console.log(
-            `[BID SERVICE] New winner found: ${newWinner} with bid ${newPrice}`
-          );
-        } else {
-          // Không còn bid hợp lệ nào → reset về giá khởi điểm
-          auction.currentPrice = auction.startPrice;
-          auction.currentHighestBidderId = null;
-          auction.currentHighestBidId = null;
-          newPrice = auction.startPrice;
-
-          console.log(
-            `[BID SERVICE] No valid bids left, reset to start price ${newPrice}`
-          );
-        }
-      }
-
-      // 5. Recalculate bidCount (chỉ đếm valid bids)
-      const validBidCount = await Bid.countDocuments({
-        auctionId: auction._id,
-        isValid: true,
-      }).session(session);
-
-      auction.bidCount = validBidCount;
-      auction.updatedAt = new Date();
-      await auction.save({ session });
-
-      console.log(`[BID SERVICE] Updated auction bidCount to ${validBidCount}`);
-
-      // 6. Delete auto-bids của withdrawing bidder
-      const AutoBid = (await import("../models/AutoBid.js")).default;
-      const deletedAutoBids = await AutoBid.deleteMany({
-        bidderId,
-        productId,
-      }).session(session);
-
-      console.log(
-        `[BID SERVICE] Deleted ${deletedAutoBids.deletedCount} auto-bids`
-      );
-
-      // 7. Create audit log (optional)
-      const AuditLog = (await import("../models/AuditLog.js")).default;
-      await AuditLog.create(
-        [
-          {
-            user: bidderId,
-            action: "WITHDRAW_BID",
-            resource: "Auction",
-            resourceId: auction._id,
-            details: {
-              productId,
-              reason,
-              wasCurrentWinner: isCurrentWinner,
-              newWinnerId: newWinner,
-              previousPrice: isCurrentWinner ? auction.currentPrice : null,
-              newPrice,
-            },
-          },
-        ],
-        { session }
-      );
-
-      await session.commitTransaction();
-
-      return {
-        withdrawal: {
-          bidderId,
-          reason,
-          withdrawnAt: new Date(),
-        },
-        auction: {
-          auctionId: auction._id,
-          currentPrice: auction.currentPrice,
-          currentHighestBidderId: auction.currentHighestBidderId,
-          bidCount: auction.bidCount,
-        },
-        previousWinner: previousWinnerId,
-        newWinner,
-        winnerChanged: isCurrentWinner,
-        invalidatedBidsCount: invalidatedResult.modifiedCount,
-        deletedAutoBidsCount: deletedAutoBids.deletedCount,
-      };
-    } catch (error) {
-      await session.abortTransaction();
-      console.error("[BID SERVICE] Error withdrawing bid:", error);
-      throw error;
-    } finally {
-      session.endSession();
-    }
-  }
 }
 
 export const bidService = new BidService();
