@@ -237,18 +237,21 @@ function UserManagement({ searchQuery, setSearchQuery }) {
       {/* User List */}
       <div className="glass rounded-xl overflow-hidden">
         <table className="w-full">
-          <thead className="bg-muted">
+          <thead className="bg-white/5 border-b border-white/10">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Người dùng
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Vai trò
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
+                Đánh giá
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Trạng thái
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Hành động
               </th>
             </tr>
@@ -257,7 +260,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
             {filteredUsers.length === 0 ? (
               <tr>
                 <td
-                  colSpan="4"
+                  colSpan="5"
                   className="px-6 py-8 text-center text-muted-foreground"
                 >
                   {searchQuery
@@ -760,21 +763,21 @@ function UpgradeRequests() {
 
       <div className="glass rounded-xl overflow-hidden">
         <table className="w-full">
-          <thead className="bg-muted">
+          <thead className="bg-white/5 border-b border-white/10">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Người dùng
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Ngày yêu cầu
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Đánh giá
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Tổng số đánh giá
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Trạng thái
               </th>
             </tr>
@@ -1311,19 +1314,21 @@ function SettingsManagement() {
               </label>
             </div>
             <p className="text-sm text-gray-300 ml-7">
-              Nếu có bid mới trong khoảng X phút trước khi kết thúc, hệ thống sẽ tự động gia hạn   (nếu seller đã bật)
+              Nếu có bid mới trong khoảng X phút trước khi kết thúc, hệ thống sẽ tự động gia hạn (nếu seller đã bật)
             </p>
             <div className="ml-7 flex items-center gap-4">
-              <input
-                type="number"
-                min="1"
-                max="60"
-                value={settings.autoExtendThreshold}
-                onChange={(e) => handleChange('autoExtendThreshold', parseInt(e.target.value) || 5)}
-                className="w-24 px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background/50 text-white"
-              />
-              <span className="text-gray-200 font-medium">phút</span>
-              <span className="text-sm text-gray-400">
+              <div className="flex items-center bg-white/5 border border-white/10 rounded-lg focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all">
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={settings.autoExtendThreshold}
+                  onChange={(e) => handleChange('autoExtendThreshold', parseInt(e.target.value) || 5)}
+                  className="w-24 pl-4 pr-2 py-2.5 bg-transparent text-white placeholder-gray-500 font-mono outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="pr-4 text-gray-400 font-medium select-none border-l border-white/5 pl-2 ml-1">phút</span>
+              </div>
+              <span className="text-sm text-gray-500 italic">
                 (Mặc định: 5 phút, giới hạn: 1-60)
               </span>
             </div>
@@ -1341,16 +1346,18 @@ function SettingsManagement() {
               Số phút được thêm vào thời gian kết thúc khi có bid mới trong ngưỡng thời gian
             </p>
             <div className="ml-7 flex items-center gap-4">
-              <input
-                type="number"
-                min="1"
-                max="120"
-                value={settings.autoExtendDuration}
-                onChange={(e) => handleChange('autoExtendDuration', parseInt(e.target.value) || 10)}
-                className="w-24 px-4 py-2 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background/50 text-white"
-              />
-              <span className="text-gray-200 font-medium">phút</span>
-              <span className="text-sm text-gray-400">
+              <div className="flex items-center bg-white/5 border border-white/10 rounded-lg focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all">
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={settings.autoExtendDuration}
+                  onChange={(e) => handleChange('autoExtendDuration', parseInt(e.target.value) || 10)}
+                  className="w-24 pl-4 pr-2 py-2.5 bg-transparent text-white placeholder-gray-500 font-mono outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="pr-4 text-gray-400 font-medium select-none border-l border-white/5 pl-2 ml-1">phút</span>
+              </div>
+              <span className="text-sm text-gray-500 italic">
                 (Mặc định: 10 phút, giới hạn: 1-120)
               </span>
             </div>

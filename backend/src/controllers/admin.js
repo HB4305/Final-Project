@@ -97,7 +97,7 @@ export const getAllUsers = async (req, res, next) => {
     // If no pagination params, return all users
     if (!page && !limit) {
       const users = await User.find(filter)
-        .select('-password -profileImageUrl')
+        .select('-password')
         .sort({ createdAt: -1 });
 
       const total = users.length;
@@ -121,7 +121,7 @@ export const getAllUsers = async (req, res, next) => {
       const skip = (pageNum - 1) * limitNum;
 
       const users = await User.find(filter)
-        .select('-password -profileImageUrl')
+        .select('-password')
         .skip(skip)
         .limit(limitNum)
         .sort({ createdAt: -1 });

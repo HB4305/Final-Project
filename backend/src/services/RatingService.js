@@ -93,7 +93,7 @@ export class RatingService {
       { 
         $match: { 
           rateeId: userId,
-          context: { $in: ['buyer_to_seller', 'seller_to_buyer'] }
+          context: { $in: ['buyer_to_seller', 'seller_to_buyer', 'post_transaction'] }
         } 
       },
       {
@@ -150,8 +150,8 @@ export class RatingService {
     if (filter) {
       query.context = filter;
     } else {
-      // Default: Only show real transactions (buyer<->seller)
-      query.context = { $in: ['buyer_to_seller', 'seller_to_buyer'] };
+      // Default: Show all types of transactions
+      query.context = { $in: ['buyer_to_seller', 'seller_to_buyer', 'post_transaction'] };
     }
     
     const populateField = type === "given" ? "rateeId" : "raterId";

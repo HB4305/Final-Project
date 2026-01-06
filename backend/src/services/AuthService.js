@@ -211,6 +211,7 @@ export class AuthService {
         email: user.email,
         fullName: user.fullName,
         roles: user.roles,
+        profileImageUrl: user.profileImageUrl,
       },
       ...tokens,
     };
@@ -540,6 +541,7 @@ export class AuthService {
         email: user.email,
         emailVerified: user.emailVerified,
         fullName: user.fullName,
+        profileImageUrl: user.profileImageUrl,
       },
     };
   }

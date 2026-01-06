@@ -361,10 +361,7 @@ export default function RatingsPage() {
                           {isPositive ? "Tích cực" : "Tiêu cực"}
                         </span>
                         <span className="text-xs text-gray-400 font-medium px-2 py-0.5 bg-white/10 rounded">
-                          {(rating.context || "post_transaction").replace(
-                            /_/g,
-                            " "
-                          )}
+                          {rating.context === "post_transaction" ? "Hủy giao dịch" : (rating.context || "").replace(/_/g, " ")}
                         </span>
                       </div>
 
