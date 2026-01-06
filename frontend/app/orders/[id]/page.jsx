@@ -166,9 +166,8 @@ export default function OrderPage() {
                         order={order}
                         userRole={userRole}
                         ratings={ratings} 
-                        // order object from createFromAuction usually doesn't have ratings populated unless resolved. 
-                        // Let's assume order might have `ratings` populated if logic supports it, otherwise null is fine.
                         onUpdateOrder={handleUpdateOrder}
+                        setToast={setToast}
                     />
 
                     {/* Chat Section */}

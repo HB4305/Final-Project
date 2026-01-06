@@ -19,8 +19,9 @@ export default function OrderCompletion({
   userRole, // 'buyer' or 'seller'
   ratings,
   onUpdateOrder,
+  setToast,
 }) {
-  const [toast, setToast] = useState(null);
+  // const [toast, setToast] = useState(null); // Removed local state using prop instead
   const [currentStep, setCurrentStep] = useState(() => {
     // Calculate step based on status if not explicitly provided
     if (order.status === "awaiting_payment") {
@@ -235,13 +236,6 @@ export default function OrderCompletion({
 
   return (
     <div className="max-w-4xl mx-auto">
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
       {/* Order Header */}
       <div className="bg-transparent mb-6">
         <div className="flex justify-between items-start mb-4">

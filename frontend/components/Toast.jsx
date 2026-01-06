@@ -40,7 +40,7 @@ export default function Toast({
   return (
     <div
       style={{ zIndex: 9999 }}
-      className={`fixed top-24 right-4 max-w-md w-full md:w-auto min-w-[300px] border-l-4 rounded-lg shadow-lg p-4 flex items-start gap-3 animate-slide-in ${styles[type]}`}
+      className={`fixed top-4 right-4 max-w-md w-full md:w-auto min-w-[300px] border-l-4 rounded-lg shadow-lg p-4 flex items-start gap-3 animate-slide-in ${styles[type]}`}
     >
       <div className={iconColors[type]}>{icons[type]}</div>
       <p className="flex-1 text-sm font-medium">{message}</p>

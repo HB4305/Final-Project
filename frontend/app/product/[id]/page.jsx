@@ -317,8 +317,8 @@ export default function ProductDetailPage() {
           )}
         </nav>
 
-        {/* Order Completion Link - Show when auction ended and user is participant */}
-        {product.auction?.status === "ended" && isParticipant && (
+        {/* Order Completion Link - Show when auction ended, user is participant, and order is NOT completed/cancelled */}
+        {product.auction?.status === "ended" && isParticipant && order?.status !== 'completed' && order?.status !== 'cancelled' && (
           <div className="mb-12 animate-slide-up">
             {orderLoading ? (
               <div className="glass-card bg-white p-8 text-center rounded-2xl">

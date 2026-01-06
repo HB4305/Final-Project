@@ -252,7 +252,7 @@ export class BidService {
               winnerEmail: bidder.email,
               winnerName: bidder.fullName,
               productTitle: product.title,
-              finalPrice: auction.buyNowPrice.toLocaleString('vi-VN'),
+              finalPrice: auction.buyNowPrice,
               sellerName: seller.fullName,
               sellerEmail: seller.email,
               sellerPhone: seller.phoneNumber || "N/A",
@@ -269,8 +269,8 @@ export class BidService {
               winnerName: bidder.fullName,
               winnerEmail: bidder.email,
               winnerPhone: bidder.phoneNumber || "N/A",
-              finalPrice: auction.buyNowPrice.toLocaleString('vi-VN'),
-              startPrice: auction.startPrice.toLocaleString('vi-VN'),
+              finalPrice: auction.buyNowPrice,
+              startPrice: auction.startPrice,
               totalBids: updatedAuction.bidCount,
               endTime: now,
               orderUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}` // Link tới sản phẩm
@@ -347,8 +347,8 @@ export class BidService {
             bidderEmail: bidder.email,
             bidderName: bidder.fullName,
             productTitle: product.title,
-            bidAmount: maxAmount.toLocaleString('vi-VN'),
-            currentPrice: resolveResult.currentPrice.toLocaleString('vi-VN'),
+            bidAmount: maxAmount,
+            currentPrice: resolveResult.currentPrice,
             isHighestBidder: isHighest,
             productUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`
           });
@@ -359,8 +359,8 @@ export class BidService {
               sellerEmail: seller.email,
               sellerName: seller.fullName,
               productTitle: product.title,
-              previousPrice: auction.currentPrice.toLocaleString('vi-VN'),
-              newPrice: resolveResult.currentPrice.toLocaleString('vi-VN'),
+              previousPrice: auction.currentPrice,
+              newPrice: resolveResult.currentPrice,
               bidderName: bidder.fullName,
               totalBids: resolveResult.bidCount,
               auctionUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
@@ -382,8 +382,8 @@ export class BidService {
                   previousBidderEmail: previousWinner.email,
                   previousBidderName: previousWinner.fullName,
                   productTitle: product.title,
-                  yourBidAmount: yourBidAmount.toLocaleString('vi-VN'),
-                  currentPrice: resolveResult.currentPrice.toLocaleString('vi-VN'),
+                  yourBidAmount: yourBidAmount,
+                  currentPrice: resolveResult.currentPrice,
                   productUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
                   auctionEndTime: resolveResult.endAt || auction.endAt
                 });
@@ -393,7 +393,7 @@ export class BidService {
                   previousBidderId: previousWinner._id,
                   previousBidderEmail: previousWinner.email,
                   productTitle: product.title,
-                  newPrice: resolveResult.currentPrice.toLocaleString('vi-VN'),
+                  newPrice: resolveResult.currentPrice,
                   productId: auction.productId,
                   auctionId: auction._id
                 });
