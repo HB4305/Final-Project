@@ -5,7 +5,6 @@ import {
   Shield,
   Loader,
   Search,
-  Edit,
   Trash2,
   CheckCircle,
   XCircle,
@@ -13,24 +12,11 @@ import {
   Settings,
   Clock,
   Timer,
-  Power,
-  Filter,
-  MoreVertical,
-  AlertTriangle,
-  Mail,
-  Calendar,
-  Lock,
-  Unlock,
-  ChevronRight,
-  Eye,
-  UserCheck,
-  UserX,
-  CreditCard,
-  MapPin, // Added MapPin
-  Phone // Added Phone
+  ChevronDown,
 } from "lucide-react";
 import adminService from "../app/services/adminService";
 import Toast from "./Toast";
+import Pagination from "./Pagination";
 
 /**
  * AdminPanel Component
@@ -49,33 +35,30 @@ export default function AdminPanel() {
         <div className="flex gap-2 mb-6 border-b border-border">
           <button
             onClick={() => setActiveTab("users")}
-            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all rounded-t-lg ${
-              activeTab === "users"
-                ? "bg-primary/20 text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all rounded-t-lg ${activeTab === "users"
+              ? "bg-primary/20 text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-white hover:bg-white/5"
+              }`}
           >
             <Users className="w-4 h-4" />
             Danh sách tài khoản
           </button>
           <button
             onClick={() => setActiveTab("upgrades")}
-            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all rounded-t-lg ${
-              activeTab === "upgrades"
-                ? "bg-primary/20 text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all rounded-t-lg ${activeTab === "upgrades"
+              ? "bg-primary/20 text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-white hover:bg-white/5"
+              }`}
           >
             <Shield className="w-4 h-4" />
             Yêu cầu nâng cấp
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all rounded-t-lg ${
-              activeTab === "settings"
-                ? "bg-primary/20 text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all rounded-t-lg ${activeTab === "settings"
+              ? "bg-primary/20 text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-white hover:bg-white/5"
+              }`}
           >
             <Settings className="w-4 h-4" />
             Cài đặt
@@ -109,20 +92,23 @@ function UserManagement({ searchQuery, setSearchQuery }) {
   const [userToDelete, setUserToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError('');
-      
+
       const token = localStorage.getItem('token');
       const response = await adminService.getAllUsers();
-      console.log('[USER MANAGEMENT] response:', response);
-      console.log('[USER MANAGEMENT] response.data:', response.data);
-      
+
       if (response.status === 200) {
         setUsers(response.data?.data?.users || []);
-        console.log('[USER MANAGEMENT] users:', response.data?.data?.users);
       } else {
         setError(response.data?.message || 'Failed to load users');
       }
@@ -136,17 +122,17 @@ function UserManagement({ searchQuery, setSearchQuery }) {
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       const response = await adminService.deleteUser(userToDelete._id);
-      
+
       if (response.status === 200) {
         setToast({
           type: 'success',
           message: `Đã xóa user ${userToDelete.username} thành công. ${response.data.data?.summary?.auctionsCancelled || 0} đấu giá đã hủy, ${response.data.data?.summary?.productsDeleted || 0} sản phẩm đã xóa, ${response.data.data?.summary?.emailsSent || 0} email đã gửi.`
         });
-        
+
         // Refresh user list
         await fetchUsers();
         setShowDeleteModal(false);
@@ -179,6 +165,10 @@ function UserManagement({ searchQuery, setSearchQuery }) {
       user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.fullName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
 
   const calculateRating = (ratingSummary) => {
     if (!ratingSummary || ratingSummary.totalCount === 0) {
@@ -222,7 +212,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
           onClose={() => setToast(null)}
         />
       )}
-      
+
       {/* Search */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
@@ -240,34 +230,24 @@ function UserManagement({ searchQuery, setSearchQuery }) {
           className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 font-medium shadow-lg shadow-primary/20"
         >
           <RefreshCw className="w-4 h-4" />
-          Làm mới
         </button>
       </div>
 
       {/* User List */}
       <div className="glass rounded-xl overflow-hidden">
         <table className="w-full">
-          <thead className="bg-white/5">
+          <thead className="bg-muted">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Người dùng
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
-                Email
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Vai trò
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
-                Rating
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Trạng thái
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
-                Ngày tham gia
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
+              <th className="px-6 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Hành động
               </th>
             </tr>
@@ -276,86 +256,86 @@ function UserManagement({ searchQuery, setSearchQuery }) {
             {filteredUsers.length === 0 ? (
               <tr>
                 <td
-                  colSpan="7"
-                  className="px-4 py-8 text-center text-muted-foreground"
+                  colSpan="4"
+                  className="px-6 py-8 text-center text-muted-foreground"
                 >
                   {searchQuery
-                    ? "No users found matching your search."
-                    : "No users found."}
+                    ? "Không tìm thấy người dùng nào."
+                    : "Chưa có người dùng."}
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user) => (
-                <tr 
-                  key={user._id} 
+              currentUsers.map((user) => (
+                <tr
+                  key={user._id}
                   className="bg-white/5 border-b border-gray-800 hover:bg-white/10 cursor-pointer transition-colors"
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setShowDetailModal(true);
+                  onClick={(e) => {
+                    // Không mở detail nếu click vào button
+                    if (!e.target.closest('button')) {
+                      setSelectedUser(user);
+                      setShowDetailModal(true);
+                    }
                   }}
                 >
-                  <td className="px-4 py-3">
-                    <div>
-                      <div className="font-semibold">{user.username}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {user.fullName}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                        <img
+                          src={user.profileImageUrl || "/placeholder-user.jpg"}
+                          alt={user.username}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <div className="font-semibold">{user.username}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {user.email}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm">{user.email}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
                       {user.roles?.map((role) => (
                         <span
                           key={role}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${
-                            role === "admin" || role === "superadmin"
-                              ? "bg-red-500/10 text-red-400 border-red-500/20"
-                              : role === "seller"
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${role === "admin" || role === "superadmin"
+                            ? "bg-red-500/10 text-red-400 border-red-500/20"
+                            : role === "seller"
                               ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
                               : "bg-gray-500/10 text-gray-400 border-gray-500/20"
-                          }`}
+                            }`}
                         >
                           {role}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="font-semibold">
-                      {((user.ratingSummary?.score || 0) / 5 * 100).toFixed(0)}%
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-1">
-                      ({user.ratingSummary?.totalCount || 0})
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-4">
                     <span
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${
-                        user.status
-                          ? "bg-green-500/10 text-green-400 border-green-500/20"
-                          : "bg-red-500/10 text-red-400 border-red-500/20"
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${user.status
+                        ? "bg-green-500/10 text-green-400 border-green-500/20"
+                        : "bg-red-500/10 text-red-400 border-red-500/20"
+                        }`}
                     >
                       {user.status ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setUserToDelete(user);
-                        setShowDeleteModal(true);
-                      }}
-                      disabled={user.roles?.includes('superadmin')}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={user.roles?.includes('superadmin') ? 'Không thể xóa superadmin' : 'Xóa user'}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUserToDelete(user);
+                          setShowDeleteModal(true);
+                        }}
+                        disabled={user.roles?.includes('superadmin')}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={user.roles?.includes('superadmin') ? 'Không thể xóa superadmin' : 'Xóa user'}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -364,201 +344,216 @@ function UserManagement({ searchQuery, setSearchQuery }) {
         </table>
       </div>
 
-      <div className="text-sm text-muted-foreground">
-        Hiển thị {filteredUsers.length} trong tổng số {users.length} người dùng
-      </div>
+      {filteredUsers.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredUsers.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
+      )}
 
       {/* User Detail Modal */}
       {showDetailModal && selectedUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
-          <div className="glass-card border border-white/10 bg-[#1e293b]/90 backdrop-blur-xl rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-              <h3 className="text-xl font-bold text-white">Thông tin người dùng</h3>
-              <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-white transition p-1 hover:bg-white/10 rounded-full">
-                <XCircle className="w-6 h-6" />
-              </button>
+          <div className="bg-background border border-border rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-muted/50 border-b border-border p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Chi tiết người dùng</h2>
+                  <p className="text-muted-foreground">Thông tin đầy đủ về tài khoản người dùng</p>
+                </div>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="p-2 hover:bg-muted rounded-lg transition text-muted-foreground hover:text-foreground"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
             </div>
-            
-            <div className="p-8 space-y-8">
+
+            {/* Content */}
+            <div className="p-8 space-y-6">
+              {/* User Profile Section */}
               <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-                <div className="w-24 h-24 rounded-full p-1 bg-white/10 shadow-lg ring-2 ring-white/20 flex-shrink-0">
-                  <img 
-                    src={selectedUser.profileImageUrl || "/placeholder-user.jpg"} 
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-500/30 shadow-lg flex-shrink-0">
+                  <img
+                    src={selectedUser.profileImageUrl || "/placeholder-user.jpg"}
                     alt={selectedUser.username}
-                    className="w-full h-full rounded-full object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="flex-1 space-y-4 text-center sm:text-left w-full">
                   <div>
-                    <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Tên đăng nhập</p>
-                    <h4 className="text-2xl font-bold text-white">{selectedUser.username}</h4>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     <div>
-                        <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Họ tên</p>
-                        <p className="text-white font-medium">{selectedUser.fullName || "Chưa cập nhật"}</p>
-                     </div>
-                     <div>
-                        <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Email</p>
-                        <p className="text-white font-medium truncate" title={selectedUser.email}>{selectedUser.email}</p>
-                     </div>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Tên đăng nhập</p>
+                    <h4 className="text-2xl font-bold text-foreground">{selectedUser.username}</h4>
                   </div>
 
-                  <div>
-                     <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">Vai trò</p>
-                     <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                        {selectedUser.roles.map(role => (
-                          <span key={role} className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${
-                            role === 'admin' 
-                              ? 'bg-red-500/20 text-red-400 border-red-500/30' 
-                              : role === 'seller' 
-                                ? 'bg-green-500/20 text-green-400 border-green-500/30' 
-                                : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                          }`}>
-                            {role}
-                          </span>
-                        ))}
-                     </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Họ tên</p>
+                      <p className="text-foreground font-medium">{selectedUser.fullName || "Chưa cập nhật"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Email</p>
+                      <p className="text-foreground font-medium truncate" title={selectedUser.email}>{selectedUser.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Số điện thoại</p>
+                      <p className="text-foreground font-medium">{selectedUser.contactPhone || "Chưa cập nhật"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Ngày sinh</p>
+                      <p className="text-foreground font-medium">{selectedUser.dateOfBirth || "Chưa cập nhật"}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-white/10">
-                  <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                     <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Xếp hạng</p>
-                     <p className="text-3xl font-bold text-yellow-500">
-                        {calculateRating(selectedUser.ratingSummary)}%
-                     </p>
-                     <p className="text-xs text-gray-500 mt-1">
-                        ({selectedUser.ratingSummary?.totalCount || 0} đánh giá)
-                     </p>
-                  </div>
-                  
-                  <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                     <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-1">Trạng thái</p>
-                     <p className={`text-xl font-bold ${selectedUser.isActive ? 'text-green-400' : 'text-red-400'}`}>
-                        {selectedUser.isActive ? 'Đang hoạt động' : 'Đã bị khóa'}
-                     </p>
-                  </div>
-               </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-white/10">
-                 <div>
-                    <p className="text-gray-400 font-medium mb-1">Ngày tham gia</p>
-                    <p className="text-white">{new Date(selectedUser.createdAt).toLocaleDateString("vi-VN")}</p>
-                 </div>
-                 <div>
-                    <p className="text-gray-400 font-medium mb-1">Cập nhật cuối</p>
-                    <p className="text-white">{new Date(selectedUser.updatedAt).toLocaleDateString("vi-VN")}</p>
-                 </div>
-              </div>
-              
-              <div className="bg-black/20 p-4 rounded-xl border border-white/5">
-                 <p className="text-xs font-bold text-gray-500 uppercase mb-1">User ID</p>
-                 <p className="text-xs font-mono text-gray-400 select-all">{selectedUser._id}</p>
+              {/* Address */}
+              <div className="bg-muted/30 rounded-xl p-4 border border-border">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Địa chỉ</p>
+                <p className="text-foreground">
+                  {selectedUser.address ? [selectedUser.address.street, selectedUser.address.ward, selectedUser.address.district, selectedUser.address.city].filter(Boolean).join(', ') || "Chưa cập nhật" : "Chưa cập nhật"}
+                </p>
               </div>
 
-            </div>
-            
-            <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end">
-              <button 
-                onClick={() => setShowDetailModal(false)}
-                className="px-6 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 font-medium"
-              >
-                Đóng
-              </button>
+              {/* Roles */}
+              <div className="bg-muted/30 rounded-xl p-4 border border-border">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Vai trò</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedUser.roles.map(role => (
+                    <span key={role} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase border ${role === 'admin' || role === 'superadmin'
+                      ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                      : role === 'seller'
+                        ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                        : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                      }`}>
+                      {role}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-muted/30 p-4 rounded-xl border border-border">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Xếp hạng</p>
+                  <p className="text-3xl font-bold text-yellow-500">
+                    {calculateRating(selectedUser.ratingSummary)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ({selectedUser.ratingSummary?.totalCount || 0} đánh giá)
+                  </p>
+                </div>
+
+                <div className="bg-muted/30 p-4 rounded-xl border border-border">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Trạng thái</p>
+                  <p className={`text-xl font-bold capitalize ${selectedUser.status === 'active' ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                    {selectedUser.status === 'active' ? 'Đang hoạt động' : 'Đã bị khóa'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground font-bold mb-1">Ngày tham gia</p>
+                  <p className="text-foreground font-medium">{new Date(selectedUser.createdAt).toLocaleDateString("vi-VN")}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground font-bold mb-1">Cập nhật cuối</p>
+                  <p className="text-foreground font-medium">{new Date(selectedUser.updatedAt).toLocaleDateString("vi-VN")}</p>
+                </div>
+              </div>
+
+              {/* User ID */}
+              <div className="bg-muted/30 p-4 rounded-xl border border-border">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">User ID</p>
+                <p className="text-xs font-mono text-muted-foreground select-all break-all">{selectedUser._id}</p>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && userToDelete && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-red-600 to-rose-600 p-6 text-white rounded-t-2xl">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                  <Trash2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold">Xác nhận xóa user</h2>
-                  <p className="text-red-100 text-sm">Hành động này không thể hoàn tác</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800 font-semibold mb-2">Bạn có chắc chắn muốn xóa user này?</p>
-                <div className="text-sm text-red-700 space-y-1">
-                  <p>• <strong>Username:</strong> {userToDelete.username}</p>
-                  <p>• <strong>Email:</strong> {userToDelete.email}</p>
-                  <p>• <strong>Vai trò:</strong> {userToDelete.roles?.join(', ')}</p>
+      {
+        showDeleteModal && userToDelete && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-gradient-to-r from-red-600 to-rose-600 p-6 text-white rounded-t-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                    <Trash2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">Xác nhận xóa user</h2>
+                    <p className="text-red-100 text-sm">Hành động này không thể hoàn tác</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-yellow-800 font-semibold mb-2 flex items-center gap-2">
-                  <XCircle className="w-5 h-5" />
-                  Các hành động sẽ được thực hiện:
-                </p>
-                <ul className="text-sm text-yellow-700 space-y-1 ml-7 list-disc">
-                  <li>Hủy tất cả đấu giá đang hoạt động của seller</li>
-                  <li>Gửi email thông báo cho tất cả người tham gia</li>
-                  <li>Xóa tất cả sản phẩm của seller</li>
-                  <li>Chuyển bid cho người thứ 2 nếu user là highest bidder</li>
-                  <li>Invalidate tất cả bids của user</li>
-                  <li>Xóa các đấu giá đã lên lịch trong tương lai</li>
-                </ul>
-              </div>
-            </div>
+              <div className="p-6 space-y-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 font-semibold mb-2">Bạn có chắc chắn muốn xóa user này?</p>
+                  <div className="text-sm text-red-700 space-y-1">
+                    <p>• <strong>Username:</strong> {userToDelete.username}</p>
+                    <p>• <strong>Email:</strong> {userToDelete.email}</p>
+                    <p>• <strong>Vai trò:</strong> {userToDelete.roles?.join(', ')}</p>
+                  </div>
+                </div>
 
-            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setUserToDelete(null);
-                }}
-                disabled={isDeleting}
-                className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium disabled:opacity-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleDeleteUser}
-                disabled={isDeleting}
-                className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium flex items-center gap-2 disabled:opacity-50"
-              >
-                {isDeleting ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Đang xóa...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Xác nhận xóa
-                  </>
-                )}
-              </button>
+              </div>
+
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setUserToDelete(null);
+                  }}
+                  disabled={isDeleting}
+                  className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleDeleteUser}
+                  disabled={isDeleting}
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Đang xóa...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Xác nhận xóa
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }
 
 // Upgrade Requests Sub-component
 function UpgradeRequests() {
   const [requests, setRequests] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(null);
   const [toast, setToast] = useState(null);
-  
+
   // Modal states
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -566,16 +561,37 @@ function UpgradeRequests() {
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   const fetchUpgradeRequests = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("token");
-      const response = await adminService.getUpgradeRequests();
-      if(response.status === 200) {
-        setRequests(response.data?.data?.requests || []);
+      // Fetch both requests and users
+      const [requestsResponse, usersResponse] = await Promise.all([
+        adminService.getUpgradeRequests(),
+        adminService.getAllUsers()
+      ]);
+
+      if (requestsResponse.status === 200) {
+        const requestsData = requestsResponse.data?.data?.requests || [];
+        const usersData = usersResponse.data?.data?.users || [];
+
+        // Create a map of users by ID for quick lookup
+        const usersMap = {};
+        usersData.forEach(user => {
+          usersMap[user._id] = user;
+        });
+
+        // Merge request data with full user data
+        const enrichedRequests = requestsData.map(request => ({
+          ...request,
+          user: usersMap[request.user?._id] || request.user
+        }));
+
+        setRequests(enrichedRequests);
+        setUsers(usersData);
       }
     } catch (err) {
       console.error("Error fetching upgrade requests:", err);
@@ -615,14 +631,14 @@ function UpgradeRequests() {
         window.dispatchEvent(new CustomEvent("refreshUsers"));
       } else {
         setToast({
-          message: "❌ " + (response.message || "Chấp nhận yêu cầu thất bại"),
+          message: (response.message || "Chấp nhận yêu cầu thất bại"),
           type: "error",
         });
       }
     } catch (err) {
       console.error("Error approving request:", err);
       setToast({
-        message: "❌ Đã xảy ra lỗi khi chấp nhận yêu cầu",
+        message: "Đã xảy ra lỗi khi chấp nhận yêu cầu",
         type: "error",
       });
     } finally {
@@ -640,7 +656,7 @@ function UpgradeRequests() {
   const confirmReject = async () => {
     if (!selectedRequestId || !rejectReason.trim()) {
       setToast({
-        message: "❌ Vui lòng nhập lý do từ chối",
+        message: "Vui lòng nhập lý do từ chối",
         type: "error",
       });
       return;
@@ -662,14 +678,14 @@ function UpgradeRequests() {
         fetchUpgradeRequests();
       } else {
         setToast({
-          message: "❌ " + (response.message || "Từ chối yêu cầu thất bại"),
+          message: (response.message || "Từ chối yêu cầu thất bại"),
           type: "error",
         });
       }
     } catch (err) {
       console.error("Error rejecting request:", err);
       setToast({
-        message: "❌ Đã xảy ra lỗi khi từ chối yêu cầu",
+        message: "Đã xảy ra lỗi khi từ chối yêu cầu",
         type: "error",
       });
     } finally {
@@ -726,31 +742,27 @@ function UpgradeRequests() {
           className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 font-medium shadow-lg shadow-primary/20"
         >
           <RefreshCw className="w-4 h-4" />
-          Làm mới
         </button>
       </div>
 
       <div className="glass rounded-xl overflow-hidden">
         <table className="w-full">
-          <thead className="bg-white/5">
+          <thead className="bg-muted">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Người dùng
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Ngày yêu cầu
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Đánh giá
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
-                Tổng số lần đấu giá
+              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Tổng số đánh giá
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Trạng thái
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold">
-                Hành động
               </th>
             </tr>
           </thead>
@@ -758,16 +770,16 @@ function UpgradeRequests() {
             {requests.length === 0 ? (
               <tr>
                 <td
-                  colSpan="6"
-                  className="px-4 py-8 text-center text-muted-foreground"
+                  colSpan="5"
+                  className="px-6 py-8 text-center text-muted-foreground"
                 >
                   Không có yêu cầu nâng cấp nào đang chờ xử lý.
                 </td>
               </tr>
             ) : (
               requests.map((request) => (
-                <tr 
-                  key={request._id} 
+                <tr
+                  key={request._id}
                   className="bg-white/5 border-b border-gray-800 hover:bg-white/10 cursor-pointer transition"
                   onClick={(e) => {
                     // Không mở detail nếu click vào button
@@ -777,7 +789,7 @@ function UpgradeRequests() {
                     }
                   }}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-4">
                     <div>
                       <div className="font-semibold">
                         {request.user?.username || request.userId?.username}
@@ -787,55 +799,68 @@ function UpgradeRequests() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-6 py-4 text-sm">
                     {new Date(request.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-4">
                     <span className="font-semibold">
-                      {((request.user?.ratingSummary?.score || 0) / 5 * 100).toFixed(0)}%
+                      {((request.user?.ratingSummary?.score || 0)).toFixed(0)}%
                     </span>
                   </td>
-                  <td className="px-4 py-3">{request.user?.ratingSummary?.countPositive || 0}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${
-                        request.status === "pending"
-                          ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                          : request.status === "approved"
-                          ? "bg-green-500/10 text-green-400 border-green-500/20"
-                          : "bg-red-500/10 text-red-400 border-red-500/20"
-                      }`}
-                    >
-                      {request.status === "pending"
-                        ? "Đang chờ"
-                        : request.status === "approved"
-                        ? "Đã chấp nhận"
-                        : "Đã từ chối"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {request.status === "pending" && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApprove(request._id)}
-                          disabled={processing === request._id}
-                          className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          {processing === request._id
-                            ? "Đang xử lý..."
-                            : "Chấp nhận"}
-                        </button>
-                        <button
-                          onClick={() => handleReject(request._id)}
-                          disabled={processing === request._id}
-                          className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          Từ chối
-                        </button>
-                      </div>
-                    )}
+                  <td className="px-6 py-4">{request.user?.ratingSummary?.totalCount || 0}</td>
+                  <td className="px-6 py-4">
+                    <div className="relative">
+                      {request.status === "pending" ? (
+                        <div>
+                          <button
+                            onClick={() => setOpenDropdown(openDropdown === request._id ? null : request._id)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/20 transition flex items-center gap-1"
+                          >
+                            Đang chờ
+                            <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === request._id ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          {openDropdown === request._id && (
+                            <div className="absolute top-full left-0 mt-1 bg-slate-800 border border-gray-700 rounded-lg shadow-xl z-10 min-w-[160px]">
+                              <button
+                                onClick={() => {
+                                  setOpenDropdown(null);
+                                  handleApprove(request._id);
+                                }}
+                                disabled={processing === request._id}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-green-400 hover:bg-green-500/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                {processing === request._id ? "Đang xử lý..." : "Chấp nhận"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setOpenDropdown(null);
+                                  handleReject(request._id);
+                                }}
+                                disabled={processing === request._id}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition disabled:opacity-50 disabled:cursor-not-allowed border-t border-gray-700"
+                              >
+                                <XCircle className="w-4 h-4" />
+                                Từ chối
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : request.status === "approved" ? (
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider bg-green-500/10 text-green-400 border-green-500/20">
+                            Đã chấp nhận
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider bg-red-500/10 text-red-400 border-red-500/20">
+                            Đã từ chối
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -852,65 +877,85 @@ function UpgradeRequests() {
       {/* Detail Modal */}
       {showDetailModal && selectedRequest && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
-          <div className="glass-card border border-white/10 bg-[#1e293b]/90 backdrop-blur-xl rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-              <h3 className="text-xl font-bold text-white">Chi tiết yêu cầu nâng cấp</h3>
-              <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-white transition p-1 hover:bg-white/10 rounded-full">
-                <XCircle className="w-6 h-6" />
-              </button>
+          <div className="bg-background border border-border rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-muted/50 border-b border-border p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Chi tiết yêu cầu nâng cấp</h2>
+                  <p className="text-muted-foreground">Thông tin đầy đủ về yêu cầu nâng cấp tài khoản</p>
+                </div>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="p-2 hover:bg-muted rounded-lg transition text-muted-foreground hover:text-foreground"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
             </div>
-            
-            <div className="p-8 space-y-8">
+
+            {/* Content */}
+            <div className="p-8 space-y-6">
               {/* User Info Section */}
-              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-blue-400" />
+              <div className="bg-muted/30 rounded-xl p-6 border border-border">
+                <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-500" />
                   Thông tin người dùng
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Tên đăng nhập</p>
-                    <p className="font-semibold text-white">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Tên đăng nhập</p>
+                    <p className="font-semibold text-foreground">
                       {selectedRequest.user?.username || selectedRequest.userId?.username || 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Họ và tên</p>
-                    <p className="font-semibold text-white">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Họ và tên</p>
+                    <p className="font-semibold text-foreground">
                       {selectedRequest.user?.fullName || selectedRequest.userId?.fullName || 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Email</p>
-                    <p className="font-semibold text-white">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Email</p>
+                    <p className="font-semibold text-foreground">
                       {selectedRequest.user?.email || selectedRequest.userId?.email || 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Số điện thoại</p>
-                    <p className="font-semibold text-white">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Số điện thoại</p>
+                    <p className="font-semibold text-foreground">
                       {selectedRequest.user?.phone || selectedRequest.userId?.phone || 'Chưa cập nhật'}
                     </p>
                   </div>
                   <div className="md:col-span-2">
-                    <p className="text-sm text-gray-400 mb-1">Địa chỉ</p>
-                    <p className="font-semibold text-white">
-                      {selectedRequest.user?.address || selectedRequest.userId?.address || 'Chưa cập nhật'}
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Địa chỉ</p>
+                    <p className="font-semibold text-foreground">
+                      {(() => {
+                        const address = selectedRequest.user?.address || selectedRequest.userId?.address;
+                        if (!address) return 'Chưa cập nhật';
+                        if (typeof address === 'string') return address;
+                        const parts = [
+                          address.street,
+                          address.ward,
+                          address.district,
+                          address.city
+                        ].filter(Boolean);
+                        return parts.length > 0 ? parts.join(', ') : 'Chưa cập nhật';
+                      })()}
                     </p>
                   </div>
                   <div className="md:col-span-2">
-                    <p className="text-sm text-gray-400 mb-1">Vai trò hiện tại</p>
-                    <div className="flex flex-wrap gap-2 mt-1">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Vai trò hiện tại</p>
+                    <div className="flex flex-wrap gap-2">
                       {(selectedRequest.user?.roles || selectedRequest.userId?.roles || []).map((role) => (
                         <span
                           key={role}
-                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${
-                            role === "admin" || role === "superadmin"
-                              ? "bg-red-500/20 text-red-400 border-red-500/30"
-                              : role === "seller"
-                              ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                              : "bg-gray-500/20 text-gray-400 border-gray-500/30"
-                          }`}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase border ${role === "admin" || role === "superadmin"
+                            ? "bg-red-500/10 text-red-500 border-red-500/20"
+                            : role === "seller"
+                              ? "bg-green-500/10 text-green-500 border-green-500/20"
+                              : "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                            }`}
                         >
                           {role}
                         </span>
@@ -921,26 +966,26 @@ function UpgradeRequests() {
               </div>
 
               {/* Rating Section */}
-              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-yellow-400" />
+              <div className="bg-muted/30 rounded-xl p-6 border border-border">
+                <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-yellow-500" />
                   Đánh giá và hoạt động
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-400 mb-1">Điểm đánh giá</p>
+                  <div className="bg-background p-4 rounded-lg border border-border">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Điểm đánh giá</p>
                     <p className="text-2xl font-bold text-yellow-500">
-                      {Math.round(((selectedRequest.user?.ratingSummary?.score || 0) / 5) * 100)}%
+                      {Math.round((selectedRequest.user?.ratingSummary?.score || 0))}%
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-400 mb-1">Đánh giá tích cực</p>
+                  <div className="bg-background p-4 rounded-lg border border-border">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Tích cực</p>
                     <p className="text-2xl font-bold text-green-500">
                       {selectedRequest.user?.ratingSummary?.countPositive || 0}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-400 mb-1">Đánh giá tiêu cực</p>
+                  <div className="bg-background p-4 rounded-lg border border-border">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Tiêu cực</p>
                     <p className="text-2xl font-bold text-red-500">
                       {selectedRequest.user?.ratingSummary?.countNegative || 0}
                     </p>
@@ -949,76 +994,84 @@ function UpgradeRequests() {
               </div>
 
               {/* Request Info Section */}
-              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-                  <RefreshCw className="w-5 h-5 text-purple-400" />
+              <div className="bg-muted/30 rounded-xl p-6 border border-border">
+                <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-purple-500" />
                   Thông tin yêu cầu
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Ngày yêu cầu</p>
-                    <p className="font-semibold text-white">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Ngày yêu cầu</p>
+                    <p className="font-semibold text-foreground">
                       {new Date(selectedRequest.createdAt).toLocaleString('vi-VN')}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Trạng thái</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Trạng thái</p>
                     <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${
-                        selectedRequest.status === "pending"
-                          ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                          : selectedRequest.status === "approved"
-                          ? "bg-green-500/20 text-green-400 border-green-500/30"
-                          : "bg-red-500/20 text-red-400 border-red-500/30"
-                      }`}
+                      className={`inline-block px-3 py-1.5 rounded-lg text-xs font-bold border ${selectedRequest.status === "pending"
+                        ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                        : selectedRequest.status === "approved"
+                          ? "bg-green-500/10 text-green-500 border-green-500/20"
+                          : "bg-red-500/10 text-red-500 border-red-500/20"
+                        }`}
                     >
                       {selectedRequest.status === "pending"
                         ? "Đang chờ xử lý"
                         : selectedRequest.status === "approved"
-                        ? "Đã chấp nhận"
-                        : "Đã từ chối"}
+                          ? "Đã chấp nhận"
+                          : "Đã từ chối"}
                     </span>
                   </div>
                   {selectedRequest.reviewedAt && (
                     <div>
-                      <p className="text-sm text-gray-400 mb-1">Ngày xử lý</p>
-                      <p className="font-semibold text-white">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Ngày xử lý</p>
+                      <p className="font-semibold text-foreground">
                         {new Date(selectedRequest.reviewedAt).toLocaleString('vi-VN')}
                       </p>
                     </div>
                   )}
                   {selectedRequest.reviewedBy && (
                     <div>
-                      <p className="text-sm text-gray-400 mb-1">Người xử lý</p>
-                      <p className="font-semibold text-white">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Người xử lý</p>
+                      <p className="font-semibold text-foreground">
                         {selectedRequest.reviewedBy.fullName || selectedRequest.reviewedBy.username || 'Admin'}
                       </p>
                     </div>
                   )}
                 </div>
-                {selectedRequest.reviewNote && (
-                  <div className="mt-6">
-                    <p className="text-sm text-gray-400 mb-2">Ghi chú xử lý</p>
-                    <div className="bg-black/20 border border-white/10 rounded-lg p-4">
-                      <p className="text-white text-sm">{selectedRequest.reviewNote}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                {(() => {
+                  const note = selectedRequest.reviewNote;
+                  if (!note || note === '' || note === '[object Object]') return null;
 
-              {/* Action Buttons */}
+                  return (
+                    <div className="mt-4">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Ghi chú xử lý</p>
+                      <div className="bg-background border border-border rounded-lg p-4">
+                        <p className="text-foreground text-sm">
+                          {typeof note === 'string' ? note : JSON.stringify(note)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Footer with Actions */}
+            <div className="bg-muted/50 px-8 py-4 border-t border-border flex justify-end gap-3">
               {selectedRequest.status === "pending" && (
-                <div className="flex gap-3 justify-end pt-6 border-t border-white/10">
+                <>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowDetailModal(false);
                       handleReject(selectedRequest._id);
                     }}
-                    className="flex items-center gap-2 px-5 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition font-medium shadow-lg shadow-red-500/20"
+                    className="flex items-center gap-2 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium shadow-lg shadow-red-600/20"
                   >
                     <XCircle className="w-5 h-5" />
-                    Từ chối yêu cầu
+                    Từ chối
                   </button>
                   <button
                     onClick={(e) => {
@@ -1026,12 +1079,12 @@ function UpgradeRequests() {
                       setShowDetailModal(false);
                       handleApprove(selectedRequest._id);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-medium"
+                    className="flex items-center gap-2 px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-lg shadow-green-600/20"
                   >
                     <CheckCircle className="w-5 h-5" />
-                    Chấp nhận yêu cầu
+                    Chấp nhận
                   </button>
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -1051,11 +1104,11 @@ function UpgradeRequests() {
                 <p className="text-sm text-gray-400">Xác nhận nâng cấp tài khoản</p>
               </div>
             </div>
-            
+
             <p className="text-gray-300 mb-6">
               Bạn có chắc chắn muốn chấp nhận yêu cầu nâng cấp này không? Người dùng sẽ trở thành người bán trong 7 ngày.
             </p>
-            
+
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => {
@@ -1090,7 +1143,7 @@ function UpgradeRequests() {
                 <p className="text-sm text-gray-400">Cung cấp lý do từ chối</p>
               </div>
             </div>
-            
+
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Lý do từ chối <span className="text-red-500">*</span>
@@ -1107,7 +1160,7 @@ function UpgradeRequests() {
                 {rejectReason.length}/100 ký tự
               </p>
             </div>
-            
+
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => {
@@ -1182,7 +1235,7 @@ function SettingsManagement() {
   const handleChange = (field, value) => {
     const newSettings = { ...settings, [field]: value };
     setSettings(newSettings);
-    
+
     // Check if there are changes
     const changed = JSON.stringify(newSettings) !== JSON.stringify(originalSettings);
     setHasChanges(changed);
@@ -1245,7 +1298,7 @@ function SettingsManagement() {
               </label>
             </div>
             <p className="text-sm text-gray-300 ml-7">
-              Nếu có bid mới trong khoảng X phút trước khi kết thúc, hệ thống sẽ tự động gia hạn (nếu seller đã bật)
+              Nếu có bid mới trong khoảng X phút trước khi kết thúc, hệ thống sẽ tự động gia hạn   (nếu seller đã bật)
             </p>
             <div className="ml-7 flex items-center gap-4">
               <input
