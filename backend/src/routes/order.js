@@ -7,6 +7,7 @@ import {
   getChatMessages,
   getMyOrders,
   getOrderByAuctionId,
+  getOrderDetail,
   markAsShipped,
   rateTransaction,
   sendChatMessage,
@@ -27,6 +28,13 @@ router.get(
   authenticate,
   validateIdParam("auctionId"),
   getOrderByAuctionId
+);
+
+router.get(
+  "/:orderId",
+  authenticate,
+  validateIdParam("orderId"),
+  getOrderDetail
 );
 
 // 4 steps

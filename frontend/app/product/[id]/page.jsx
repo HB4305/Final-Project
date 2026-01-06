@@ -107,13 +107,13 @@ export default function ProductDetailPage() {
   useEffect(() => {
     // Only fetch if meaningful data changed
     if (product?.auction?._id && user?._id) {
-        fetchOrderData();
+      fetchOrderData();
     }
   }, [product?.auction?._id, product?.auction?.status, user?._id]);
 
   const handleUpdateOrder = async () => {
     // Silent refetch
-    await fetchOrderData(true); 
+    await fetchOrderData(true);
   };
 
   const isParticipant =
@@ -147,10 +147,10 @@ export default function ProductDetailPage() {
       const response = await productService.placeBid(id, { amount });
       if (response.status === "success") {
         const isBuyNow = product?.auction?.buyNowPrice && amount >= product.auction.buyNowPrice;
-        
+
         setToast({
           type: "success",
-          message: isBuyNow 
+          message: isBuyNow
             ? `Chúc mừng! Bạn đã mua ngay sản phẩm thành công với giá ${formatPrice(amount)}.`
             : `Đã thiết lập giá tối đa ${formatPrice(amount)} thành công! Hệ thống sẽ tự động đấu giá cho bạn.`,
         });
@@ -317,8 +317,8 @@ export default function ProductDetailPage() {
           )}
         </nav>
 
-        {/* Order Completion Flow - Show when auction ended and user is participant */}
-        {product.auction?.status === "ended" && isParticipant && (
+        {/* Order Completion Link - Show when auction ended, user is participant, and order is NOT completed/cancelled */}
+        {product.auction?.status === "ended" && isParticipant && order?.status !== 'completed' && order?.status !== 'cancelled' && (
           <div className="mb-12 animate-slide-up">
             {orderLoading ? (
               <div className="glass-card bg-white p-8 text-center rounded-2xl">
@@ -326,29 +326,33 @@ export default function ProductDetailPage() {
                 <p className="text-gray-500">Đang tải thông tin đơn hàng...</p>
               </div>
             ) : order ? (
-              <div className="space-y-8">
-                {/* Order Completion Component */}
-                <div className="animate-fade-in">
-                  <OrderCompletion
-                    order={order}
-                    userRole={userRole}
-                    ratings={ratings}
-                    onUpdateOrder={handleUpdateOrder}
-                  />
+              <div className="glass-card bg-primary/5 border border-primary/20 rounded-2xl p-8 text-center shadow-lg backdrop-blur-md relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20 border border-primary/20 relative z-10">
+                  <ShieldCheck className="w-8 h-8 text-primary" />
                 </div>
-
-                {/* Chat Section */}
-                <div className="max-w-4xl mx-auto glass-card bg-white rounded-2xl p-6 md:p-8 shadow-lg">
-                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-primary" />
-                    Chat với {userRole === "buyer" ? "Người bán" : "Người mua"}
-                  </h3>
-                  <ChatComponent order={order} currentUser={user} />
-                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-2 relative z-10">
+                  {userRole === 'buyer'
+                    ? "Chúc mừng! Bạn đã thắng phiên đấu giá này"
+                    : "Phiên đấu giá đã kết thúc"}
+                </h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto relative z-10">
+                  {userRole === 'buyer'
+                    ? "Hãy tiến hành hoàn tất đơn hàng để nhận sản phẩm. Quá trình này bao gồm thanh toán và xác nhận giao hàng."
+                    : "Người thắng cuộc đang tiến hành các bước hoàn tất đơn hàng. Vui lòng theo dõi trạng thái đơn hàng."}
+                </p>
+                <Link
+                  to={`/orders/${order._id}`}
+                  className="relative z-10 inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/30 hover:scale-105 transition-all duration-300"
+                >
+                  <FileText className="w-5 h-5" />
+                  {userRole === 'buyer' ? "Tiến hành Hoàn tất Đơn hàng" : "Xem chi tiết Đơn hàng"}
+                </Link>
               </div>
             ) : (
-              null
-              // Handled in fetch logic or just hidden if failed
+              <div className="text-center p-6 text-gray-400">
+                Không tìm thấy thông tin đơn hàng.
+              </div>
             )}
           </div>
         )}

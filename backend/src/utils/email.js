@@ -80,7 +80,7 @@ export const sendQuestionNotification = async (data) => {
 
     return sendEmail({
       to: data.sellerEmail,
-      subject: `New Question about Your Product: ${data.productTitle}`,
+      subject: `Câu hỏi mới về sản phẩm của bạn: ${data.productTitle}`,
       html,
     });
   } catch (error) {
@@ -107,7 +107,7 @@ export const sendAnswerNotification = async (data) => {
 
     return sendEmail({
       to: data.buyerEmail,
-      subject: `Your Question Has Been Answered: ${data.productTitle}`,
+      subject: `Câu hỏi của bạn đã được trả lời: ${data.productTitle}`,
       html,
     });
   } catch (error) {
@@ -150,15 +150,15 @@ export const sendBidSuccessNotification = async (data) => {
       bidderEmail: data.bidderEmail,
       bidderName: data.bidderName,
       productTitle: data.productTitle,
-      bidAmount: data.bidAmount,
-      currentPrice: data.currentPrice,
+      bidAmount: Number(data.bidAmount).toLocaleString("vi-VN"),
+      currentPrice: Number(data.currentPrice).toLocaleString("vi-VN"),
       isHighestBidder: data.isHighestBidder,
       productUrl: data.productUrl,
     });
 
     return sendEmail({
       to: data.bidderEmail,
-      subject: `Bid Success Notification: ${data.productTitle}`,
+      subject: `Thông báo đặt giá thành công: ${data.productTitle}`,
       html,
     });
   } catch (error) {
@@ -174,8 +174,8 @@ export const sendPriceUpdatedNotification = async (data) => {
     const html = await loadTemplate("price-updated-seller", {
       sellerName: data.sellerName,
       productTitle: data.productTitle,
-      previousPrice: data.previousPrice,
-      newPrice: data.newPrice,
+      previousPrice: Number(data.previousPrice).toLocaleString("vi-VN"),
+      newPrice: Number(data.newPrice).toLocaleString("vi-VN"),
       bidderName: data.bidderName,
       totalBids: data.totalBids,
       auctionUrl: data.auctionUrl,
@@ -187,7 +187,7 @@ export const sendPriceUpdatedNotification = async (data) => {
 
     return sendEmail({
       to: data.sellerEmail,
-      subject: `Price Update: ${data.productTitle}`,
+      subject: `Cập nhật giá: ${data.productTitle}`,
       html,
     });
   } catch (error) {
@@ -203,8 +203,8 @@ export const sendOutbidNotification = async (data) => {
     const html = await loadTemplate("outbid-notification", {
       previousBidderName: data.previousBidderName,
       productTitle: data.productTitle,
-      yourBidAmount: data.yourBidAmount,
-      currentPrice: data.currentPrice,
+      yourBidAmount: Number(data.yourBidAmount).toLocaleString("vi-VN"),
+      currentPrice: Number(data.currentPrice).toLocaleString("vi-VN"),
       productUrl: data.productUrl,
       auctionEndTime: new Date(data.auctionEndTime).toLocaleString("en-US", {
         dateStyle: "medium",
@@ -214,7 +214,7 @@ export const sendOutbidNotification = async (data) => {
 
     return sendEmail({
       to: data.previousBidderEmail,
-      subject: `You have been outbid: ${data.productTitle}`,
+      subject: `Bạn đã bị vượt mức giá hiện tại: ${data.productTitle}`,
       html,
     });
   } catch (error) {
@@ -261,7 +261,7 @@ export const sendAuctionEndedNoWinnerNotification = async (data) => {
     const html = await loadTemplate("auction-ended-no-winner", {
       sellerName: data.sellerName,
       productTitle: data.productTitle,
-      startPrice: data.startPrice,
+      startPrice: Number(data.startPrice).toLocaleString("vi-VN"),
       startTime: new Date(data.startTime).toLocaleString("en-US", {
         dateStyle: "medium",
         timeStyle: "short",
@@ -275,7 +275,7 @@ export const sendAuctionEndedNoWinnerNotification = async (data) => {
 
     return sendEmail({
       to: data.sellerEmail,
-      subject: `Auction Ended (No Winner): ${data.productTitle}`,
+      subject: `Đấu giá kết thúc (Không có người thắng): ${data.productTitle}`,
       html,
     });
   } catch (error) {
@@ -294,8 +294,8 @@ export const sendAuctionEndedSellerNotification = async (data) => {
       winnerName: data.winnerName,
       winnerEmail: data.winnerEmail,
       winnerPhone: data.winnerPhone,
-      finalPrice: data.finalPrice,
-      startPrice: data.startPrice,
+      finalPrice: Number(data.finalPrice).toLocaleString("vi-VN"),
+      startPrice: Number(data.startPrice).toLocaleString("vi-VN"),
       totalBids: data.totalBids,
       endTime: new Date(data.endTime).toLocaleString("en-US", {
         dateStyle: "medium",
@@ -306,7 +306,7 @@ export const sendAuctionEndedSellerNotification = async (data) => {
 
     return sendEmail({
       to: data.sellerEmail,
-      subject: `Auction Successful: ${data.productTitle}`,
+      subject: `Đấu giá thành công: ${data.productTitle}`,
       html,
     });
   } catch (error) {
@@ -322,7 +322,7 @@ export const sendAuctionWinnerNotification = async (data) => {
     const html = await loadTemplate("auction-winner", {
       winnerName: data.winnerName,
       productTitle: data.productTitle,
-      finalPrice: data.finalPrice,
+      finalPrice: Number(data.finalPrice).toLocaleString("vi-VN"),
       sellerName: data.sellerName,
       sellerEmail: data.sellerEmail,
       sellerPhone: data.sellerPhone,
@@ -336,7 +336,7 @@ export const sendAuctionWinnerNotification = async (data) => {
 
     return sendEmail({
       to: data.winnerEmail,
-      subject: `Congratulations! You Won: ${data.productTitle}`,
+      subject: `Chúc mừng! Bạn đã thắng: ${data.productTitle}`,
       html,
     });
   } catch (error) {
@@ -358,7 +358,7 @@ export const sendSellerAnswerNotification = async (data) => {
       answerText: data.answerText,
       questionAuthor: data.questionAuthor,
       sellerName: data.sellerName,
-      currentPrice: data.currentPrice,
+      currentPrice: Number(data.currentPrice).toLocaleString("vi-VN"),
       auctionEndTime: new Date(data.auctionEndTime).toLocaleString("en-US", {
         dateStyle: "medium",
         timeStyle: "short",
@@ -368,7 +368,7 @@ export const sendSellerAnswerNotification = async (data) => {
 
     return sendEmail({
       to: data.participantEmail,
-      subject: `New Answer on: ${data.productTitle}`,
+      subject: `Câu trả lời mới về: ${data.productTitle}`,
       html,
     });
   } catch (error) {

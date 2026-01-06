@@ -84,4 +84,7 @@ async function startServer() {
   });
 }
 
+
 startServer();
+
+// Server modified to trigger reload (v2)

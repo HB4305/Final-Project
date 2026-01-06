@@ -13,25 +13,32 @@ const notificationService = new NotificationService();
 export const createOrderFromAuction = async (req, res, next) => {
   try {
     const { auctionId } = req.body;
+    console.log(`[CREATE_ORDER] Request for auctionId: ${auctionId}`);
 
     const auction = await Auction.findById(auctionId)
       .populate("productId")
       .populate("currentHighestBidderId");
 
     if (!auction) {
+      console.log(`[CREATE_ORDER] Auction not found: ${auctionId}`);
       throw new AppError("Auction not found", 404);
     }
 
+    console.log(`[CREATE_ORDER] Auction status: ${auction.status}, Winner: ${auction.currentHighestBidderId?._id}`);
+
     if (auction.status !== "ended") {
+      console.log(`[CREATE_ORDER] Auction not ended yet`);
       throw new AppError("Auction has not ended yet", 400);
     }
 
     if (!auction.currentHighestBidderId) {
+      console.log(`[CREATE_ORDER] No bids placed`);
       throw new AppError("No bids were placed on this auction", 400);
     }
 
     const existingOrder = await Order.findOne({ auctionId });
     if (existingOrder) {
+      console.log(`[CREATE_ORDER] Order already exists: ${existingOrder._id}`);
       throw new AppError("Order for this auction already exists", 400);
     }
 
@@ -45,11 +52,13 @@ export const createOrderFromAuction = async (req, res, next) => {
       status: "awaiting_payment",
     });
 
+    console.log(`[CREATE_ORDER] Created order: ${order._id}`);
+
     await notificationService.createNotification({
       userId: order.buyerId,
       type: "order_created",
-      title: "Congratulations! You won the auction",
-      message: `Please proceed to payment for "${auction.productId.title}".`,
+      title: "Chúc mừng! Bạn đã thắng đấu giá",
+      message: `Vui lòng tiến hành thanh toán cho "${auction.productId.title}".`,
       relatedId: order._id,
       relatedModel: "Order",
     });
@@ -69,6 +78,7 @@ export const createOrderFromAuction = async (req, res, next) => {
       data: { order },
     });
   } catch (error) {
+    console.error(`[CREATE_ORDER] Error: ${error.message}`);
     next(error);
   }
 };
@@ -76,10 +86,19 @@ export const createOrderFromAuction = async (req, res, next) => {
 export const getOrderByAuctionId = async (req, res, next) => {
   try {
     const { auctionId } = req.params;
+    console.log(`[GET_ORDER_BY_AUCTION] Request for auctionId: ${auctionId}`);
+
     let order = await Order.findOne({ auctionId })
       .populate("productId", "title slug primaryImageUrl imageUrls")
       .populate("buyerId", "fullName email contactPhone ratingSummary")
       .populate("sellerId", "fullName email contactPhone ratingSummary");
+
+    // Check if order exists logs
+    if (order) {
+      console.log(`[GET_ORDER_BY_AUCTION] Found existing order: ${order._id}`);
+    } else {
+      console.log(`[GET_ORDER_BY_AUCTION] Order not found for auctionId: ${auctionId}. Checks auction details...`);
+    }
 
     // If order doesn't exist, check if auction ended with winner and auto-create order
     if (!order) {
@@ -88,11 +107,15 @@ export const getOrderByAuctionId = async (req, res, next) => {
         .populate("currentHighestBidderId");
 
       if (!auction) {
+        console.log(`[GET_ORDER_BY_AUCTION] Auction not found`);
         throw new AppError("Auction not found", 404);
       }
 
+      console.log(`[GET_ORDER_BY_AUCTION] Auction status: ${auction.status}, Winner: ${auction.currentHighestBidderId?._id}`);
+
       // If auction ended with winner, create order automatically
       if (auction.status === "ended" && auction.currentHighestBidderId) {
+        console.log(`[GET_ORDER_BY_AUCTION] Auto-creating order...`);
         order = await Order.create({
           auctionId: auction._id,
           productId: auction.productId._id,
@@ -107,8 +130,8 @@ export const getOrderByAuctionId = async (req, res, next) => {
         await notificationService.createNotification({
           userId: order.buyerId,
           type: "order_created",
-          title: "Congratulations! You won the auction",
-          message: `Please proceed with payment for "${auction.productId.title}"`,
+          title: "Chúc mừng! Bạn đã thắng đấu giá",
+          message: `Vui lòng tiến hành thanh toán cho "${auction.productId.title}"`,
           relatedId: order._id,
           relatedModel: "Order",
         });
@@ -129,6 +152,7 @@ export const getOrderByAuctionId = async (req, res, next) => {
           .populate("buyerId", "fullName email contactPhone ratingSummary")
           .populate("sellerId", "fullName email contactPhone ratingSummary");
       } else {
+        console.log(`[GET_ORDER_BY_AUCTION] Auction not eligible for auto-creation (Status: ${auction.status}, Winner: ${!!auction.currentHighestBidderId})`);
         throw new AppError("No order available for this auction yet", 404);
       }
     }
@@ -137,6 +161,8 @@ export const getOrderByAuctionId = async (req, res, next) => {
     const sellerId = order.sellerId?._id ? order.sellerId._id.toString() : order.sellerId.toString();
     const userId = req.user._id.toString();
 
+    console.log(`[GET_ORDER_BY_AUCTION] Buyer: ${buyerId}, Seller: ${sellerId}, CurrentUser: ${userId}`);
+
     const isAdmin = req.user.roles.includes("admin") || req.user.roles.includes("superadmin");
     const isAuthorized =
       buyerId === userId ||
@@ -144,6 +170,7 @@ export const getOrderByAuctionId = async (req, res, next) => {
       isAdmin;
 
     if (!isAuthorized) {
+      console.log(`[GET_ORDER_BY_AUCTION] Unauthorized access`);
       throw new AppError("Not authorized to view this order", 403);
     }
 
@@ -214,14 +241,25 @@ export const getOrderDetail = async (req, res, next) => {
       userRole = "admin";
     }
 
-    const ratings = await Rating.find({ orderId: order._id })
-      .populate("raterId", "username fullName")
-      .populate("rateeId", "username fullName")
-      .lean();
+    const buyerRating = await Rating.findOne({
+      orderId: order._id,
+      raterId: order.buyerId,
+    });
+    const sellerRating = await Rating.findOne({
+      orderId: order._id,
+      raterId: order.sellerId,
+    });
 
     res.status(200).json({
       status: "success",
-      data: { order, userRole, ratings },
+      data: {
+        order,
+        userRole,
+        ratings: {
+          buyerRating,
+          sellerRating,
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -260,8 +298,7 @@ export const submitPaymentInfo = async (req, res, next) => {
       uploadedAt: new Date(),
     };
 
-    // Note: Order model doesn't have metadata field, so we cannot save address there.
-    // Instead we will pass it via notification to seller.
+    order.shippingAddress = shippingAddress;
 
     await order.save();
 
@@ -515,38 +552,38 @@ export const rateTransaction = async (req, res, next) => {
       // However, for now, let's keep the update logic here slightly or use service if available.
       // RatingService doesn't seem to have updateRating exposed well for this context or I didn't see it fully.
       // Let's re-read RatingService in next step if needed, but safe bet:
-      
+
       const existingRating = await Rating.findOne({ orderId, raterId });
-      
+
       if (existingRating) {
-         // Update existing
-         existingRating.score = score;
-         existingRating.comment = comment;
-         existingRating.updatedAt = new Date();
-         await existingRating.save();
-         // Update summary via service private method? No, service doesn't expose it publically easily?
-         // Actually RatingService has _updateUserRatingSummary but it is private convention.
-         // But we can call it if we import the instance. 
-         // Javascript classes, _ is just convention.
-         await ratingService._updateUserRatingSummary(rateeId);
-         rating = existingRating;
+        // Update existing
+        existingRating.score = score;
+        existingRating.comment = comment;
+        existingRating.updatedAt = new Date();
+        await existingRating.save();
+        // Update summary via service private method? No, service doesn't expose it publically easily?
+        // Actually RatingService has _updateUserRatingSummary but it is private convention.
+        // But we can call it if we import the instance. 
+        // Javascript classes, _ is just convention.
+        await ratingService._updateUserRatingSummary(rateeId);
+        rating = existingRating;
       } else {
-         // Create new
-         rating = await ratingService.createRating(raterId, rateeId, {
-            score,
-            comment,
-            orderId,
-            context
-         });
+        // Create new
+        rating = await ratingService.createRating(raterId, rateeId, {
+          score,
+          comment,
+          orderId,
+          context
+        });
       }
     } else {
-        // No orderId case? (Unlikely for rateTransaction but possible in code path)
-        rating = await ratingService.createRating(raterId, rateeId, {
-            score,
-            comment,
-            orderId,
-            context
-         });
+      // No orderId case? (Unlikely for rateTransaction but possible in code path)
+      rating = await ratingService.createRating(raterId, rateeId, {
+        score,
+        comment,
+        orderId,
+        context
+      });
     }
 
     res.status(200).json({
@@ -594,7 +631,7 @@ export const cancelOrder = async (req, res, next) => {
       score: -1,
       comment: reason || "Transaction cancelled by seller",
       orderId: order._id,
-      context: "seller_to_buyer" 
+      context: "seller_to_buyer"
     });
 
     await notificationService.createNotification(

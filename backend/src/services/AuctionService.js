@@ -120,7 +120,7 @@ export class AuctionService {
             } else {
                 // Has winner
                 const winner = await User.findById(auction.currentHighestBidderId);
-                const orderUrl = order ? `${process.env.FRONTEND_URL}/payment?orderId=${order._id}` : `${process.env.FRONTEND_URL}/profile/orders`;
+                const orderUrl = `${process.env.FRONTEND_URL}/product/${auction.productId}`;
 
                 if (seller && winner) {
                     // Email to Seller

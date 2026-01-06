@@ -812,28 +812,26 @@ export class ProductService {
     try {
       const { incrementView = true } = options;
       
-      let product;
-      
-      if (incrementView) {
-        product = await Product.findByIdAndUpdate(
-          productId,
-          { $inc: { views: 1 } },
-          { new: true }
-        )
+      // 1. Fetch product (Read-only, fast)
+      const product = await Product.findById(productId)
         .populate("categoryId", "name slug")
-        .populate("sellerId", "username email profileImageUrl ratingSummary createdAt address");
-      } else {
-        product = await Product.findById(productId)
-          .populate("categoryId", "name slug")
-          .populate("sellerId", "username email profileImageUrl ratingSummary createdAt address");
-      }
+        .populate("sellerId", "username email profileImageUrl ratingSummary createdAt address")
+        .lean();
 
       if (!product) {
         throw new AppError("Sản phẩm không tồn tại", 404, "PRODUCT_NOT_FOUND");
       }
 
-      // Chuyển sang plain object
-      const productObj = product.toObject ? product.toObject() : product;
+      // 2. Increment view (Async / Non-blocking)
+      if (incrementView) {
+        // Fire and forget - don't await to avoid blocking response
+        Product.updateOne({ _id: productId }, { $inc: { views: 1 } }).catch(err => {
+            console.error(`[PRODUCT SERVICE] Failed to increment view for ${productId}:`, err.message);
+        });
+      }
+
+      // Product is already a plain object due to lean()
+      const productObj = product;
 
       // Lấy thông tin phiên đấu giá hiện tại
       const auction = await Auction.findOne({ productId: productId })
