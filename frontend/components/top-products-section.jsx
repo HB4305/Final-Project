@@ -269,7 +269,7 @@ function ProductCard({
   return (
     <div className="group cursor-pointer glass-card rounded-2xl bg-white dark:bg-white/[0.03] hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-300 overflow-hidden relative border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-lg">
       {/* Product Image */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden">
         <Link
           to={`/product/${product.product?.productId}`}
           className="block w-full h-full"
@@ -277,7 +277,7 @@ function ProductCard({
           <img
             src={product.product?.image || FALLBACK_IMAGE}
             alt={product.product?.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+            className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-700"
             onError={(e) => {
               e.target.src = FALLBACK_IMAGE;
             }}

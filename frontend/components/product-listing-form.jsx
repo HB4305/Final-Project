@@ -578,7 +578,7 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                   </div>
                 ) : (
                   <div className="relative rounded-2xl overflow-hidden border-2 border-blue-500/50 shadow-lg">
-                    <div className="aspect-video w-full">
+                    <div className="aspect-[4/3] w-full">
                       <img
                         src={mainImage.preview}
                         alt="Main preview"
