@@ -227,11 +227,6 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
 
         setModalMessage(result.message + statusMsg);
         setShowSuccessModal(true);
-
-        // Redirect after modal closes
-        setTimeout(() => {
-          window.location.href = "/products";
-        }, 2000);
       } else {
         setModalMessage(result.message || "Không thể tạo sản phẩm");
         setShowErrorModal(true);
@@ -818,8 +813,8 @@ export default function ProductListingForm({ onSubmit, initialData = null }) {
                     setShowErrorModal(false);
                   }}
                   className={`w-full py-3.5 px-6 rounded-xl font-bold text-white transition-all hover:shadow-lg ${showSuccessModal
-                      ? 'bg-green-600 hover:bg-green-700 shadow-green-900/20'
-                      : 'bg-red-600 hover:bg-red-700 shadow-red-900/20'
+                    ? 'bg-green-600 hover:bg-green-700 shadow-green-900/20'
+                    : 'bg-red-600 hover:bg-red-700 shadow-red-900/20'
                     }`}
                 >
                   {showSuccessModal ? 'Hoàn tất' : 'Thử lại'}
