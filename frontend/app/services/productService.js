@@ -3,13 +3,16 @@
 import api from "./api.js";
 
 /**
- * Lấy chi tiết sản phẩm theo ID
  * @param {string} productId - ID của sản phẩm
+ * @param {Object} options - { incrementView: boolean }
  * @returns {Promise}
  */
-export const getProductById = async (productId) => {
+export const getProductById = async (productId, options = {}) => {
   try {
-    const response = await api.get(`/products/${productId}`);  
+    const { incrementView = true } = options;
+    const response = await api.get(`/products/${productId}`, {
+      params: { incrementView }
+    });  
     // Backend returns { data: { product, relatedProducts } }
     const productData = response.data.data;
     

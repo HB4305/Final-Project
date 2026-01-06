@@ -21,6 +21,7 @@ import {
   sendAuctionWinnerNotification,
   sendAuctionEndedSellerNotification
 } from '../utils/email.js';
+import { notificationService } from './NotificationService.js';
 
 export class BidService {
   /**
@@ -376,6 +377,7 @@ export class BidService {
               const yourBidAmount = prevBid ? prevBid.maxAmount : auction.currentPrice;
 
               if (previousWinner) {
+                // Email Notification
                 await sendOutbidNotification({
                   previousBidderEmail: previousWinner.email,
                   previousBidderName: previousWinner.fullName,
@@ -384,6 +386,16 @@ export class BidService {
                   currentPrice: resolveResult.currentPrice.toLocaleString('vi-VN'),
                   productUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
                   auctionEndTime: resolveResult.endAt || auction.endAt
+                });
+
+                // In-App Notification (NEW)
+                await notificationService.notifyBidOutbid({
+                  previousBidderId: previousWinner._id,
+                  previousBidderEmail: previousWinner.email,
+                  productTitle: product.title,
+                  newPrice: resolveResult.currentPrice.toLocaleString('vi-VN'),
+                  productId: auction.productId,
+                  auctionId: auction._id
                 });
               }
             }

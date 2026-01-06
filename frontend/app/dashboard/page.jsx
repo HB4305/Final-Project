@@ -181,7 +181,7 @@ export default function DashboardPage() {
             score: -1,
             comment: "Người thắng không thanh toán",
             orderId: auctionId, // Using auctionId as orderId for now
-            context: "post_transaction"
+            context: "seller_to_buyer"
           });
         } catch (ratingErr) {
           console.error("Auto rating failed:", ratingErr);
@@ -888,11 +888,12 @@ export default function DashboardPage() {
                 userType={selectedTransactionForRating.type === "rating_seller" ? "buyer" : "seller"}
                 onSubmitRating={handleRatingSuccess}
                 customSubmitAction={async ({ score, comment }) => {
+                  const context = selectedTransactionForRating.type === "rating_seller" ? "buyer_to_seller" : "seller_to_buyer";
                   await ratingService.createRating(selectedTransactionForRating.targetUser._id, {
                     score,
                     comment,
                     orderId: selectedTransactionForRating.auction?.orderId,
-                    context: "post_transaction"
+                    context
                   });
                 }}
               />

@@ -805,17 +805,28 @@ export class ProductService {
    * - 5 sản phẩm cùng danh mục (related products)
    *
    * @param {String} productId - ID sản phẩm
+   * @param {Object} options - Các tùy chọn bổ sung
+   * @param {Boolean} options.incrementView - Có tăng lượt xem hay không (default: true)
    */
-  async getProductDetail(productId) {
+  async getProductDetail(productId, options = {}) {
     try {
-
-      const product = await Product.findByIdAndUpdate(
-        productId,
-        { $inc: { views: 1 } },
-        { new: true }
-      )
+      const { incrementView = true } = options;
+      
+      let product;
+      
+      if (incrementView) {
+        product = await Product.findByIdAndUpdate(
+          productId,
+          { $inc: { views: 1 } },
+          { new: true }
+        )
         .populate("categoryId", "name slug")
         .populate("sellerId", "username email profileImageUrl ratingSummary createdAt address");
+      } else {
+        product = await Product.findById(productId)
+          .populate("categoryId", "name slug")
+          .populate("sellerId", "username email profileImageUrl ratingSummary createdAt address");
+      }
 
       if (!product) {
         throw new AppError("Sản phẩm không tồn tại", 404, "PRODUCT_NOT_FOUND");

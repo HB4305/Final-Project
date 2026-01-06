@@ -3,6 +3,7 @@
 import { Rating, User, Order } from "../models/index.js";
 import { AppError } from "../utils/errors.js";
 import { RATING_SCORE, RATING_CONTEXT } from "../lib/constants.js";
+import mongoose from "mongoose";
 
 export class RatingService {
   /**
@@ -89,10 +90,11 @@ export class RatingService {
    * @param {string} userId - ID người dùng
    */
   async _updateUserRatingSummary(userId) {
+    console.log(`[RatingService] Updating summary for user: ${userId}`);
     const stats = await Rating.aggregate([
       { 
         $match: { 
-          rateeId: userId,
+          rateeId: new mongoose.Types.ObjectId(userId),
           context: { $in: ['buyer_to_seller', 'seller_to_buyer', 'post_transaction'] }
         } 
       },
@@ -129,6 +131,7 @@ export class RatingService {
           };
 
     await User.findByIdAndUpdate(userId, { ratingSummary: summary });
+    console.log(`[RatingService] Updated summary for ${userId}:`, summary);
   }
 
   // ... (updateRating logic remains mostly same but uses ID usually)

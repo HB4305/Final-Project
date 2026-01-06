@@ -57,7 +57,10 @@ export const useProductDetail = (productId) => {
     try {
       if (!isBackground) setLoading(true);
       setError(null);
-      const response = await productService.getProductById(productId);
+      // Only increment view if it's NOT a background fetch
+      const response = await productService.getProductById(productId, { 
+        incrementView: !isBackground 
+      });
       
       if (response.success) {
         setProduct(response.data);

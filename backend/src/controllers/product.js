@@ -529,7 +529,8 @@ export const getProductDetail = async (req, res, next) => {
       throw new AppError("ID sản phẩm không hợp lệ", 400, "INVALID_PRODUCT_ID");
     }
 
-    const result = await productService.getProductDetail(productId);
+    const incrementView = req.query.incrementView !== 'false';
+    const result = await productService.getProductDetail(productId, { incrementView });
 
     res.status(200).json({
       status: "success",

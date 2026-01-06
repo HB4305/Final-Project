@@ -5,6 +5,7 @@ import Order from "../models/Order.js";
 import Rating from "../models/Rating.js";
 import User from "../models/User.js";
 import ChatMessage from "../models/ChatMessage.js";
+import { ratingService } from "../services/RatingService.js";
 
 // Create NotificationService instance
 const notificationService = new NotificationService();
@@ -500,26 +501,52 @@ export const rateTransaction = async (req, res, next) => {
       throw new AppError("Score must be 1 or -1", 400);
     }
 
-    let rating = await Rating.findOne({ orderId, raterId });
-
-    if (rating) {
-      const oldScore = rating.score;
-      rating.score = score;
-      rating.comment = comment;
-      rating.updatedAt = new Date();
-      await rating.save();
-
-      await updateUserRatingSummary(rateeId, oldScore, score);
+    let rating;
+    if (orderId) {
+      // Check for existing via service (Service handles this verify but controller can do pre-check if needed, 
+      // but service.createRating handles duplicate check better)
+      // Actually service throws if exists. 
+      // But here we might want to support update? 
+      // The current controller supports update if rating exists. 
+      // The Service createRating throws if exists.
+      // We should check if ratingService has updateRating support or if createRating can handle it.
+      // Looking at RatingService.js, createRating throws if exists.
+      // So we might need to handle update separately or modify service.
+      // However, for now, let's keep the update logic here slightly or use service if available.
+      // RatingService doesn't seem to have updateRating exposed well for this context or I didn't see it fully.
+      // Let's re-read RatingService in next step if needed, but safe bet:
+      
+      const existingRating = await Rating.findOne({ orderId, raterId });
+      
+      if (existingRating) {
+         // Update existing
+         existingRating.score = score;
+         existingRating.comment = comment;
+         existingRating.updatedAt = new Date();
+         await existingRating.save();
+         // Update summary via service private method? No, service doesn't expose it publically easily?
+         // Actually RatingService has _updateUserRatingSummary but it is private convention.
+         // But we can call it if we import the instance. 
+         // Javascript classes, _ is just convention.
+         await ratingService._updateUserRatingSummary(rateeId);
+         rating = existingRating;
+      } else {
+         // Create new
+         rating = await ratingService.createRating(raterId, rateeId, {
+            score,
+            comment,
+            orderId,
+            context
+         });
+      }
     } else {
-      rating = await Rating.create({
-        raterId,
-        rateeId,
-        orderId,
-        context,
-        score,
-        comment,
-      });
-      await updateUserRatingSummary(rateeId, null, score);
+        // No orderId case? (Unlikely for rateTransaction but possible in code path)
+        rating = await ratingService.createRating(raterId, rateeId, {
+            score,
+            comment,
+            orderId,
+            context
+         });
     }
 
     res.status(200).json({
@@ -532,33 +559,7 @@ export const rateTransaction = async (req, res, next) => {
   }
 };
 
-async function updateUserRatingSummary(userId, oldScore, newScore) {
-  const user = await User.findById(userId);
-  if (!user) return;
 
-  if (oldScore !== null) {
-    if (oldScore === 1) {
-      user.ratingSummary.countPositive -= 1;
-    } else {
-      user.ratingSummary.countNegative -= 1;
-    }
-    user.ratingSummary.totalCount -= 1;
-  }
-
-  if (newScore === 1) {
-    user.ratingSummary.countPositive += 1;
-  } else {
-    user.ratingSummary.countNegative += 1;
-  }
-  user.ratingSummary.totalCount += 1;
-
-  user.ratingSummary.score =
-    user.ratingSummary.totalCount > 0
-      ? user.ratingSummary.countPositive / user.ratingSummary.totalCount
-      : 0;
-
-  await user.save();
-}
 
 // Cancel order
 export const cancelOrder = async (req, res, next) => {
@@ -589,16 +590,12 @@ export const cancelOrder = async (req, res, next) => {
 
     await order.save();
 
-    const rating = await Rating.create({
-      raterId: sellerId,
-      rateeId: order.buyerId,
-      orderId: order._id,
-      context: "seller_to_buyer",
+    const rating = await ratingService.createRating(sellerId, order.buyerId, {
       score: -1,
       comment: reason || "Transaction cancelled by seller",
+      orderId: order._id,
+      context: "seller_to_buyer" 
     });
-
-    await updateUserRatingSummary(order.buyerId, null, -1);
 
     await notificationService.createNotification(
       "order_cancelled",

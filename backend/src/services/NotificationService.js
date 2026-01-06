@@ -142,6 +142,26 @@ export class NotificationService {
   }
 
   /**
+   * Tạo notification khi bidder bị vượt giá (Outbid)
+   * @param {Object} outbidData - Thông tin outbid
+   */
+  async notifyBidOutbid(outbidData) {
+    const { previousBidderId, previousBidderEmail, productTitle, newPrice, productId, auctionId } = outbidData;
+
+    await this.createNotification(
+      NOTIFICATION_TYPES.BID_OUTBID,
+      [{ userId: previousBidderId, email: previousBidderEmail }],
+      {
+        auctionId,
+        productId,
+        productTitle,
+        newPrice,
+        message: `Bạn đã bị vượt giá ở sản phẩm: ${productTitle}`
+      }
+    );
+  }
+
+  /**
    * Tạo notification khi có trả lời cho câu hỏi
    * @param {Object} answerData - Thông tin trả lời
    */

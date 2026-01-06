@@ -361,7 +361,14 @@ export default function RatingsPage() {
                           {isPositive ? "Tích cực" : "Tiêu cực"}
                         </span>
                         <span className="text-xs text-gray-400 font-medium px-2 py-0.5 bg-white/10 rounded">
-                          {rating.context === "post_transaction" ? "Hủy giao dịch" : (rating.context || "").replace(/_/g, " ")}
+                          {(() => {
+                            if (rating.context === "post_transaction") {
+                              return rating.score === -1 ? "Hủy giao dịch" : "Giao dịch thành công";
+                            }
+                            if (rating.context === "buyer_to_seller") return "Người mua đánh giá";
+                            if (rating.context === "seller_to_buyer") return "Người bán đánh giá";
+                            return (rating.context || "").replace(/_/g, " ");
+                          })()}
                         </span>
                       </div>
 
