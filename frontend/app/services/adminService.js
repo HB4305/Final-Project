@@ -30,11 +30,11 @@ const updateAutoExtendSettings = (settings) => {
 };
 
 export default {
-    getAllUsers,
-    getUpgradeRequests,
-    approveUpgradeRequest,
-    rejectUpgradeRequest,
-    deleteUser,
-    getAutoExtendSettings,
-    updateAutoExtendSettings,
+  getAllUsers,
+  getUpgradeRequests,
+  approveUpgradeRequest,
+  rejectUpgradeRequest,
+  deleteUser,
+  getAutoExtendSettings,
+  updateAutoExtendSettings,
 };

@@ -51,7 +51,7 @@ export default function UpgradeRequest({
       try {
         const response = await userService.getMe();
         const userData = response.data.user;
-        
+
         // Check if user has been upgraded to seller
         if (userData.roles?.includes('seller')) {
           console.log('[UPGRADE] User upgraded to seller, refreshing auth...');
@@ -232,15 +232,6 @@ export default function UpgradeRequest({
                   Yêu cầu nâng cấp người bán của bạn đã được gửi thành công.
                   Nhóm quản trị của chúng tôi sẽ xem xét trong vòng 7 ngày.
                 </p>
-
-                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg text-left">
-                  <h3 className="font-semibold mb-2 text-blue-400">Tiếp theo sẽ xảy ra gì?</h3>
-                  <ul className="text-sm text-gray-400 space-y-2">
-                    <li>Quản trị viên sẽ xem xét hồ sơ và lịch sử đấu giá của bạn</li>
-                    <li>Nếu được chấp thuận, các tính năng người bán sẽ được kích hoạt ngay lập tức</li>
-                    <li>Quá trình xem xét thường mất từ 3-7 ngày làm việc</li>
-                  </ul>
-                </div>
               </div>
             )}
 
@@ -254,7 +245,7 @@ export default function UpgradeRequest({
                   <p className="text-sm text-blue-300 mb-3">
                     <strong>Quan trọng:</strong> Để truy cập các tính năng người bán, vui lòng làm mới phiên của bạn.
                   </p>
-                  <button 
+                  <button
                     onClick={async () => {
                       setIsRefreshing(true);
                       try {
@@ -349,12 +340,8 @@ export default function UpgradeRequest({
               {/* User Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-blue-400">{currentUser.rating || 0}</p>
+                  <p className="text-2xl font-bold text-blue-400">{currentUser.ratingSummary.totalCount || 0}</p>
                   <p className="text-xs text-gray-400">Đánh giá</p>
-                </div>
-                <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-blue-400">{currentUser.totalBids || 0}</p>
-                  <p className="text-xs text-gray-400">Tổng số lần đặt giá</p>
                 </div>
                 <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg text-center">
                   <p className="text-2xl font-bold text-blue-400">
@@ -364,29 +351,6 @@ export default function UpgradeRequest({
                   </p>
                   <p className="text-xs text-gray-400">Tích cực</p>
                 </div>
-              </div>
-
-              {/* Benefits */}
-              <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg mb-6">
-                <h3 className="font-semibold text-green-400 mb-3">Lợi ích của người bán</h3>
-                <ul className="space-y-2 text-sm text-gray-300">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />
-                    <span>Đăng danh sách sản phẩm không giới hạn để đấu giá</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />
-                    <span>Truy cập bảng điều khiển và phân tích người bán</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />
-                    <span>Quản lý đặt giá và giao tiếp với người mua</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />
-                    <span>Huy hiệu xác minh người bán</span>
-                  </li>
-                </ul>
               </div>
 
               {/* Request Form */}
@@ -404,7 +368,7 @@ export default function UpgradeRequest({
                     required
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Tối thiểu 50 ký tự. Hãy cụ thể và chân thành.
+                    Tối thiểu 50 ký tự.
                   </p>
                 </div>
 

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Loader, Trash2, Eye, RefreshCw, X, AlertTriangle } from "lucide-react";
+import { Loader, Trash2, Eye, RefreshCw, X, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminNavigation from "../../../components/admin-navigation";
 import productService from "../../services/productService";
 import { getProductAdminDetails } from "../../services/productService";
 import Toast from "../../../components/Toast";
+import Pagination from "../../../components/Pagination";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([]);
@@ -15,6 +16,10 @@ export default function AdminProductsPage() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const fetchProducts = async () => {
     try {
@@ -84,7 +89,6 @@ export default function AdminProductsPage() {
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center gap-2 font-medium shadow-lg shadow-primary/20"
             >
               <RefreshCw className="w-4 h-4" />
-              Làm mới
             </button>
           </div>
 
@@ -122,96 +126,101 @@ export default function AdminProductsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {products.map((product) => (
-                    <tr
-                      key={product._id}
-                      className="bg-white/5 border-b border-gray-800 hover:bg-white/10 cursor-pointer transition-colors"
-                      onClick={async () => {
-                        setShowDetailModal(true);
-                        setLoadingDetails(true);
-                        const response = await getProductAdminDetails(
-                          product._id
-                        );
-                        if (response.success) {
-                          setSelectedProduct(response.data);
-                        } else {
-                          setToast({
-                            message: "Không thể tải chi tiết sản phẩm",
-                            type: "error",
-                          });
-                          setShowDetailModal(false);
-                        }
-                        setLoadingDetails(false);
-                      }}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <img
-                            src={product.primaryImageUrl || "/placeholder.svg"}
-                            alt={product.title}
-                            className="h-16 w-16 object-cover rounded-lg border border-border"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-foreground truncate">
-                              {product.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {typeof product.category === "object"
-                                ? product.category?.name
-                                : product.category}
-                            </p>
-                            <p className="text-xs text-muted-foreground/80 mt-0.5">
-                              {product.auction.bidCount} lượt đặt
-                            </p>
+                  {(() => {
+                    const indexOfLastItem = currentPage * itemsPerPage;
+                    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+                    const paginatedProducts = products.slice(indexOfFirstItem, indexOfLastItem);
+
+                    return paginatedProducts.map((product) => (
+                      <tr
+                        key={product._id}
+                        className="bg-white/5 border-b border-gray-800 hover:bg-white/10 cursor-pointer transition-colors"
+                        onClick={async () => {
+                          setShowDetailModal(true);
+                          setLoadingDetails(true);
+                          const response = await getProductAdminDetails(
+                            product._id
+                          );
+                          if (response.success) {
+                            setSelectedProduct(response.data);
+                          } else {
+                            setToast({
+                              message: "Không thể tải chi tiết sản phẩm",
+                              type: "error",
+                            });
+                            setShowDetailModal(false);
+                          }
+                          setLoadingDetails(false);
+                        }}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={product.primaryImageUrl || "/placeholder.svg"}
+                              alt={product.title}
+                              className="h-16 w-16 object-cover rounded-lg border border-border"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-foreground truncate">
+                                {product.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {typeof product.category === "object"
+                                  ? product.category?.name
+                                  : product.category}
+                              </p>
+                              <p className="text-xs text-muted-foreground/80 mt-0.5">
+                                {product.auction.bidCount} lượt đặt
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-lg font-bold text-primary">
-                          {(
-                            product.auction.currentPrice ||
-                            product.auction.currentBid ||
-                            0
-                          ).toLocaleString('vi-VN')} VNĐ
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
-                            product.auction.status === "active"
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-lg font-bold text-primary">
+                            {(
+                              product.auction.currentPrice ||
+                              product.auction.currentBid ||
+                              0
+                            ).toLocaleString('vi-VN')} VNĐ
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${product.auction.status === "active"
                               ? "bg-green-500/10 text-green-500 border-green-500/20"
                               : product.auction.status === "ended"
-                              ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                              : product.auction.status === "scheduled"
-                              ? "bg-gray-500/10 text-gray-500 border-gray-500/20"
-                              : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                          }`}
-                        >
-                          {product.auction.status || "active"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link
-                          to={`/product/${product._id}`}
-                          className="text-blue-500 hover:text-blue-400 mr-4 transition"
-                          onClick={(e) => e.stopPropagation()}
-                          title="Xem trên trang"
-                        >
-                          <Eye className="w-5 h-5 inline" />
-                        </Link>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(product);
-                          }}
-                          className="text-red-500 hover:text-red-400 transition"
-                          title="Xóa sản phẩm"
-                        >
-                          <Trash2 className="w-5 h-5 inline" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                                ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                                : product.auction.status === "scheduled"
+                                  ? "bg-gray-500/10 text-gray-500 border-gray-500/20"
+                                  : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                              }`}
+                          >
+                            {product.auction.status || "active"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <Link
+                            to={`/product/${product._id}`}
+                            className="text-blue-500 hover:text-blue-400 mr-4 transition"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Xem trên trang"
+                          >
+                            <Eye className="w-5 h-5 inline" />
+                          </Link>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(product);
+                            }}
+                            className="text-red-500 hover:text-red-400 transition"
+                            title="Xóa sản phẩm"
+                          >
+                            <Trash2 className="w-5 h-5 inline" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  })()}
                 </tbody>
               </table>
 
@@ -219,6 +228,16 @@ export default function AdminProductsPage() {
                 <div className="text-center py-12 text-muted-foreground">
                   Không tìm thấy sản phẩm nào.
                 </div>
+              )}
+
+              {/* Pagination */}
+              {products.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={products.length}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                />
               )}
             </div>
           )}
@@ -234,19 +253,17 @@ export default function AdminProductsPage() {
               className="bg-background border border-border rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+              {/* Header */}
+              <div className="bg-muted/50 border-b border-border p-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h2 className="text-2xl font-bold mb-2">
-                      Chi tiết sản phẩm (Admin)
+                    <h2 className="text-2xl font-bold text-foreground mb-2">
+                      Chi tiết sản phẩm
                     </h2>
-                    <p className="text-blue-100">
-                      Thông tin đầy đủ về sản phẩm và phiên đấu giá
-                    </p>
                   </div>
                   <button
                     onClick={() => setShowDetailModal(false)}
-                    className="p-2 hover:bg-white/20 rounded-lg transition"
+                    className="p-2 hover:bg-muted rounded-lg transition text-muted-foreground hover:text-foreground"
                   >
                     <X className="w-6 h-6" />
                   </button>
@@ -354,13 +371,12 @@ export default function AdminProductsPage() {
                               Trạng thái
                             </span>
                             <span
-                              className={`text-xl font-bold capitalize ${
-                                selectedProduct.auction?.status === "active"
-                                  ? "text-green-500"
-                                  : selectedProduct.auction?.status === "ended"
+                              className={`text-xl font-bold capitalize ${selectedProduct.auction?.status === "active"
+                                ? "text-green-500"
+                                : selectedProduct.auction?.status === "ended"
                                   ? "text-blue-500"
                                   : "text-yellow-500"
-                              }`}
+                                }`}
                             >
                               {selectedProduct.auction?.status || "active"}
                             </span>
@@ -370,35 +386,34 @@ export default function AdminProductsPage() {
 
                       <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
                         <div>
-                        <span className="text-muted-foreground block mb-1 font-bold">
-                          Giá khởi điểm
-                        </span>
-                        <span className="text-foreground font-medium text-base">
-                          {(
-                            selectedProduct.auction?.startPrice || 0
-                          ).toLocaleString('vi-VN')} VNĐ
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block mb-1 font-bold">
-                          Bước giá
-                        </span>
-                        <span className="text-foreground font-medium text-base">
-                          {(
-                            selectedProduct.auction?.priceStep || 0
-                          ).toLocaleString('vi-VN')} VNĐ
-                        </span>
-                      </div>
-                      <div>
+                          <span className="text-muted-foreground block mb-1 font-bold">
+                            Giá khởi điểm
+                          </span>
+                          <span className="text-foreground font-medium text-base">
+                            {(
+                              selectedProduct.auction?.startPrice || 0
+                            ).toLocaleString('vi-VN')} VNĐ
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1 font-bold">
+                            Bước giá
+                          </span>
+                          <span className="text-foreground font-medium text-base">
+                            {(
+                              selectedProduct.auction?.priceStep || 0
+                            ).toLocaleString('vi-VN')} VNĐ
+                          </span>
+                        </div>
+                        <div>
                           <span className="text-muted-foreground block mb-1 font-bold">
                             Tự động gia hạn
                           </span>
                           <span
-                            className={`font-medium text-base ${
-                              selectedProduct.auction?.autoExtendEnabled
-                                ? "text-green-500"
-                                : "text-muted-foreground"
-                            }`}
+                            className={`font-medium text-base ${selectedProduct.auction?.autoExtendEnabled
+                              ? "text-green-500"
+                              : "text-muted-foreground"
+                              }`}
                           >
                             {selectedProduct.auction?.autoExtendEnabled
                               ? "Bật"
@@ -412,8 +427,8 @@ export default function AdminProductsPage() {
                           <span className="text-foreground font-medium">
                             {selectedProduct.auction?.startAt
                               ? new Date(
-                                  selectedProduct.auction.startAt
-                                ).toLocaleString('vi-VN')
+                                selectedProduct.auction.startAt
+                              ).toLocaleString('vi-VN')
                               : "N/A"}
                           </span>
                         </div>
@@ -424,8 +439,8 @@ export default function AdminProductsPage() {
                           <span className="text-foreground font-medium">
                             {selectedProduct.auction?.endAt
                               ? new Date(
-                                  selectedProduct.auction.endAt
-                                ).toLocaleString('vi-VN')
+                                selectedProduct.auction.endAt
+                              ).toLocaleString('vi-VN')
                               : "Chưa xác định"}
                           </span>
                         </div>
@@ -444,14 +459,6 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
               )}
-              <div className="bg-muted/50 px-8 py-4 flex justify-end">
-                <button
-                  onClick={() => setShowDetailModal(false)}
-                  className="px-6 py-2 bg-muted text-foreground hover:bg-muted/80 border border-border rounded-lg transition font-medium"
-                >
-                  Đóng
-                </button>
-              </div>
             </div>
           </div>
         )}
