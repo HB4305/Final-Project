@@ -116,8 +116,8 @@ const useWatchlist = () => {
 
   const toggleWatchlist = useCallback(async (productId) => {
     if (!isLoggedIn) {
-        navigate("/auth/login");
-        return;
+      navigate("/auth/login");
+      return;
     }
 
     // Optimistic update
@@ -137,7 +137,7 @@ const useWatchlist = () => {
       // Let's use the fact that we just toggled it.
       // If `watchlist.has(productId)` checks the state *when the function was created*, it depends on `watchlist` dependency.
       // So `watchlist` in closure is the state *before* the setWatchlist update.
-      
+
       const isWatched = watchlist.has(productId);
       if (isWatched) {
         await watchlistService.removeFromWatchlist(productId);
@@ -306,8 +306,8 @@ export default function ProductsPage() {
     // Note: selectedCategory can be "All" or a name
     let categoryId = null;
     if (selectedCategory && selectedCategory !== 'All' && allCategories.length > 0) {
-        const cat = allCategories.find(c => c.name === selectedCategory);
-        if (cat) categoryId = cat._id;
+      const cat = allCategories.find(c => c.name === selectedCategory);
+      if (cat) categoryId = cat._id;
     }
 
     const params = {
@@ -372,6 +372,25 @@ export default function ProductsPage() {
     );
   };
 
+  const [showRestrictionModal, setShowRestrictionModal] = useState(false);
+  const [restrictionType, setRestrictionType] = useState(null); // 'guest' | 'bidder'
+  const navigate = useNavigate();
+
+  const handleCreateProduct = () => {
+    if (!currentUser) {
+      setRestrictionType('guest');
+      setShowRestrictionModal(true);
+      return;
+    }
+
+    if (currentUser?.roles?.includes('seller') || currentUser?.roles?.includes('admin')) {
+      navigate('/products/create');
+    } else {
+      setRestrictionType('bidder');
+      setShowRestrictionModal(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navigation />
@@ -381,6 +400,7 @@ export default function ProductsPage() {
         onSearchChange={setSearchQuery}
         onRefresh={refetch}
         onToggleFilters={toggleFilters}
+        onCreateProduct={handleCreateProduct}
       />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
@@ -416,6 +436,42 @@ export default function ProductsPage() {
           </div>
         </div>
       </main>
+
+      {/* Restriction Modal */}
+      {showRestrictionModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+            <h3 className="text-xl font-bold text-white mb-2">
+              {restrictionType === 'guest' ? 'Yêu cầu đăng nhập' : 'Yêu cầu quyền người bán'}
+            </h3>
+            <p className="text-gray-300 mb-6">
+              {restrictionType === 'guest'
+                ? 'Bạn cần đăng nhập để thực hiện chức năng này.'
+                : 'Chỉ người bán mới có quyền đăng bán sản phẩm.'}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowRestrictionModal(false)}
+                className="px-4 py-2 hover:bg-white/10 rounded-lg transition text-gray-300"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={() => {
+                  if (restrictionType === 'guest') {
+                    navigate('/auth/login');
+                  } else {
+                    navigate('/profile?tab=upgrade');
+                  }
+                }}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium"
+              >
+                {restrictionType === 'guest' ? 'Đăng nhập ngay' : 'Về hồ sơ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
