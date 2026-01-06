@@ -28,21 +28,13 @@ export default function DescriptionTab({ description, descriptionHistory = [] })
       {descriptionHistory && descriptionHistory.length > 1 && (
         <div className="pt-6 border-t border-border">
           <h4 className="text-lg font-bold mb-4">Lịch sử cập nhật mô tả</h4>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {descriptionHistory.slice().reverse().map((entry, index) => (
-              <div 
-                key={index}
-                className={`p-3 rounded-lg ${index === 0 ? 'bg-green-50 border border-green-200' : 'bg-muted/30'}`}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <span className={`text-xs font-semibold ${index === 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                    {index === 0 ? '📝 Mới nhất' : `Cập nhật ${descriptionHistory.length - index}`}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDateTime(entry.createdAt)}
-                  </span>
-                </div>
-                <p className="text-sm whitespace-pre-wrap line-clamp-3">{entry.text}</p>
+              <div key={index} className="text-sm">
+                <p className="text-xs text-muted-foreground mb-2">{formatDateTime(entry.createdAt)}</p>
+                {/* <div className="prose prose-sm max-w-none text-foreground">
+                  <div dangerouslySetInnerHTML={{ __html: entry.text }} />
+                </div> */}
               </div>
             ))}
           </div>
