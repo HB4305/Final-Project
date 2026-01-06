@@ -3,6 +3,7 @@
 import UpgradeRequest from '../models/UpgradeRequest.js';
 import User from '../models/User.js'; 
 import { userService } from "../services/UserService.js";
+import { notificationService } from "../services/NotificationService.js";
 
 
 /**
@@ -173,6 +174,20 @@ export const submitUpgradeRequest = async (req, res, next) => {
     });
 
     await upgradeRequest.save();
+
+    // Send notification to admins
+    try {
+      await notificationService.notifyUpgradeRequest({
+        requestId: upgradeRequest._id,
+        userId: user._id,
+        userName: user.fullName || user.username,
+        userEmail: user.email,
+        reason: reason.trim()
+      });
+    } catch (notificationError) {
+      // Log but don't fail the request if notification fails
+      console.error('[ERROR] Failed to send upgrade request notification:', notificationError);
+    }
 
     res.status(201).json({
       success: true,

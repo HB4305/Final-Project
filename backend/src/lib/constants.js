@@ -43,6 +43,7 @@ export const NOTIFICATION_TYPES = {
   PAYMENT_CONFIRMED: "payment_confirmed",
   SHIPPED: "shipped",
   DELIVERED: "delivered",
+  UPGRADE_REQUEST_SUBMITTED: "upgrade_request_submitted",
 };
 
 export const RATING_SCORE = {

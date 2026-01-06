@@ -81,7 +81,7 @@ export default function UpgradeRequest({
 
   // Check if user is already a seller
   const isSeller = currentUser.roles?.includes('seller');
-  const isEligible = currentUser.ratingSummary?.totalCount >= 80;
+  const isEligible = currentUser.ratingSummary?.score >= 80;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

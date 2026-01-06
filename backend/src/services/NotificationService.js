@@ -2,6 +2,7 @@
 
 
 import { Notification } from '../models/index.js';
+import User from '../models/User.js';
 import { NOTIFICATION_STATUS, NOTIFICATION_TYPES } from '../lib/constants.js';
 
 export class NotificationService {
@@ -180,6 +181,35 @@ export class NotificationService {
         questionId,
         answererName,
         answerText
+      }
+    );
+  }
+
+  /**
+   * Tạo notification khi bidder gửi yêu cầu nâng cấp lên seller
+   * @param {Object} upgradeData - Thông tin yêu cầu nâng cấp
+   */
+  async notifyUpgradeRequest(upgradeData) {
+    const { requestId, userId, userName, userEmail, reason } = upgradeData;
+
+    // Lấy tất cả admin users
+    const adminUsers = await User.find({ roles: 'admin' }).select('_id email');
+    
+    const recipients = adminUsers.map(admin => ({
+      userId: admin._id,
+      email: admin.email
+    }));
+
+    await this.createNotification(
+      NOTIFICATION_TYPES.UPGRADE_REQUEST_SUBMITTED,
+      recipients,
+      {
+        requestId,
+        userId,
+        userName,
+        userEmail,
+        reason,
+        message: `Người dùng ${userName} đã gửi yêu cầu nâng cấp lên Seller`
       }
     );
   }
