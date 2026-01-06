@@ -1182,6 +1182,64 @@ export const updateProductDescription = async (req, res, next) => {
     product.updatedAt = new Date();
     await product.save();
 
+    // ----------------------------------------------------
+    // NOTIFY BIDDERS ABOUT DESCRIPTION UPDATE
+    // ----------------------------------------------------
+    try {
+      // Get all bidders who participated
+      const bids = await Bid.find({ auctionId: auction._id })
+        .populate("bidderId", "email username fullName")
+        .lean();
+
+      if (bids.length > 0) {
+        // Get unique bidders (filter out null/deleted users)
+        const uniqueBidders = [];
+        const seenIds = new Set();
+        
+        for (const bid of bids) {
+          if (bid.bidderId && !seenIds.has(bid.bidderId._id.toString())) {
+             seenIds.add(bid.bidderId._id.toString());
+             uniqueBidders.push(bid.bidderId);
+          }
+        }
+
+        if (uniqueBidders.length > 0) {
+          const { sendProductDescriptionUpdatedNotification } = await import(
+            "../utils/email.js"
+          );
+
+          // Get seller name
+          const seller = await User.findById(userId).select("username fullName");
+          const sellerName = seller ? (seller.fullName || seller.username) : "Người bán";
+
+          // Send emails in background
+          Promise.all(
+            uniqueBidders.map((bidder) =>
+              sendProductDescriptionUpdatedNotification({
+                bidderEmail: bidder.email,
+                bidderName: bidder.fullName || bidder.username,
+                sellerName: sellerName,
+                productTitle: product.title,
+                productUrl: `${process.env.FRONTEND_URL}/product/${product._id}`,
+              })
+            )
+          ).catch((err) =>
+            console.error(
+              "[PRODUCT CONTROLLER] Background email error (description update):",
+              err
+            )
+          );
+        }
+      }
+    } catch (notifyError) {
+      console.error(
+        "[PRODUCT CONTROLLER] Error notifying bidders about description update:",
+        notifyError
+      );
+      // Don't convert this to app error, just log it so success response still returns
+    }
+    // ----------------------------------------------------
+
     // Populate để trả về đầy đủ
     await product.populate("categoryId", "name slug");
 

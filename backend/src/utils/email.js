@@ -116,6 +116,32 @@ export const sendAnswerNotification = async (data) => {
 };
 
 /**
+ * Send description updated notification to bidder
+ */
+export const sendProductDescriptionUpdatedNotification = async (data) => {
+  try {
+    const html = await loadTemplate("description-updated", {
+      bidderName: data.bidderName,
+      sellerName: data.sellerName,
+      productTitle: data.productTitle,
+      productUrl: data.productUrl,
+      timestamp: new Date().toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    });
+
+    return sendEmail({
+      to: data.bidderEmail,
+      subject: `Thông báo cập nhật mô tả: ${data.productTitle}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Error sending description updated notification:", error);
+  }
+};
+
+/**
  * Send email bid success notification
  */
 export const sendBidSuccessNotification = async (data) => {
