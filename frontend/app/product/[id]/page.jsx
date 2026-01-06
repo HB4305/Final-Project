@@ -107,13 +107,13 @@ export default function ProductDetailPage() {
   useEffect(() => {
     // Only fetch if meaningful data changed
     if (product?.auction?._id && user?._id) {
-        fetchOrderData();
+      fetchOrderData();
     }
   }, [product?.auction?._id, product?.auction?.status, user?._id]);
 
   const handleUpdateOrder = async () => {
     // Silent refetch
-    await fetchOrderData(true); 
+    await fetchOrderData(true);
   };
 
   const isParticipant =
@@ -147,10 +147,10 @@ export default function ProductDetailPage() {
       const response = await productService.placeBid(id, { amount });
       if (response.status === "success") {
         const isBuyNow = product?.auction?.buyNowPrice && amount >= product.auction.buyNowPrice;
-        
+
         setToast({
           type: "success",
-          message: isBuyNow 
+          message: isBuyNow
             ? `Chúc mừng! Bạn đã mua ngay sản phẩm thành công với giá ${formatPrice(amount)}.`
             : `Đã thiết lập giá tối đa ${formatPrice(amount)} thành công! Hệ thống sẽ tự động đấu giá cho bạn.`,
         });
@@ -317,7 +317,7 @@ export default function ProductDetailPage() {
           )}
         </nav>
 
-        {/* Order Completion Flow - Show when auction ended and user is participant */}
+        {/* Order Completion Link - Show when auction ended and user is participant */}
         {product.auction?.status === "ended" && isParticipant && (
           <div className="mb-12 animate-slide-up">
             {orderLoading ? (
@@ -326,29 +326,26 @@ export default function ProductDetailPage() {
                 <p className="text-gray-500">Đang tải thông tin đơn hàng...</p>
               </div>
             ) : order ? (
-              <div className="space-y-8">
-                {/* Order Completion Component */}
-                <div className="animate-fade-in">
-                  <OrderCompletion
-                    order={order}
-                    userRole={userRole}
-                    ratings={ratings}
-                    onUpdateOrder={handleUpdateOrder}
-                  />
+              <div className="glass-card bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl p-8 text-center shadow-lg backdrop-blur-md">
+                <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
+                  <ShieldCheck className="w-8 h-8 text-white" />
                 </div>
-
-                {/* Chat Section */}
-                <div className="max-w-4xl mx-auto glass-card bg-white rounded-2xl p-6 md:p-8 shadow-lg">
-                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-primary" />
-                    Chat với {userRole === "buyer" ? "Người bán" : "Người mua"}
-                  </h3>
-                  <ChatComponent order={order} currentUser={user} />
-                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Chúc mừng! Bạn đã thắng phiên đấu giá này</h3>
+                <p className="text-gray-300 mb-6 max-w-md mx-auto">
+                  Hãy tiến hành hoàn tất đơn hàng để nhận sản phẩm. Quá trình này bao gồm thanh toán và xác nhận giao hàng.
+                </p>
+                <Link
+                  to={`/orders/${order._id}`}
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300"
+                >
+                  <FileText className="w-5 h-5" />
+                  Tiến hành Hoàn tất Đơn hàng
+                </Link>
               </div>
             ) : (
-              null
-              // Handled in fetch logic or just hidden if failed
+              <div className="text-center p-6 text-gray-400">
+                Không tìm thấy thông tin đơn hàng.
+              </div>
             )}
           </div>
         )}

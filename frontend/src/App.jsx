@@ -25,6 +25,7 @@ import AdminDashboardPage from "../app/admin/dashboard/page";
 import AdminCategoriesPage from "../app/admin/categories/page";
 import AdminProductsPage from "../app/admin/products/page";
 import SearchPage from "../app/search/page";
+import OrderPage from "../app/orders/[id]/page";
 
 function App() {
   return (
@@ -57,6 +58,14 @@ function App() {
           <Route path="/profile/settings" element={<SettingsPage />} />
           <Route path="/profile/ratings" element={<RatingsPage />} />
           <Route path="/profile/ratings/:userId" element={<RatingsPage />} />
+          <Route
+            path="/orders/:id"
+            element={
+              <ProtectedRoute>
+                <OrderPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin Routes - Protected */}
           <Route
