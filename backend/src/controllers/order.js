@@ -57,8 +57,8 @@ export const createOrderFromAuction = async (req, res, next) => {
     await notificationService.createNotification({
       userId: order.buyerId,
       type: "order_created",
-      title: "Congratulations! You won the auction",
-      message: `Please proceed to payment for "${auction.productId.title}".`,
+      title: "Chúc mừng! Bạn đã thắng đấu giá",
+      message: `Vui lòng tiến hành thanh toán cho "${auction.productId.title}".`,
       relatedId: order._id,
       relatedModel: "Order",
     });
@@ -130,8 +130,8 @@ export const getOrderByAuctionId = async (req, res, next) => {
         await notificationService.createNotification({
           userId: order.buyerId,
           type: "order_created",
-          title: "Congratulations! You won the auction",
-          message: `Please proceed with payment for "${auction.productId.title}"`,
+          title: "Chúc mừng! Bạn đã thắng đấu giá",
+          message: `Vui lòng tiến hành thanh toán cho "${auction.productId.title}"`,
           relatedId: order._id,
           relatedModel: "Order",
         });
@@ -241,14 +241,25 @@ export const getOrderDetail = async (req, res, next) => {
       userRole = "admin";
     }
 
-    const ratings = await Rating.find({ orderId: order._id })
-      .populate("raterId", "username fullName")
-      .populate("rateeId", "username fullName")
-      .lean();
+    const buyerRating = await Rating.findOne({
+      orderId: order._id,
+      raterId: order.buyerId,
+    });
+    const sellerRating = await Rating.findOne({
+      orderId: order._id,
+      raterId: order.sellerId,
+    });
 
     res.status(200).json({
       status: "success",
-      data: { order, userRole, ratings },
+      data: {
+        order,
+        userRole,
+        ratings: {
+          buyerRating,
+          sellerRating,
+        },
+      },
     });
   } catch (error) {
     next(error);

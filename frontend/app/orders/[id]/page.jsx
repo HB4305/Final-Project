@@ -24,6 +24,7 @@ export default function OrderPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [userRole, setUserRole] = useState(null); // 'buyer' or 'seller'
+    const [ratings, setRatings] = useState(null);
     const [toast, setToast] = useState(null);
 
     // Helper to determine role
@@ -61,6 +62,12 @@ export default function OrderPage() {
             if (!orderData) throw new Error("Không tìm thấy dữ liệu đơn hàng");
 
             setOrder(orderData);
+            
+            if (data.data?.ratings) {
+                setRatings(data.data.ratings);
+            } else if (data.ratings) {
+                setRatings(data.ratings);
+            }
 
             const role = determineRole(orderData, currentUser);
             setUserRole(role);
@@ -158,7 +165,7 @@ export default function OrderPage() {
                     <OrderCompletion
                         order={order}
                         userRole={userRole}
-                        ratings={null} // Pass ratings if available in order object or fetch separately? 
+                        ratings={ratings} 
                         // order object from createFromAuction usually doesn't have ratings populated unless resolved. 
                         // Let's assume order might have `ratings` populated if logic supports it, otherwise null is fine.
                         onUpdateOrder={handleUpdateOrder}

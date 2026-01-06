@@ -71,12 +71,21 @@ export default function OrderCompletion({
     shippingCarrier: order.shippingInfo?.carrier || "",
   });
 
-  const [hasRated, setHasRated] = useState(() => {
-    if (!ratings) return false;
-    if (userRole === "buyer" && ratings.buyerRating) return true;
-    if (userRole === "seller" && ratings.sellerRating) return true;
-    return false;
-  });
+  const [hasRated, setHasRated] = useState(false);
+
+  useEffect(() => {
+    if (!ratings) {
+      setHasRated(false);
+      return;
+    }
+    if (userRole === "buyer" && ratings.buyerRating) {
+      setHasRated(true);
+    } else if (userRole === "seller" && ratings.sellerRating) {
+      setHasRated(true);
+    } else {
+      setHasRated(false);
+    }
+  }, [ratings, userRole]);
 
   const steps = [
     {
@@ -266,7 +275,7 @@ export default function OrderCompletion({
             <p className="text-sm text-gray-400">
               Giá cuối cùng:{" "}
               <span className="text-blue-400 font-bold text-lg">
-                {(order.finalPrice || 0).toLocaleString()}{" "}
+                {(order.finalPrice || 0).toLocaleString("vi-VN")}{" "}
                 {order.currency || "VND"}
               </span>
             </p>

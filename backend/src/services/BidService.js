@@ -273,7 +273,7 @@ export class BidService {
               startPrice: auction.startPrice.toLocaleString('vi-VN'),
               totalBids: updatedAuction.bidCount,
               endTime: now,
-              orderUrl: `${process.env.FRONTEND_URL}/orders` // Link tới quản lý đơn hàng
+              orderUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}` // Link tới sản phẩm
             });
 
           } catch (mailErr) {
