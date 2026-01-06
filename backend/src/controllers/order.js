@@ -287,8 +287,7 @@ export const submitPaymentInfo = async (req, res, next) => {
       uploadedAt: new Date(),
     };
 
-    // Note: Order model doesn't have metadata field, so we cannot save address there.
-    // Instead we will pass it via notification to seller.
+    order.shippingAddress = shippingAddress;
 
     await order.save();
 

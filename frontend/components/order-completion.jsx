@@ -65,7 +65,7 @@ export default function OrderCompletion({
   const [formData, setFormData] = useState({
     // Step 1 - Buyer
     paymentProof: order.buyerPaymentProof?.url || "",
-    shippingAddress: order.metadata?.shippingAddress || "",
+    shippingAddress: order.metadata?.shippingAddress || order.shippingAddress || "",
     // Step 2 - Seller
     shippingTrackingNumber: order.shippingInfo?.trackingNumber || "",
     shippingCarrier: order.shippingInfo?.carrier || "",
@@ -286,13 +286,12 @@ export default function OrderCompletion({
               <React.Fragment key={step.id}>
                 <div className="flex flex-col items-center flex-1 relative z-10">
                   <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-all duration-300 font-bold ${
-                      isCompleted
+                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-all duration-300 font-bold ${isCompleted
                         ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-4 ring-blue-600/20"
                         : isCurrent
-                        ? "bg-white text-blue-600 ring-4 ring-white/20 scale-110"
-                        : "bg-white/5 text-gray-500 border border-white/10"
-                    }`}
+                          ? "bg-white text-blue-600 ring-4 ring-white/20 scale-110"
+                          : "bg-white/5 text-gray-500 border border-white/10"
+                      }`}
                   >
                     {isCompleted ? (
                       <CheckCircle className="w-6 h-6" />
@@ -301,9 +300,8 @@ export default function OrderCompletion({
                     )}
                   </div>
                   <p
-                    className={`text-xs font-bold text-center uppercase tracking-wider ${
-                      isCurrent ? "text-blue-400" : "text-gray-500"
-                    }`}
+                    className={`text-xs font-bold text-center uppercase tracking-wider ${isCurrent ? "text-blue-400" : "text-gray-500"
+                      }`}
                   >
                     {step.title}
                   </p>
@@ -311,9 +309,8 @@ export default function OrderCompletion({
                 {index < steps.length - 1 && (
                   <div className="flex-1 h-[2px] mx-2 relative -top-4">
                     <div className="absolute inset-0 bg-white/10 rounded-full"></div>
-                    <div 
-                        className={`absolute inset-0 bg-blue-600 rounded-full transition-all duration-500 ${
-                            isCompleted ? "w-full" : "w-0"
+                    <div
+                      className={`absolute inset-0 bg-blue-600 rounded-full transition-all duration-500 ${isCompleted ? "w-full" : "w-0"
                         }`}
                     ></div>
                   </div>
@@ -393,7 +390,7 @@ export default function OrderCompletion({
         {currentStep === 1 && userRole === "seller" && (
           <div className="text-center py-12">
             <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Package className="w-12 h-12 text-gray-500" />
+              <Package className="w-12 h-12 text-gray-500" />
             </div>
             <p className="text-gray-400 text-lg">
               Đang chờ người mua cung cấp thông tin thanh toán và giao hàng...
@@ -500,7 +497,7 @@ export default function OrderCompletion({
         {currentStep === 2 && userRole === "buyer" && (
           <div className="text-center py-12">
             <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Truck className="w-12 h-12 text-gray-500" />
+              <Truck className="w-12 h-12 text-gray-500" />
             </div>
             <p className="text-gray-400 text-lg">
               Đang chờ người bán xác nhận thanh toán và gửi hàng...
@@ -552,13 +549,13 @@ export default function OrderCompletion({
         {currentStep === 3 && userRole === "seller" && (
           <div className="text-center py-12">
             <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Package className="w-12 h-12 text-green-500" />
+              <Package className="w-12 h-12 text-green-500" />
             </div>
             <p className="text-white font-bold text-xl mb-2">Hàng đã được gửi!</p>
             <div className="bg-white/5 inline-block px-4 py-2 rounded-lg border border-white/10 mb-4">
-                <p className="text-sm text-gray-300">
+              <p className="text-sm text-gray-300">
                 Mã vận đơn: <span className="text-white font-mono font-bold">{formData.shippingTrackingNumber}</span>
-                </p>
+              </p>
             </div>
             <p className="text-gray-400 mt-4">
               Đang chờ người mua xác nhận nhận hàng...
@@ -611,11 +608,10 @@ export default function OrderCompletion({
                         onClick={() =>
                           setFormData((prev) => ({ ...prev, ratingScore: 1 }))
                         }
-                        className={`flex-1 py-4 px-6 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
-                          formData.ratingScore === 1
+                        className={`flex-1 py-4 px-6 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${formData.ratingScore === 1
                             ? "border-green-500 bg-green-500/20 text-green-400 shadow-lg shadow-green-500/10"
                             : "border-white/10 bg-white/5 text-gray-400 hover:bg-white/10"
-                        }`}
+                          }`}
                       >
                         <Star className="w-6 h-6 fill-current" />
                         <span className="font-bold">Tích cực (+1)</span>
@@ -625,11 +621,10 @@ export default function OrderCompletion({
                         onClick={() =>
                           setFormData((prev) => ({ ...prev, ratingScore: -1 }))
                         }
-                        className={`flex-1 py-4 px-6 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
-                          formData.ratingScore === -1
+                        className={`flex-1 py-4 px-6 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${formData.ratingScore === -1
                             ? "border-red-500 bg-red-500/20 text-red-400 shadow-lg shadow-red-500/10"
                             : "border-white/10 bg-white/5 text-gray-400 hover:bg-white/10"
-                        }`}
+                          }`}
                       >
                         <Star className="w-6 h-6" />
                         <span className="font-bold">Tiêu cực (-1)</span>

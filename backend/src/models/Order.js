@@ -40,6 +40,10 @@ const orderSchema = new mongoose.Schema({
     uploadedAt: Date,
     _id: false
   },
+  shippingAddress: {
+    type: String,
+    default: null
+  },
   shippingInfo: {
     carrier: String,
     trackingNumber: String,
@@ -72,7 +76,7 @@ orderSchema.index({ auctionId: 1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
 // Update updatedAt on save
-orderSchema.pre('save', function() {
+orderSchema.pre('save', function () {
   this.updatedAt = Date.now();
 });
 
