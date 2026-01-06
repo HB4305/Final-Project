@@ -63,11 +63,11 @@ export default function ProductDetailPage() {
   const [orderLoading, setOrderLoading] = useState(false);
 
   // Fetch order logic...
-  const fetchOrderData = async () => {
+  const fetchOrderData = async (isBackground = false) => {
     if (!product?.auction || !user) return;
     if (product.auction.status === "ended") {
       try {
-        setOrderLoading(true);
+        if (!isBackground) setOrderLoading(true);
         const orderResponse = await orderService.getOrderByAuctionId(
           product.auction._id
         );
@@ -99,18 +99,21 @@ export default function ProductDetailPage() {
           setRatings(null);
         }
       } finally {
-        setOrderLoading(false);
+        if (!isBackground) setOrderLoading(false);
       }
     }
   };
 
   useEffect(() => {
-    fetchOrderData();
-  }, [product, user]);
+    // Only fetch if meaningful data changed
+    if (product?.auction?._id && user?._id) {
+        fetchOrderData();
+    }
+  }, [product?.auction?._id, product?.auction?.status, user?._id]);
 
   const handleUpdateOrder = async () => {
-    await refetch();
-    await fetchOrderData();
+    // Silent refetch
+    await fetchOrderData(true); 
   };
 
   const isParticipant =
@@ -143,11 +146,13 @@ export default function ProductDetailPage() {
     try {
       const response = await productService.placeBid(id, { amount });
       if (response.status === "success") {
+        const isBuyNow = product?.auction?.buyNowPrice && amount >= product.auction.buyNowPrice;
+        
         setToast({
           type: "success",
-          message: `Đã thiết lập giá tối đa ${formatPrice(
-            amount
-          )} thành công! Hệ thống sẽ tự động đấu giá cho bạn.`,
+          message: isBuyNow 
+            ? `Chúc mừng! Bạn đã mua ngay sản phẩm thành công với giá ${formatPrice(amount)}.`
+            : `Đã thiết lập giá tối đa ${formatPrice(amount)} thành công! Hệ thống sẽ tự động đấu giá cho bạn.`,
         });
         refetch();
       } else {
@@ -301,10 +306,52 @@ export default function ProductDetailPage() {
             {product.categoryId?.name || "Danh mục"}
           </Link>
           <ChevronRight className="w-4 h-4 text-gray-600" />
-          <span className="text-blue-400 font-bold truncate">
+          <span className={`${product.auction?.status === "ended" && isParticipant ? "text-gray-400 hover:text-white transition cursor-pointer" : "text-blue-400 font-bold"} truncate`}>
             {product.title}
           </span>
+          {product.auction?.status === "ended" && isParticipant && (
+            <>
+              <ChevronRight className="w-4 h-4 text-gray-600" />
+              <span className="text-blue-400 font-bold truncate">Hoàn tất đơn hàng</span>
+            </>
+          )}
         </nav>
+
+        {/* Order Completion Flow - Show when auction ended and user is participant */}
+        {product.auction?.status === "ended" && isParticipant && (
+          <div className="mb-12 animate-slide-up">
+            {orderLoading ? (
+              <div className="glass-card bg-white p-8 text-center rounded-2xl">
+                <Loader className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
+                <p className="text-gray-500">Đang tải thông tin đơn hàng...</p>
+              </div>
+            ) : order ? (
+              <div className="space-y-8">
+                {/* Order Completion Component */}
+                <div className="animate-fade-in">
+                  <OrderCompletion
+                    order={order}
+                    userRole={userRole}
+                    ratings={ratings}
+                    onUpdateOrder={handleUpdateOrder}
+                  />
+                </div>
+
+                {/* Chat Section */}
+                <div className="max-w-4xl mx-auto glass-card bg-white rounded-2xl p-6 md:p-8 shadow-lg">
+                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    Chat với {userRole === "buyer" ? "Người bán" : "Người mua"}
+                  </h3>
+                  <ChatComponent order={order} currentUser={user} />
+                </div>
+              </div>
+            ) : (
+              null
+              // Handled in fetch logic or just hidden if failed
+            )}
+          </div>
+        )}
 
         {/* Product Header Card */}
         <div className="glass-card rounded-2xl p-6 mb-8 border border-white/20 shadow-2xl bg-[#1e293b]/60 backdrop-blur-xl">
@@ -447,49 +494,7 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Order Completion Flow - Show when auction ended and user is participant */}
-        {product.auction?.status === "ended" && isParticipant && (
-          <div className="mb-12 animate-slide-up">
-            {orderLoading ? (
-              <div className="glass-card bg-white p-8 text-center rounded-2xl">
-                <Loader className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-                <p className="text-gray-500">Đang tải thông tin đơn hàng...</p>
-              </div>
-            ) : order ? (
-              <div className="space-y-8">
-                {/* Order Completion Component */}
-                <div className="glass-card bg-white rounded-2xl p-6 md:p-8 border border-green-100 shadow-lg shadow-green-900/5">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-green-100 rounded-full text-green-600">
-                      <ShieldCheck className="w-6 h-6" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      Quy trình hoàn tất đơn hàng
-                    </h2>
-                  </div>
-                  <OrderCompletion
-                    order={order}
-                    userRole={userRole}
-                    ratings={ratings}
-                    onUpdateOrder={handleUpdateOrder}
-                  />
-                </div>
 
-                {/* Chat Section */}
-                <div className="glass-card bg-white rounded-2xl p-6 md:p-8 shadow-lg">
-                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-primary" />
-                    Chat với {userRole === "buyer" ? "Người bán" : "Người mua"}
-                  </h3>
-                  <ChatComponent order={order} currentUser={user} />
-                </div>
-              </div>
-            ) : (
-              null
-              // Handled in fetch logic or just hidden if failed
-            )}
-          </div>
-        )}
 
         {/* Auction ended - not participant */}
         {product.auction?.status === "ended" && !isParticipant && (

@@ -93,7 +93,7 @@ const SellerRating = ({ seller }) => (
   <div className="flex items-center gap-1 mb-3">
     <span className="text-yellow-400">★</span>
     <span className="text-xs font-medium text-foreground">
-      {seller?.ratingSummary?.averageRating?.toFixed(1) || "0.0"}
+      {seller?.ratingSummary?.score ? `${((seller.ratingSummary.score <= 1) ? seller.ratingSummary.score * 100 : seller.ratingSummary.score).toFixed(0)}%` : "N/A"}
     </span>
     <span className="text-xs text-muted-foreground">
       ({seller?.ratingSummary?.totalRatings || 0})

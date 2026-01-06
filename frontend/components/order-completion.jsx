@@ -13,10 +13,6 @@ import Toast from "./Toast";
 /**
  * OrderCompletion Component
  * 4-step post-auction checkout process (section 7)
- * 1. Buyer provides payment invoice & shipping address
- * 2. Seller confirms payment received & provides shipping invoice
- * 3. Buyer confirms item received
- * 4. Both parties rate each other
  */
 export default function OrderCompletion({
   order,
@@ -39,7 +35,7 @@ export default function OrderCompletion({
     return 1;
   });
 
-  // Sync step when order updates (e.g. after refetch)
+  // Sync step when order updates
   useEffect(() => {
     if (order.status === "awaiting_payment") {
       if (order.buyerPaymentProof?.url || order.paymentProof) {
@@ -51,11 +47,6 @@ export default function OrderCompletion({
       order.status === "seller_confirmed_payment" ||
       order.status === "shipped"
     ) {
-      // If we are just entering step 2 from step 1, don't force it if we want to show specific sub-steps,
-      // but generally mapping status to step is safer.
-      // However, Step 2 is shared for "Seller Confirm" and "Seller Ship".
-      // If status is 'seller_confirmed_payment', seller needs to Ship.
-      // If status is 'shipped', we go to Step 3.
       if (order.status === "shipped") {
         setCurrentStep(3);
       } else {
@@ -130,7 +121,7 @@ export default function OrderCompletion({
 
     try {
       await orderService.submitPayment(order._id, {
-        paymentProofUrl: formData.paymentProof, // Changed to match backend expectation (paymentProofUrl)
+        paymentProofUrl: formData.paymentProof,
         paymentNote: "Đã chuyển khoản",
         shippingAddress: formData.shippingAddress,
       });
@@ -234,7 +225,7 @@ export default function OrderCompletion({
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto">
       {toast && (
         <Toast
           message={toast.message}
@@ -243,16 +234,16 @@ export default function OrderCompletion({
         />
       )}
       {/* Order Header */}
-      <div className="bg-background border border-border rounded-lg p-6 mb-6">
+      <div className="bg-transparent mb-6">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="text-2xl font-bold mb-2">Hoàn tất đơn hàng</h2>
-            <p className="text-muted-foreground">Đơn hàng #{order._id}</p>
+            <h2 className="text-2xl font-bold mb-2 text-white">Hoàn tất đơn hàng</h2>
+            <p className="text-gray-400">Đơn hàng #{order._id}</p>
           </div>
           {userRole === "seller" && currentStep < 4 && (
             <button
               onClick={handleCancelTransaction}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-medium"
+              className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition text-sm font-medium"
             >
               Hủy giao dịch
             </button>
@@ -260,21 +251,21 @@ export default function OrderCompletion({
         </div>
 
         {/* Product Info */}
-        <div className="flex gap-4 p-4 bg-muted rounded-lg">
+        <div className="flex gap-4 p-4 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
           <img
             src={
               order.productId?.primaryImageUrl || order.product?.primaryImageUrl
             }
             alt={order.productId?.title || order.product?.title}
-            className="w-20 h-20 object-cover rounded"
+            className="w-20 h-20 object-cover rounded-lg border border-white/10"
           />
           <div className="flex-1">
-            <h3 className="font-semibold">
+            <h3 className="font-bold text-white text-lg">
               {order.productId?.title || order.product?.title}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-400">
               Giá cuối cùng:{" "}
-              <span className="text-primary font-bold text-lg">
+              <span className="text-blue-400 font-bold text-lg">
                 {(order.finalPrice || 0).toLocaleString()}{" "}
                 {order.currency || "VND"}
               </span>
@@ -284,7 +275,7 @@ export default function OrderCompletion({
       </div>
 
       {/* Progress Steps */}
-      <div className="mb-8">
+      <div className="mb-10">
         <div className="flex items-center justify-between mb-2">
           {steps.map((step, index) => {
             const StepIcon = step.icon;
@@ -293,14 +284,14 @@ export default function OrderCompletion({
 
             return (
               <React.Fragment key={step.id}>
-                <div className="flex flex-col items-center flex-1">
+                <div className="flex flex-col items-center flex-1 relative z-10">
                   <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition ${
+                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-all duration-300 font-bold ${
                       isCompleted
-                        ? "bg-green-500 text-white"
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-4 ring-blue-600/20"
                         : isCurrent
-                        ? "bg-primary text-white"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-white text-blue-600 ring-4 ring-white/20 scale-110"
+                        : "bg-white/5 text-gray-500 border border-white/10"
                     }`}
                   >
                     {isCompleted ? (
@@ -310,19 +301,22 @@ export default function OrderCompletion({
                     )}
                   </div>
                   <p
-                    className={`text-xs font-semibold text-center ${
-                      isCurrent ? "text-primary" : "text-muted-foreground"
+                    className={`text-xs font-bold text-center uppercase tracking-wider ${
+                      isCurrent ? "text-blue-400" : "text-gray-500"
                     }`}
                   >
                     {step.title}
                   </p>
                 </div>
                 {index < steps.length - 1 && (
-                  <div
-                    className={`flex-1 h-1 mx-2 ${
-                      isCompleted ? "bg-green-500" : "bg-muted"
-                    }`}
-                  />
+                  <div className="flex-1 h-[2px] mx-2 relative -top-4">
+                    <div className="absolute inset-0 bg-white/10 rounded-full"></div>
+                    <div 
+                        className={`absolute inset-0 bg-blue-600 rounded-full transition-all duration-500 ${
+                            isCompleted ? "w-full" : "w-0"
+                        }`}
+                    ></div>
+                  </div>
                 )}
               </React.Fragment>
             );
@@ -331,12 +325,12 @@ export default function OrderCompletion({
       </div>
 
       {/* Step Content */}
-      <div className="bg-background border border-border rounded-lg p-6">
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
         {/* Step 1: Buyer Payment & Address */}
         {currentStep === 1 && userRole === "buyer" && (
-          <form onSubmit={handleStep1Submit} className="space-y-4">
+          <form onSubmit={handleStep1Submit} className="space-y-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">
+              <h3 className="text-xl font-bold text-white">
                 Bước 1: Thông tin thanh toán & Giao hàng
               </h3>
               <button
@@ -349,14 +343,14 @@ export default function OrderCompletion({
                       "123 Đường Test, Quận 1, TP.HCM - 0909123456",
                   }))
                 }
-                className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-700"
+                className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-gray-300 transition"
               >
                 Điền mẫu
               </button>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-bold text-gray-300 mb-2">
                 Bằng chứng thanh toán (URL hóa đơn/biên lai hoặc Ảnh)
               </label>
               <input
@@ -366,13 +360,13 @@ export default function OrderCompletion({
                   setFormData({ ...formData, paymentProof: e.target.value })
                 }
                 placeholder="Nhập URL bằng chứng thanh toán hoặc tải lên biên lai"
-                className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-3 border border-white/10 rounded-xl bg-black/20 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-500 transition"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-bold text-gray-300 mb-2">
                 Địa chỉ giao hàng
               </label>
               <textarea
@@ -382,14 +376,14 @@ export default function OrderCompletion({
                 }
                 placeholder="Nhập địa chỉ giao hàng đầy đủ của bạn"
                 rows="4"
-                className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="w-full px-4 py-3 border border-white/10 rounded-xl bg-black/20 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-500 resize-none transition"
                 required
               />
             </div>
 
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-semibold"
+              className="w-full px-4 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/20 transition font-bold text-lg"
             >
               Gửi thông tin thanh toán
             </button>
@@ -397,9 +391,11 @@ export default function OrderCompletion({
         )}
 
         {currentStep === 1 && userRole === "seller" && (
-          <div className="text-center py-8">
-            <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Package className="w-12 h-12 text-gray-500" />
+            </div>
+            <p className="text-gray-400 text-lg">
               Đang chờ người mua cung cấp thông tin thanh toán và giao hàng...
             </p>
           </div>
@@ -407,9 +403,9 @@ export default function OrderCompletion({
 
         {/* Step 2: Seller Confirm Payment & Ship */}
         {currentStep === 2 && userRole === "seller" && (
-          <form onSubmit={handleStep2Submit} className="space-y-4">
+          <form onSubmit={handleStep2Submit} className="space-y-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">
+              <h3 className="text-xl font-bold text-white">
                 Bước 2: Xác nhận thanh toán & Gửi hàng
               </h3>
               <button
@@ -422,26 +418,26 @@ export default function OrderCompletion({
                       "VNP" + Math.floor(Math.random() * 1000000000),
                   }))
                 }
-                className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-700"
+                className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-gray-300 transition"
               >
                 Điền mẫu
               </button>
             </div>
 
-            <div className="p-4 bg-muted rounded-lg mb-4">
-              <h4 className="font-semibold mb-2">Thông tin người mua:</h4>
-              <div className="space-y-2 text-sm">
+            <div className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-xl mb-6">
+              <h4 className="font-bold text-blue-300 mb-3">Thông tin người mua:</h4>
+              <div className="space-y-3 text-sm">
                 <div>
-                  <span className="text-muted-foreground">
+                  <span className="text-gray-400 block mb-1">
                     Bằng chứng thanh toán:
                   </span>
-                  <p className="font-medium">{formData.paymentProof}</p>
+                  <p className="font-medium text-white bg-black/20 p-2 rounded border border-white/5 break-all">{formData.paymentProof}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">
+                  <span className="text-gray-400 block mb-1">
                     Địa chỉ giao hàng:
                   </span>
-                  <p className="font-medium whitespace-pre-line">
+                  <p className="font-medium text-white whitespace-pre-line bg-black/20 p-2 rounded border border-white/5">
                     {formData.shippingAddress}
                   </p>
                 </div>
@@ -449,7 +445,7 @@ export default function OrderCompletion({
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-bold text-gray-300 mb-2">
                 Đơn vị vận chuyển
               </label>
               <select
@@ -457,24 +453,24 @@ export default function OrderCompletion({
                 onChange={(e) =>
                   setFormData({ ...formData, shippingCarrier: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-3 border border-white/10 rounded-xl bg-black/20 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition"
                 required
               >
-                <option value="">Chọn đơn vị vận chuyển...</option>
-                <option value="USPS">USPS</option>
-                <option value="FedEx">FedEx</option>
-                <option value="UPS">UPS</option>
-                <option value="DHL">DHL</option>
-                <option value="Vietnam Post">Vietnam Post</option>
-                <option value="Viettel Post">Viettel Post</option>
-                <option value="Giao Hang Nhanh">Giao Hàng Nhanh</option>
-                <option value="Giao Hang Tiet Kiem">Giao Hàng Tiết Kiệm</option>
-                <option value="Other">Khác</option>
+                <option value="" className="bg-gray-900">Chọn đơn vị vận chuyển...</option>
+                <option value="USPS" className="bg-gray-900">USPS</option>
+                <option value="FedEx" className="bg-gray-900">FedEx</option>
+                <option value="UPS" className="bg-gray-900">UPS</option>
+                <option value="DHL" className="bg-gray-900">DHL</option>
+                <option value="Vietnam Post" className="bg-gray-900">Vietnam Post</option>
+                <option value="Viettel Post" className="bg-gray-900">Viettel Post</option>
+                <option value="Giao Hang Nhanh" className="bg-gray-900">Giao Hàng Nhanh</option>
+                <option value="Giao Hang Tiet Kiem" className="bg-gray-900">Giao Hàng Tiết Kiệm</option>
+                <option value="Other" className="bg-gray-900">Khác</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-bold text-gray-300 mb-2">
                 Mã vận đơn
               </label>
               <input
@@ -487,24 +483,26 @@ export default function OrderCompletion({
                   })
                 }
                 placeholder="Nhập mã vận đơn"
-                className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-3 border border-white/10 rounded-xl bg-black/20 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-500 transition"
                 required
               />
             </div>
 
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-semibold"
+              className="w-full px-4 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/20 transition font-bold text-lg"
             >
-              Xác nhận thanh toán & Đánh dấu đã gửi hàng
+              Xác nhận thanh toán & Gửi hàng
             </button>
           </form>
         )}
 
         {currentStep === 2 && userRole === "buyer" && (
-          <div className="text-center py-8">
-            <Truck className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Truck className="w-12 h-12 text-gray-500" />
+            </div>
+            <p className="text-gray-400 text-lg">
               Đang chờ người bán xác nhận thanh toán và gửi hàng...
             </p>
           </div>
@@ -512,39 +510,39 @@ export default function OrderCompletion({
 
         {/* Step 3: Buyer Confirm Receipt */}
         {currentStep === 3 && userRole === "buyer" && (
-          <form onSubmit={handleStep3Submit} className="space-y-4">
-            <h3 className="text-xl font-bold mb-4">
+          <form onSubmit={handleStep3Submit} className="space-y-6">
+            <h3 className="text-xl font-bold text-white mb-4">
               Bước 3: Xác nhận nhận hàng
             </h3>
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-              <h4 className="font-semibold mb-2">Thông tin vận chuyển:</h4>
-              <div className="space-y-1 text-sm">
-                <p>
-                  <span className="text-muted-foreground">Đơn vị:</span>{" "}
-                  <span className="font-medium">
+            <div className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-xl mb-6">
+              <h4 className="font-bold text-blue-300 mb-3">Thông tin vận chuyển:</h4>
+              <div className="space-y-3 text-sm">
+                <p className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-gray-400">Đơn vị:</span>
+                  <span className="font-bold text-white">
                     {formData.shippingCarrier}
                   </span>
                 </p>
-                <p>
-                  <span className="text-muted-foreground">Mã vận đơn:</span>{" "}
-                  <span className="font-medium">
+                <p className="flex justify-between">
+                  <span className="text-gray-400">Mã vận đơn:</span>
+                  <span className="font-bold text-white">
                     {formData.shippingTrackingNumber}
                   </span>
                 </p>
               </div>
             </div>
 
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                Vui lòng chỉ xác nhận sau khi bạn đã nhận và kiểm tra hàng. Sau
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+              <p className="text-sm text-yellow-200">
+                ⚠️ Vui lòng chỉ xác nhận sau khi bạn đã nhận và kiểm tra hàng. Sau
                 khi xác nhận, bạn không thể hoàn tác hành động này.
               </p>
             </div>
 
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold"
+              className="w-full px-4 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 hover:shadow-lg hover:shadow-green-600/20 transition font-bold text-lg"
             >
               Tôi xác nhận đã nhận được hàng
             </button>
@@ -552,13 +550,17 @@ export default function OrderCompletion({
         )}
 
         {currentStep === 3 && userRole === "seller" && (
-          <div className="text-center py-8">
-            <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground mb-2">Hàng đã được gửi!</p>
-            <p className="text-sm text-muted-foreground">
-              Mã vận đơn: {formData.shippingTrackingNumber}
-            </p>
-            <p className="text-sm text-muted-foreground mt-4">
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Package className="w-12 h-12 text-green-500" />
+            </div>
+            <p className="text-white font-bold text-xl mb-2">Hàng đã được gửi!</p>
+            <div className="bg-white/5 inline-block px-4 py-2 rounded-lg border border-white/10 mb-4">
+                <p className="text-sm text-gray-300">
+                Mã vận đơn: <span className="text-white font-mono font-bold">{formData.shippingTrackingNumber}</span>
+                </p>
+            </div>
+            <p className="text-gray-400 mt-4">
               Đang chờ người mua xác nhận nhận hàng...
             </p>
           </div>
@@ -566,41 +568,41 @@ export default function OrderCompletion({
 
         {/* Step 4: Ratings */}
         {currentStep === 4 && (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold mb-4">
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-white mb-4">
               Bước 4: Đánh giá giao dịch
             </h3>
 
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-4">
-              <CheckCircle className="w-6 h-6 text-green-600 inline mr-2" />
-              <span className="font-semibold text-green-900">
+            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl mb-6 flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+              <span className="font-bold text-green-400">
                 Giao dịch hoàn tất thành công!
               </span>
             </div>
 
             {hasRated ? (
-              <div className="text-center py-8 bg-muted rounded-lg border border-border">
+              <div className="text-center py-8 bg-white/5 rounded-xl border border-white/10">
                 <Star
-                  className="w-12 h-12 mx-auto text-yellow-400 mb-3"
+                  className="w-16 h-16 mx-auto text-yellow-400 mb-4"
                   fill="currentColor"
                 />
-                <h4 className="text-lg font-semibold mb-2">
+                <h4 className="text-xl font-bold text-white mb-2">
                   Cảm ơn bạn đã đánh giá!
                 </h4>
-                <p className="text-muted-foreground">
+                <p className="text-gray-400">
                   Phản hồi của bạn giúp xây dựng niềm tin trong cộng đồng.
                 </p>
               </div>
             ) : (
               <>
-                <p className="text-muted-foreground">
+                <p className="text-gray-300">
                   Vui lòng đánh giá trải nghiệm của bạn với{" "}
-                  {userRole === "buyer" ? "người bán" : "người mua"}.
+                  <span className="font-bold text-white">{userRole === "buyer" ? "người bán" : "người mua"}</span>.
                 </p>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-bold text-gray-300 mb-3">
                       Điểm đánh giá
                     </label>
                     <div className="flex gap-4">
@@ -609,34 +611,34 @@ export default function OrderCompletion({
                         onClick={() =>
                           setFormData((prev) => ({ ...prev, ratingScore: 1 }))
                         }
-                        className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 transition ${
+                        className={`flex-1 py-4 px-6 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
                           formData.ratingScore === 1
-                            ? "border-green-500 bg-green-50 text-green-700"
-                            : "border-border hover:bg-muted"
+                            ? "border-green-500 bg-green-500/20 text-green-400 shadow-lg shadow-green-500/10"
+                            : "border-white/10 bg-white/5 text-gray-400 hover:bg-white/10"
                         }`}
                       >
-                        <Star className="w-5 h-5 fill-current" />
-                        <span>Tích cực (+1)</span>
+                        <Star className="w-6 h-6 fill-current" />
+                        <span className="font-bold">Tích cực (+1)</span>
                       </button>
                       <button
                         type="button"
                         onClick={() =>
                           setFormData((prev) => ({ ...prev, ratingScore: -1 }))
                         }
-                        className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 transition ${
+                        className={`flex-1 py-4 px-6 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
                           formData.ratingScore === -1
-                            ? "border-red-500 bg-red-50 text-red-700"
-                            : "border-border hover:bg-muted"
+                            ? "border-red-500 bg-red-500/20 text-red-400 shadow-lg shadow-red-500/10"
+                            : "border-white/10 bg-white/5 text-gray-400 hover:bg-white/10"
                         }`}
                       >
-                        <Star className="w-5 h-5" />
-                        <span>Tiêu cực (-1)</span>
+                        <Star className="w-6 h-6" />
+                        <span className="font-bold">Tiêu cực (-1)</span>
                       </button>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-bold text-gray-300 mb-2">
                       Nhận xét
                     </label>
                     <textarea
@@ -649,7 +651,7 @@ export default function OrderCompletion({
                       }
                       placeholder="Chia sẻ trải nghiệm của bạn..."
                       rows="3"
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      className="w-full px-4 py-3 border border-white/10 rounded-xl bg-black/20 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-500 resize-none transition"
                     />
                   </div>
 
@@ -675,7 +677,7 @@ export default function OrderCompletion({
                         });
                       }
                     }}
-                    className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-semibold"
+                    className="w-full px-4 py-4 bg-primary text-white rounded-xl hover:bg-primary/90 transition font-bold text-lg"
                   >
                     Gửi đánh giá
                   </button>

@@ -14,10 +14,11 @@ import { ERROR_CODES } from "../lib/constants.js";
  */
 export const authenticate = (req, res, next) => {
   try {
-    // Lấy token từ header Authorization, x-auth-token, hoặc cookie
+    // Lấy token từ header Authorization, x-auth-token, query param (cho image/file) hoặc cookie
     const token =
       req.headers.authorization?.replace("Bearer ", "") ||
       req.headers["x-auth-token"] ||
+      req.query.token ||
       req.cookies.accessToken;
 
     if (!token) {

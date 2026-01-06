@@ -240,43 +240,45 @@ export class BidService {
 
         await session.commitTransaction();
 
-        // 3. Gửi thông báo chiến thắng & kết thúc
-        try {
-          const product = await Product.findById(auction.productId);
-          const seller = await User.findById(product.sellerId);
+        // 3. Gửi thông báo chiến thắng & kết thúc (Background)
+        (async () => {
+          try {
+            const product = await Product.findById(auction.productId);
+            const seller = await User.findById(product.sellerId);
 
-          // Gửi cho người thắng
-          await sendAuctionWinnerNotification({
-            winnerEmail: bidder.email,
-            winnerName: bidder.fullName,
-            productTitle: product.title,
-            finalPrice: auction.buyNowPrice,
-            sellerName: seller.fullName,
-            sellerEmail: seller.email,
-            sellerPhone: seller.phoneNumber || "N/A",
-            totalBids: updatedAuction.bidCount,
-            endTime: now,
-            orderUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`
-          });
+            // Gửi cho người thắng
+            await sendAuctionWinnerNotification({
+              winnerEmail: bidder.email,
+              winnerName: bidder.fullName,
+              productTitle: product.title,
+              finalPrice: auction.buyNowPrice.toLocaleString('vi-VN'),
+              sellerName: seller.fullName,
+              sellerEmail: seller.email,
+              sellerPhone: seller.phoneNumber || "N/A",
+              totalBids: updatedAuction.bidCount,
+              endTime: now,
+              orderUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`
+            });
 
-          // Gửi cho người bán
-          await sendAuctionEndedSellerNotification({
-            sellerEmail: seller.email,
-            sellerName: seller.fullName,
-            productTitle: product.title,
-            winnerName: bidder.fullName,
-            winnerEmail: bidder.email,
-            winnerPhone: bidder.phoneNumber || "N/A",
-            finalPrice: auction.buyNowPrice,
-            startPrice: auction.startPrice,
-            totalBids: updatedAuction.bidCount,
-            endTime: now,
-            orderUrl: `${process.env.FRONTEND_URL}/orders` // Link tới quản lý đơn hàng
-          });
+            // Gửi cho người bán
+            await sendAuctionEndedSellerNotification({
+              sellerEmail: seller.email,
+              sellerName: seller.fullName,
+              productTitle: product.title,
+              winnerName: bidder.fullName,
+              winnerEmail: bidder.email,
+              winnerPhone: bidder.phoneNumber || "N/A",
+              finalPrice: auction.buyNowPrice.toLocaleString('vi-VN'),
+            startPrice: auction.startPrice.toLocaleString('vi-VN'),
+              totalBids: updatedAuction.bidCount,
+              endTime: now,
+              orderUrl: `${process.env.FRONTEND_URL}/orders` // Link tới quản lý đơn hàng
+            });
 
-        } catch (mailErr) {
-          console.error("[BID SERVICE] Error sending Buy Now notifications:", mailErr);
-        }
+          } catch (mailErr) {
+            console.error("[BID SERVICE] Error sending Buy Now notifications:", mailErr);
+          }
+        })();
 
         return {
           success: true,
@@ -344,9 +346,10 @@ export class BidService {
             bidderEmail: bidder.email,
             bidderName: bidder.fullName,
             productTitle: product.title,
-            bidAmount: maxAmount,
-            currentPrice: resolveResult.currentPrice,
-            isHighestBidder: isHighest
+            bidAmount: maxAmount.toLocaleString('vi-VN'),
+            currentPrice: resolveResult.currentPrice.toLocaleString('vi-VN'),
+            isHighestBidder: isHighest,
+            productUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`
           });
 
           // 2. Send Price Updated to Seller
@@ -355,8 +358,8 @@ export class BidService {
               sellerEmail: seller.email,
               sellerName: seller.fullName,
               productTitle: product.title,
-              previousPrice: auction.currentPrice,
-              newPrice: resolveResult.currentPrice,
+              previousPrice: auction.currentPrice.toLocaleString('vi-VN'),
+              newPrice: resolveResult.currentPrice.toLocaleString('vi-VN'),
               bidderName: bidder.fullName,
               totalBids: resolveResult.bidCount,
               auctionUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
@@ -377,8 +380,8 @@ export class BidService {
                   previousBidderEmail: previousWinner.email,
                   previousBidderName: previousWinner.fullName,
                   productTitle: product.title,
-                  yourBidAmount: yourBidAmount,
-                  currentPrice: resolveResult.currentPrice,
+                  yourBidAmount: yourBidAmount.toLocaleString('vi-VN'),
+                  currentPrice: resolveResult.currentPrice.toLocaleString('vi-VN'),
                   productUrl: `${process.env.FRONTEND_URL}/product/${auction.productId}`,
                   auctionEndTime: resolveResult.endAt || auction.endAt
                 });
@@ -436,13 +439,9 @@ export class BidService {
       // 2. Nếu người nhất không đổi (Người cũ Defend):
       //    Chỉ cần Match giá của người thứ 2 là thắng (do Time ưu tiên).
 
-      if (isWinnerChanged) {
-        // Trường hợp người mới vượt lên -> Phải cộng step để thắng
-        newPrice = secondBidder.maxAmount + auction.priceStep;
-      } else {
-        // Trường hợp người cũ giữ vững -> Chỉ cần match giá người thứ 2
-        newPrice = secondBidder.maxAmount;
-      }
+      // Logic Consistent: Always beat the second bidder by one price step (if possible)
+      // Regardless of whether it's a new winner or defending winner.
+      newPrice = secondBidder.maxAmount + auction.priceStep;
 
       // Cap giá không vượt quá Max của người thắng
       if (newPrice > highestBidder.maxAmount) {

@@ -97,7 +97,7 @@ export const getAllUsers = async (req, res, next) => {
     // If no pagination params, return all users
     if (!page && !limit) {
       const users = await User.find(filter)
-        .select('-password')
+        .select('-password -profileImageUrl')
         .sort({ createdAt: -1 });
 
       const total = users.length;
@@ -121,7 +121,7 @@ export const getAllUsers = async (req, res, next) => {
       const skip = (pageNum - 1) * limitNum;
 
       const users = await User.find(filter)
-        .select('-password')
+        .select('-password -profileImageUrl')
         .skip(skip)
         .limit(limitNum)
         .sort({ createdAt: -1 });
@@ -140,6 +140,42 @@ export const getAllUsers = async (req, res, next) => {
           }
         }
       });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get user avatar
+ * GET /api/admin/users/:userId/avatar
+ */
+export const getUserAvatar = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId).select('profileImageUrl');
+
+    // Default avatar if no user or no image
+    if (!user || !user.profileImageUrl) {
+       return res.status(404).send('No avatar found');
+    }
+
+    const { profileImageUrl } = user;
+
+    // Check if Base64
+    const matches = profileImageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+        const type = matches[1];
+        const data = Buffer.from(matches[2], 'base64');
+        res.writeHead(200, {
+            'Content-Type': type,
+            'Content-Length': data.length,
+            'Cache-Control': 'public, max-age=86400'
+        });
+        res.end(data);
+    } else {
+        // It's a regular URL, redirect
+        res.redirect(profileImageUrl);
     }
   } catch (error) {
     next(error);

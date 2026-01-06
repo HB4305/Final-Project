@@ -51,11 +51,11 @@ export const useProductDetail = (productId) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchProduct = useCallback(async () => {
+  const fetchProduct = useCallback(async (isBackground = false) => {
     if (!productId) return;
     
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       setError(null);
       const response = await productService.getProductById(productId);
       
@@ -68,12 +68,16 @@ export const useProductDetail = (productId) => {
       console.error('Error fetching product:', err);
       setError(err.response?.data?.message || 'Đã có lỗi xảy ra');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, [productId]);
 
   useEffect(() => {
-    fetchProduct();
+    fetchProduct(false); // Initial load with loading state
+    
+    // Poll for updates every 3 seconds silently (no loading state)
+    const interval = setInterval(() => fetchProduct(true), 3000);
+    return () => clearInterval(interval);
   }, [fetchProduct]);
 
   return { product, loading, error, refetch: fetchProduct };

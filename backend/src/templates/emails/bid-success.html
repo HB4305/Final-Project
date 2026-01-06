@@ -24,7 +24,8 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         .header {
-            background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%); /* Blue 600 to Indigo 600 */
+            /* Matches Web "Bid Now" Button Gradient: Blue to Cyan */
+            background: linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);
             color: white;
             padding: 32px 24px;
             text-align: center;
@@ -34,6 +35,10 @@
             font-size: 24px;
             font-weight: 700;
             letter-spacing: -0.025em;
+        }
+        .icon-large {
+            font-size: 48px;
+            margin-bottom: 10px;
         }
         .content {
             padding: 32px 24px;
@@ -69,7 +74,7 @@
             font-weight: 500;
         }
         .price {
-            color: #3B82F6; /* Blue 500 */
+            color: #2563EB; /* Blue 600 */
             font-size: 20px;
             font-weight: 700;
         }
@@ -92,17 +97,18 @@
         .button {
             display: inline-block;
             padding: 14px 32px;
-            background-color: #3B82F6; /* Blue 500 */
+            /* Matches Web Primary Gradient */
+            background: linear-gradient(to right, #2563EB, #06B6D4);
             color: white;
             text-decoration: none;
-            border-radius: 9999px; /* Pill shape */
+            border-radius: 12px;
             margin: 24px 0;
-            font-weight: 600;
-            transition: background-color 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+            font-weight: 700;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.5);
         }
         .button:hover {
-            background-color: #2563EB; /* Blue 600 */
+            opacity: 0.9;
         }
         .footer {
             background-color: #F8FAFC; /* Slate 50 */
@@ -117,6 +123,7 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="icon-large">🔨</div>
             <h1>Đặt Giá Thành Công!</h1>
         </div>
         <div class="content">

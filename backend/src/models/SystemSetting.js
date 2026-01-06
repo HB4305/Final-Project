@@ -39,8 +39,7 @@ const systemSettingSchema = new mongoose.Schema({
   },
 });
 
-// Index
-systemSettingSchema.index({ key: 1 });
+// Index (Removed redundant index as unique: true already creates one)
 
 // Middleware
 systemSettingSchema.pre("save", function () {

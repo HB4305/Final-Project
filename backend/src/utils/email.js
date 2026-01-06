@@ -127,6 +127,7 @@ export const sendBidSuccessNotification = async (data) => {
       bidAmount: data.bidAmount,
       currentPrice: data.currentPrice,
       isHighestBidder: data.isHighestBidder,
+      productUrl: data.productUrl,
     });
 
     return sendEmail({

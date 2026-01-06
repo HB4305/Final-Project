@@ -17,7 +17,8 @@ import {
   getAllUpgradeRequests,
   getUpgradeRequestById,
   approveUpgradeRequest,
-  rejectUpgradeRequest
+  rejectUpgradeRequest,
+  getUserAvatar
 } from "../controllers/admin.js";
 import { authenticate } from "../middlewares/auth.js";
 import { authorize } from "../middlewares/roles.js";
@@ -57,6 +58,13 @@ router.put(
   authenticate,
   authorize(USER_ROLES.ADMIN),
   updateUser
+);
+
+router.get(
+  "/users/:userId/avatar",
+  authenticate,
+  authorize(USER_ROLES.ADMIN),
+  getUserAvatar
 );
 
 router.delete(

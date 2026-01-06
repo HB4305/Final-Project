@@ -270,14 +270,7 @@ export default function Home() {
                   <div className="w-5 h-5 text-primary"><Mail className="w-5 h-5" /></div>
                   <a href="mailto:daokinghacker05@gmail.com" className="hover:text-white">daokinghacker05@gmail.com</a>
                 </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-5 h-5 text-primary"><Phone className="w-5 h-5" /></div>
-                  <span>+ 01 234 567 88</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-5 h-5 text-primary"><Phone className="w-5 h-5" /></div>
-                  <span>+ 01 234 567 89</span>
-                </li>
+
               </ul>
             </div>
           </div>
@@ -285,7 +278,7 @@ export default function Home() {
 
         {/* Copyright */}
         <div className="bg-black/20 py-6 text-center text-sm text-gray-500 border-t border-white/5">
-          <p>&copy; 2025 Copyright: <span className="font-bold text-white">KKABB.com</span></p>
+          <p>&copy; 2025 Copyright: <span className="font-bold text-white">KKABB</span></p>
         </div>
       </footer>
     </div>

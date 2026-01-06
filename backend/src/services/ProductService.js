@@ -878,34 +878,47 @@ export class ProductService {
         const realtimeStats = bidderIdStr ? ratingsMap[bidderIdStr] : null;
         const profileStats = bid.bidderId?.ratingSummary;
 
-        // Calculate Realtime %
+        // Calculate Realtime % (0-100)
         let realtimeScore = 0;
         if (realtimeStats && realtimeStats.total > 0) {
-          realtimeScore = realtimeStats.score;
+          realtimeScore = realtimeStats.score * 100;
         }
 
-        // Calculate Profile %
+        // Calculate Profile % (0-100)
         let profileScore = 0;
         if (profileStats && profileStats.totalCount > 0) {
-           // Use totalCount/countPositive if score is not reliable, or use score
-           // Profile score is usually 0-1 or 0-100? User data showed 0.90099.
-           profileScore = profileStats.score || (profileStats.countPositive / profileStats.totalCount);
+           // profileStats.score is 0-100 (or 0-1). Normalize it.
+           let rawScore = profileStats.score !== undefined 
+             ? profileStats.score 
+             : (profileStats.countPositive / profileStats.totalCount);
+           
+           // If rawScore is 0-1 (e.g. 0.9), convert to 0-100 (90)
+           // If it was calculated from counts (0.9), it also needs * 100.
+           // However, let's be careful.
+           
+           if (profileStats.score !== undefined) {
+                profileScore = profileStats.score;
+                if (profileScore <= 1 && profileScore > 0) {
+                    profileScore *= 100;
+                }
+           } else {
+                profileScore = (profileStats.countPositive / profileStats.totalCount) * 100;
+           }
         }
 
         // Determine Best Rating
         const bestScore = Math.max(realtimeScore, profileScore);
 
         // Determine Count based on best source
-        // If profile is better (or equal), use profile count (might be lower but higher quality?)
-        // Actually, if we use profile rating, we should show profile count.
         let finalCount = 0;
-        if (bestScore === profileScore && profileStats?.totalCount > 0) {
+        // Compare with tolerance for float precision
+        if (Math.abs(bestScore - profileScore) < 0.01 && profileStats?.totalCount > 0) {
             finalCount = profileStats.totalCount;
-        } else if (bestScore === realtimeScore && realtimeStats?.total > 0) {
+        } else if (Math.abs(bestScore - realtimeScore) < 0.01 && realtimeStats?.total > 0) {
             finalCount = realtimeStats.total;
         } else {
-            // Fallback
-            finalCount = Math.max(realtimeStats?.total || 0, profileStats?.totalCount || 0);
+            // Fallback: use the count from the source that provided the higher score
+            finalCount = bestScore === realtimeScore ? (realtimeStats?.total || 0) : (profileStats?.totalCount || 0);
         }
 
         return {

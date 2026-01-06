@@ -39,7 +39,8 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
 
       // Rule: Nếu đã có đánh giá (totalRatings > 0), điểm phải > 80%
       if (totalRatings > 0) {
-        const percentage = (countPositive / totalRatings) * 100;
+        const rawScore = user.ratingSummary?.score || 0;
+        const percentage = rawScore <= 1 ? rawScore * 100 : rawScore;
         if (percentage < 80) {
           if (onShowToast) {
             onShowToast("error", `Điểm uy tín của bạn phải lớn hơn 80% để tham gia đấu giá (Hiện tại: ${Math.round(percentage)}%)`);
@@ -80,14 +81,15 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
         </div>
 
         {/* Current Price */}
+        {/* Current Price */}
         <div className="relative">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-sm font-bold text-primary uppercase tracking-wider">Giá cao nhất hiện tại</span>
           </div>
-          <p className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 flex items-baseline gap-2 flex-wrap">
+          <p className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 flex items-baseline gap-2 flex-wrap">
             <span className="text-3xl md:text-4xl tracking-tight">{auction?.currentPrice?.toLocaleString('vi-VN')}</span>
-            <span className="text-lg md:text-xl text-blue-400 font-medium whitespace-nowrap">VNĐ</span>
+            <span className="text-lg md:text-xl font-medium whitespace-nowrap">VNĐ</span>
           </p>
         </div>
 
@@ -127,7 +129,7 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
                 }`}>
                   {(auction.topBidders[0].bidderRatingCount || 0) > 0 ? (
                     <>
-                      ★ {(auction.topBidders[0].bidderRating * 100).toFixed(0)}%
+                      {((auction.topBidders[0].bidderRating || 0) <= 1 ? (auction.topBidders[0].bidderRating || 0) * 100 : (auction.topBidders[0].bidderRating || 0)).toFixed(0)}%
                     </>
                   ) : (
                     "Chưa có đánh giá"
@@ -149,8 +151,8 @@ export default function AuctionSection({ auction, productTitle, onPlaceBid, onSh
           <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
 
-              <p className="text-xl md:text-2xl font-bold text-green-400 flex items-baseline gap-1.5 flex-wrap">
-                {auction?.buyNowPrice?.toLocaleString('vi-VN')} <span className="text-sm text-green-600/70 font-medium">VNĐ</span>
+              <p className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400 flex items-baseline gap-1.5 flex-wrap">
+                {auction?.buyNowPrice?.toLocaleString('vi-VN')} <span className="text-sm font-medium">VNĐ</span>
               </p>
             </div>
             <button

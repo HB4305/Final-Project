@@ -192,14 +192,10 @@ export default function RatingsPage() {
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 text-primary mb-1">
                     <span className="text-3xl font-bold text-white">
-                      {userInfo?.ratingSummary?.totalCount
-                        ? Math.round(
-                            (userInfo.ratingSummary.countPositive /
-                              userInfo.ratingSummary.totalCount) *
-                              100
-                          )
-                        : 0}
-                      %
+                {userInfo?.ratingSummary?.totalCount
+                  ? ((userInfo.ratingSummary.score || 0) <= 1 ? (userInfo.ratingSummary.score || 0) * 100 : (userInfo.ratingSummary.score || 0)).toFixed(0)
+                  : 0}
+                %
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">Độ uy tín</p>

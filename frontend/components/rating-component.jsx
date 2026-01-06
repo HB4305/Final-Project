@@ -95,7 +95,7 @@ export default function RatingComponent({
         <div>
           <p className="font-semibold">{targetUser.name}</p>
           <p className="text-sm text-muted-foreground">
-            Đánh giá hiện tại: {targetUser.ratingSummary?.totalCount ? Math.round((targetUser.ratingSummary.countPositive / targetUser.ratingSummary.totalCount) * 100) : 0}% ({targetUser.ratingSummary?.totalCount || targetUser.totalRatings || 0}{" "}
+            Đánh giá hiện tại: {targetUser.ratingSummary?.totalCount ? ((targetUser.ratingSummary.score || 0) <= 1 ? (targetUser.ratingSummary.score || 0) * 100 : (targetUser.ratingSummary.score || 0)).toFixed(0) : 0}% ({targetUser.ratingSummary?.totalCount || targetUser.totalRatings || 0}{" "}
             lượt)
           </p>
         </div>

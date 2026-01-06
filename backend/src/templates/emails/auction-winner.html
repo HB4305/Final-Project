@@ -6,7 +6,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <title>Chúc Mừng - Bạn Đã Thắng Đấu Giá!</title>
     <style>
         body {
@@ -25,7 +24,9 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         .header {
-            background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%); /* Blue 600 to Indigo 600 */
+            /* Matches Web "Buy Now" or "Trending" Gold/Green, but using primary brand for consistency/celebration */
+            /* Using Gold/Orange Gradient for Trophy/Victory feel */
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
             color: white;
             padding: 32px 24px;
             text-align: center;
@@ -39,7 +40,6 @@
         .trophy-icon {
             font-size: 48px;
             margin-bottom: 16px;
-            color: #FFD700; /* Gold */
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
             display: inline-block;
         }
@@ -47,8 +47,8 @@
             padding: 32px 24px;
         }
         .congrats-box {
-            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); /* Blue 50-100 */
-            border: 1px solid #BFDBFE;
+            background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); /* Amber 50-100 */
+            border: 1px solid #FDE68A;
             padding: 24px;
             margin: 24px 0;
             border-radius: 12px;
@@ -56,7 +56,7 @@
         }
         .congrats-box h2 {
             margin: 0;
-            color: #1E40AF; /* Blue 800 */
+            color: #B45309; /* Amber 700 */
             font-size: 20px;
             font-weight: 700;
         }
@@ -85,7 +85,7 @@
             font-weight: 500;
         }
         .price {
-            color: #3B82F6;
+            color: #F59E0B; /* Amber 500 */
             font-size: 20px;
             font-weight: 700;
         }
@@ -123,19 +123,20 @@
         .button {
             display: inline-block;
             padding: 16px 40px;
-            background: linear-gradient(to right, #2563EB, #4F46E5);
+            /* Matches Header - Victory Theme */
+            background: linear-gradient(to right, #F59E0B, #D97706);
             color: white;
             text-decoration: none;
             border-radius: 9999px;
             margin: 24px 0;
             font-weight: 700;
             font-size: 16px;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.5);
             transition: all 0.2s;
         }
         .button:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 8px -1px rgba(79, 70, 229, 0.6);
+            box-shadow: 0 6px 8px -1px rgba(245, 158, 11, 0.6);
         }
         .footer {
             background-color: #F8FAFC;
@@ -200,7 +201,7 @@
             <div class="payment-box">
                 <h3>THANH TOÁN</h3>
                 <p style="margin: 5px 0;">Tổng số tiền cần thanh toán:</p>
-                <div style="color: #2563EB; font-size: 28px; font-weight: 800; margin: 10px 0;">
+                <div style="color: #F59E0B; font-size: 28px; font-weight: 800; margin: 10px 0;">
                     {{finalPrice}} VNĐ
                 </div>
                 <p style="color: #EF4444; font-weight: 600; font-size: 14px; margin-top: 10px;">

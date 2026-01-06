@@ -88,7 +88,7 @@ export default function TopBiddersSection({ bidders = [], productId, isSeller = 
                        <p className="text-xs font-bold mt-0.5 flex items-center gap-1">
                           {(bidder.bidderRatingCount || 0) > 0 ? (
                             <span className="text-yellow-500 flex items-center gap-1">
-                              ★ Điểm uy tín: {(bidder.bidderRating * 100).toFixed(0)}%
+                              ★ Điểm uy tín: {((bidder.bidderRating <= 1 && bidder.bidderRating > 0) ? bidder.bidderRating * 100 : bidder.bidderRating).toFixed(0)}%
                             </span>
                           ) : (
                             <span className="text-gray-400">Chưa có đánh giá</span>

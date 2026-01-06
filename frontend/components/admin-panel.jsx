@@ -184,7 +184,8 @@ function UserManagement({ searchQuery, setSearchQuery }) {
     if (!ratingSummary || ratingSummary.totalCount === 0) {
       return 0;
     }
-    return ((ratingSummary.score || 0) / 5 * 100).toFixed(0);
+    let score = ratingSummary.score || 0;
+    return (score <= 1 ? score * 100 : score).toFixed(0);
   };
 
   if (loading) {
@@ -323,7 +324,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-semibold">
-                      {((user.ratingSummary?.score || 0) / 5 * 100).toFixed(0)}%
+                      {((user.ratingSummary?.score || 0) <= 1 ? (user.ratingSummary?.score || 0) * 100 : (user.ratingSummary?.score || 0)).toFixed(0)}%
                     </span>
                     <span className="text-xs text-muted-foreground ml-1">
                       ({user.ratingSummary?.totalCount || 0})
@@ -383,8 +384,12 @@ function UserManagement({ searchQuery, setSearchQuery }) {
               <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                 <div className="w-24 h-24 rounded-full p-1 bg-white/10 shadow-lg ring-2 ring-white/20 flex-shrink-0">
                   <img 
-                    src={selectedUser.profileImageUrl || "/placeholder-user.jpg"} 
+                    src={selectedUser.profileImageUrl || `http://localhost:5001/api/admin/users/${selectedUser._id}/avatar?token=${localStorage.getItem('token')}`} 
                     alt={selectedUser.username}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "/placeholder-user.jpg";
+                    }}
                     className="w-full h-full rounded-full object-cover"
                   />
                 </div>
@@ -792,7 +797,7 @@ function UpgradeRequests() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-semibold">
-                      {((request.user?.ratingSummary?.score || 0) / 5 * 100).toFixed(0)}%
+                      {((request.user?.ratingSummary?.score || 0) <= 1 ? (request.user?.ratingSummary?.score || 0) * 100 : (request.user?.ratingSummary?.score || 0)).toFixed(0)}%
                     </span>
                   </td>
                   <td className="px-4 py-3">{request.user?.ratingSummary?.countPositive || 0}</td>

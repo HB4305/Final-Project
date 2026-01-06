@@ -339,7 +339,7 @@ export default function UpgradeRequest({
                   <p className="font-semibold text-red-400 mb-1">Không đủ điều kiện</p>
                   <p className="text-sm text-red-300">
                     Bạn cần ít nhất 80% đánh giá tích cực để trở thành người bán.
-                    Đánh giá hiện tại: {currentUser.ratingSummary?.totalCount > 0 ? ((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(1) : "0.0"}%
+                    Đánh giá hiện tại: {currentUser.ratingSummary?.totalCount > 0 ? ((currentUser.ratingSummary.score || 0) <= 1 ? (currentUser.ratingSummary.score || 0) * 100 : (currentUser.ratingSummary.score || 0)).toFixed(0) : "0"}%
                   </p>
                 </div>
               </div>
@@ -358,9 +358,9 @@ export default function UpgradeRequest({
                 </div>
                 <div className="p-4 bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-lg text-center">
                   <p className="text-2xl font-bold text-blue-400">
-                    {currentUser.ratingSummary.totalCount 
-                      ? `${((currentUser.ratingSummary.countPositive / currentUser.ratingSummary.totalCount) * 100).toFixed(0)}%`
-                      : '0%'}
+                      {currentUser.ratingSummary.totalCount 
+                        ? `${((currentUser.ratingSummary.score || 0) <= 1 ? (currentUser.ratingSummary.score || 0) * 100 : (currentUser.ratingSummary.score || 0)).toFixed(0)}%`
+                        : '0%'}
                   </p>
                   <p className="text-xs text-gray-400">Tích cực</p>
                 </div>

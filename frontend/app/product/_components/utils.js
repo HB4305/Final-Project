@@ -53,6 +53,17 @@ export const calculatePositiveRate = (seller) => {
   
   // Support ratingSummary object or direct fields
   const rating = seller.ratingSummary || seller;
+
+  // If score is already calculated by backend (0-100), use it
+  if (typeof rating.score === 'number') {
+    let score = rating.score;
+    // Normalize 0-1 scale to 0-100
+    if (score <= 1 && score > 0) { // Assuming 0-1 scores are positive, not negative.
+        score *= 100;
+    }
+    return Math.round(score);
+  }
+
   const positive = rating.positiveCount || rating.countPositive || seller.positiveRatings || 0;
   const total = rating.totalRatings || rating.totalCount || 
     (seller.positiveRatings || 0) + (seller.neutralRatings || 0) + (seller.negativeRatings || 0);

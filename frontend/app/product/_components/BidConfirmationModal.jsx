@@ -39,9 +39,9 @@ export default function BidConfirmationModal({
                         <span className="font-bold text-white block mt-1 text-lg">{productName || "Sản phẩm này"}</span>
                     </p>
 
-                    <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-center">
-                        <p className="text-sm text-primary uppercase font-bold mb-1">Mức giá của bạn</p>
-                        <p className="text-3xl font-bold text-primary">{formatPrice(bidAmount)}</p>
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
+                        <p className="text-sm text-blue-400 uppercase font-bold mb-1">Mức giá của bạn</p>
+                        <p className="text-3xl font-bold text-blue-500">{formatPrice(bidAmount)}</p>
                     </div>
 
                     <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 text-sm text-yellow-200">
@@ -66,7 +66,7 @@ export default function BidConfirmationModal({
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                        className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
                     >
                         <Check className="w-5 h-5" />
                         Xác nhận đặt giá

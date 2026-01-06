@@ -602,8 +602,8 @@ export default function ProfilePage() {
               <div className="text-center py-6 bg-gradient-to-b from-yellow-500/10 to-transparent rounded-xl border border-yellow-500/10 mb-6">
                 <div className="flex items-center justify-center gap-1 mb-2">
                     <span className="text-4xl font-bold text-white">
-                        {((profile?.ratingSummary?.countPositive || 0) / ((profile?.ratingSummary?.totalCount || 1)) * 100).toFixed(0)}%
-                    </span>
+                    {profile?.ratingSummary?.totalCount ? ((profile?.ratingSummary?.score || 0) <= 1 ? (profile?.ratingSummary?.score || 0) * 100 : (profile?.ratingSummary?.score || 0)).toFixed(0) : "0"}%
+                  </span>
                 </div>
                 <p className="text-sm text-gray-400">
                   Dựa trên {profile?.ratingSummary?.totalCount || 0} lượt đánh giá

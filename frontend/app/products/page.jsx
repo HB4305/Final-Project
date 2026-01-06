@@ -314,8 +314,6 @@ export default function ProductsPage() {
       page: currentPage,
       limit: itemsPerPage,
       sortBy: sortBy,
-      limit: itemsPerPage,
-      sortBy: sortBy,
       status: status || 'active',
       // Pass filters to backend
       categoryId,
