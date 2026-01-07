@@ -632,13 +632,32 @@ export const getAllCategories = async (req, res, next) => {
 
     if (tree === "true") {
       const allCategories = await Category.aggregate(pipeline);
+      
+      // Separate parents and children
+      // Parents: Level 1 OR No ParentId
       const parents = allCategories.filter((c) => c.level === 1 || !c.parentId);
+      
+      // Children: Level != 1 AND Has ParentId
+      // Note: We might want to handle orphans (Level 2 but parent not found), 
+      // but for now let's stick to valid tree logic or they disappear. 
+      // Ideally, orphans should be promoted to root or flagged, but let's assume consistenty.
       const children = allCategories.filter((c) => c.level !== 1 && c.parentId);
 
-      const treeData = parents.map((p) => ({
-        ...p,
-        children: children.filter((c) => String(c.parentId) === String(p._id)),
-      }));
+      const treeData = parents.map((p) => {
+        // Find children for this parent
+        const myChildren = children.filter((c) => String(c.parentId) === String(p._id));
+        
+        // Calculate total product count (Parent's direct products + Children's products)
+        const childrenProductCount = myChildren.reduce((sum, child) => sum + (child.productCount || 0), 0);
+        const totalProductCount = (p.productCount || 0) + childrenProductCount;
+
+        return {
+          ...p,
+          productCount: totalProductCount, // Update with cumulative count
+          ownProductCount: p.productCount, // Keep original count reference if needed
+          children: myChildren,
+        };
+      });
 
       return res.json({
         success: true,
