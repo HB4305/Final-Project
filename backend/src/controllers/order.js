@@ -183,13 +183,22 @@ export const getOrderByAuctionId = async (req, res, next) => {
       userRole = "admin";
     }
 
+    // Fix: Explicitly check context to separate User Rating vs Transaction Rating
     const buyerRating = await Rating.findOne({
       orderId: order._id,
-      raterId: order.buyerId,
+      raterId: order.buyerId._id || order.buyerId, // Ensure ID is used
+      context: "nguoi_mua_danh_gia" 
     });
     const sellerRating = await Rating.findOne({
       orderId: order._id,
-      raterId: order.sellerId,
+      raterId: order.sellerId._id || order.sellerId, // Ensure ID is used
+      context: "nguoi_ban_danh_gia"
+    });
+
+    const transactionRating = await Rating.findOne({
+      orderId: order._id,
+      raterId: req.user._id,
+      context: "danh_gia_giao_dich"
     });
 
     res.status(200).json({
@@ -200,6 +209,7 @@ export const getOrderByAuctionId = async (req, res, next) => {
         ratings: {
           buyerRating,
           sellerRating,
+          transactionRating
         },
       },
     });
@@ -243,11 +253,19 @@ export const getOrderDetail = async (req, res, next) => {
 
     const buyerRating = await Rating.findOne({
       orderId: order._id,
-      raterId: order.buyerId,
+      raterId: order.buyerId._id || order.buyerId,
+      context: "nguoi_mua_danh_gia"
     });
     const sellerRating = await Rating.findOne({
       orderId: order._id,
-      raterId: order.sellerId,
+      raterId: order.sellerId._id || order.sellerId,
+      context: "nguoi_ban_danh_gia"
+    });
+
+    const transactionRating = await Rating.findOne({
+      orderId: order._id,
+      raterId: req.user._id,
+      context: "danh_gia_giao_dich"
     });
 
     res.status(200).json({
@@ -258,6 +276,7 @@ export const getOrderDetail = async (req, res, next) => {
         ratings: {
           buyerRating,
           sellerRating,
+          transactionRating
         },
       },
     });
@@ -523,15 +542,20 @@ export const rateTransaction = async (req, res, next) => {
 
     if (order.buyerId.toString() === raterId.toString()) {
       rateeId = order.sellerId;
-      context = "buyer_to_seller";
+      context = "nguoi_mua_danh_gia";
     } else if (order.sellerId.toString() === raterId.toString()) {
       rateeId = order.buyerId;
-      context = "seller_to_buyer";
+      context = "nguoi_ban_danh_gia";
     } else {
       throw new AppError(
         "You are not authorized to rate this transaction",
         403
       );
+    }
+
+    // Allow overriding context if provided (for 'post_transaction')
+    if (req.body.context && req.body.context === 'danh_gia_giao_dich') {
+        context = 'danh_gia_giao_dich';
     }
 
     if (![1, -1].includes(score)) {
@@ -627,11 +651,12 @@ export const cancelOrder = async (req, res, next) => {
 
     await order.save();
 
+    // Seller cancels -> Rate Buyer explicitly
     const rating = await ratingService.createRating(sellerId, order.buyerId, {
       score: -1,
       comment: reason || "Transaction cancelled by seller",
       orderId: order._id,
-      context: "seller_to_buyer"
+      context: "nguoi_ban_danh_gia"
     });
 
     await notificationService.createNotification(

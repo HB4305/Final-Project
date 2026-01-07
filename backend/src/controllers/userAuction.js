@@ -125,7 +125,8 @@ export const getWonAuctions = async (req, res, next) => {
     // Fetch existing ratings by this user for these auctions/orders
     const ratings = await Rating.find({
       raterId: req.user._id,
-      orderId: { $in: orders.map(o => o._id) }
+      orderId: { $in: orders.map(o => o._id) },
+      context: 'nguoi_mua_danh_gia' // Only check for user-to-user rating
     }).select("orderId").lean();
 
     const ratedOrderIds = new Set(ratings.map(r => r.orderId.toString()));
@@ -255,6 +256,7 @@ export const getSoldAuctions = async (req, res, next) => {
     const ratings = await Rating.find({
       raterId: req.user._id,
       orderId: { $in: orderIds },
+      context: 'nguoi_ban_danh_gia' // Only check for user-to-user rating
     })
       .select("orderId")
       .lean();

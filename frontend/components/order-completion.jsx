@@ -79,9 +79,7 @@ export default function OrderCompletion({
       setHasRated(false);
       return;
     }
-    if (userRole === "buyer" && ratings.buyerRating) {
-      setHasRated(true);
-    } else if (userRole === "seller" && ratings.sellerRating) {
+    if (ratings.transactionRating) {
       setHasRated(true);
     } else {
       setHasRated(false);
@@ -668,6 +666,7 @@ export default function OrderCompletion({
                         await orderService.rateTransaction(order._id, {
                           score: formData.ratingScore,
                           comment: formData.ratingComment || "",
+                          context: "danh_gia_giao_dich"
                         });
                         setHasRated(true);
                       } catch (err) {

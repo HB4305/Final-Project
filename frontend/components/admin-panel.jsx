@@ -287,6 +287,11 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                         <img
                           src={user.profileImageUrl || "/placeholder-user.jpg"}
                           alt={user.username}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "/placeholder-user.jpg";
+                          }}
                           className="w-full h-full rounded-full object-cover"
                         />
                       </div>
@@ -330,7 +335,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                         : "bg-red-500/10 text-red-400 border-red-500/20"
                         }`}
                     >
-                      {user.status ? "Active" : "Inactive"}
+                      {user.status ? "Hoạt động" : "Đã khóa"}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -393,6 +398,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                   <img 
                     src={selectedUser.profileImageUrl || `http://localhost:5001/api/admin/users/${selectedUser._id}/avatar?token=${localStorage.getItem('token')}`} 
                     alt={selectedUser.username}
+                    referrerPolicy="no-referrer"
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src = "/placeholder-user.jpg";
@@ -487,7 +493,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
 
               {/* User ID */}
               <div className="bg-muted/30 p-4 rounded-xl border border-border">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">User ID</p>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Mã người dùng</p>
                 <p className="text-xs font-mono text-muted-foreground select-all break-all">{selectedUser._id}</p>
               </div>
             </div>

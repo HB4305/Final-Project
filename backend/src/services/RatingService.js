@@ -73,7 +73,7 @@ export class RatingService {
       score,
       comment,
       orderId: orderId || null,
-      context: context || RATING_CONTEXT.POST_TRANSACTION,
+      context: context || "danh_gia_giao_dich",
     });
 
     await rating.save();
@@ -95,7 +95,7 @@ export class RatingService {
       { 
         $match: { 
           rateeId: new mongoose.Types.ObjectId(userId),
-          context: { $in: ['buyer_to_seller', 'seller_to_buyer', 'post_transaction'] }
+          context: { $in: ['nguoi_mua_danh_gia', 'nguoi_ban_danh_gia', 'danh_gia_giao_dich'] }
         } 
       },
       {
@@ -154,7 +154,7 @@ export class RatingService {
       query.context = filter;
     } else {
       // Default: Show all types of transactions
-      query.context = { $in: ['buyer_to_seller', 'seller_to_buyer', 'post_transaction'] };
+      query.context = { $in: ['nguoi_mua_danh_gia', 'nguoi_ban_danh_gia', 'danh_gia_giao_dich'] };
     }
     
     const populateField = type === "given" ? "rateeId" : "raterId";

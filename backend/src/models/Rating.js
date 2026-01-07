@@ -13,7 +13,7 @@ const ratingSchema = new mongoose.Schema({
   },
   context: {
     type: String,
-    enum: ['buyer_to_seller', 'seller_to_buyer', 'post_transaction'],
+    enum: ['nguoi_mua_danh_gia', 'nguoi_ban_danh_gia', 'danh_gia_giao_dich'],
     required: true
   },
   score: {

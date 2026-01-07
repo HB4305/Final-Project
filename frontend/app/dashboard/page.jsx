@@ -181,7 +181,7 @@ export default function DashboardPage() {
             score: -1,
             comment: "Người thắng không thanh toán",
             orderId: auctionId, // Using auctionId as orderId for now
-            context: "seller_to_buyer"
+            context: "nguoi_ban_danh_gia"
           });
         } catch (ratingErr) {
           console.error("Auto rating failed:", ratingErr);
