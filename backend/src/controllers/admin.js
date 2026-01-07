@@ -301,8 +301,7 @@ export const deleteUser = async (req, res, next) => {
               html: `
                 <h2>Đấu giá bị hủy</h2>
                 <p>Xin chào ${bidder.fullName || "người dùng"},</p>
-                <p>Cuộc đấu giá cho sản phẩm <strong>${
-                  auction.productId?.title || "product"
+                <p>Cuộc đấu giá cho sản phẩm <strong>${auction.productId?.title || "product"
                 }</strong> đã bị hủy vì tài khoản người bán đã bị quản trị viên xóa.</p>
                 <p>Tất cả các lượt đặt giá của bạn trong cuộc đấu giá này đã bị vô hiệu và sẽ không được xử lý.</p>
                 <p>Chúng tôi xin lỗi vì sự bất tiện này.</p>
@@ -383,11 +382,9 @@ export const deleteUser = async (req, res, next) => {
                   subject: "Bạn hiện là người đặt giá cao nhất!",
                   html: `
                     <h2>Cập nhật trạng thái đặt giá</h2>
-                    <p>Xin chào ${
-                      newHighestBidder.fullName || "người dùng"
+                    <p>Xin chào ${newHighestBidder.fullName || "người dùng"
                     },</p>
-                    <p>Bạn hiện là người đặt giá cao nhất trong cuộc đấu giá cho sản phẩm <strong>${
-                      auction.productId?.title || "product"
+                    <p>Bạn hiện là người đặt giá cao nhất trong cuộc đấu giá cho sản phẩm <strong>${auction.productId?.title || "product"
                     }</strong>.</p>
                     <p>Giá hiện tại: ${auction.currentPrice?.toLocaleString(
                       "vi-VN"
@@ -594,56 +591,25 @@ export const getAllCategories = async (req, res, next) => {
   try {
     const { page, limit, level, isActive, tree = "false" } = req.query;
 
-    // Base aggregation pipeline
-    const pipeline = [
-      {
-        $lookup: {
-          from: "products",
-          localField: "_id",
-          foreignField: "categoryId",
-          pipeline: [{ $project: { _id: 1 } }],
-          as: "products",
-        },
-      },
-      {
-        $project: {
-          name: 1,
-          slug: 1,
-          description: 1,
-          level: 1,
-          parentId: 1,
-          isActive: 1,
-          createdAt: 1,
-          productCount: { $size: { $ifNull: ["$products", []] } },
-        },
-      },
-    ];
+    // Build filter
+    const filter = {};
+    if (level && !isNaN(parseInt(level))) filter.level = parseInt(level);
+    if (isActive !== undefined) filter.isActive = isActive === "true";
 
-    // Apply filters if any
-    const matchStage = {};
-    if (level && !isNaN(parseInt(level))) matchStage.level = parseInt(level);
-    if (isActive !== undefined) matchStage.isActive = isActive === "true";
-    if (Object.keys(matchStage).length > 0) {
-      pipeline.unshift({ $match: matchStage });
-    }
-
-    // Sort by level then name
-    pipeline.push({ $sort: { level: 1, name: 1 } });
-
+    // Tree structure response
     if (tree === "true") {
-      const allCategories = await Category.aggregate(pipeline);
-      
+      const allCategories = await Category.find(filter)
+        .sort({ level: 1, name: 1 })
+        .lean();
+
       // Separate parents and children
-      // Parents: Level 1 OR No ParentId
       const parents = allCategories.filter((c) => c.level === 1 || !c.parentId);
-      
-      // Children: Level != 1 AND Has ParentId
       const children = allCategories.filter((c) => c.level !== 1 && c.parentId);
 
       const treeData = parents.map((p) => {
         // Find children for this parent
         const myChildren = children.filter((c) => String(c.parentId) === String(p._id));
-        
+
         // Calculate total product count (Parent's direct products + Children's products)
         const childrenProductCount = myChildren.reduce((sum, child) => sum + (child.productCount || 0), 0);
         const totalProductCount = (p.productCount || 0) + childrenProductCount;
@@ -664,7 +630,9 @@ export const getAllCategories = async (req, res, next) => {
 
     // Pagination logic
     if (!page && !limit) {
-      const categories = await Category.aggregate(pipeline);
+      const categories = await Category.find(filter)
+        .sort({ level: 1, name: 1 })
+        .lean();
       return res.json({
         success: true,
         data: categories,
@@ -675,19 +643,14 @@ export const getAllCategories = async (req, res, next) => {
     const limitNum = parseInt(limit) || 20;
     const skip = (pageNum - 1) * limitNum;
 
-    const facetPipeline = [
-      ...pipeline,
-      {
-        $facet: {
-          data: [{ $skip: skip }, { $limit: limitNum }],
-          total: [{ $count: "count" }],
-        },
-      },
-    ];
-
-    const [result] = await Category.aggregate(facetPipeline);
-    const categories = result?.data || [];
-    const total = result?.total[0]?.count || 0;
+    const [categories, total] = await Promise.all([
+      Category.find(filter)
+        .sort({ level: 1, name: 1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Category.countDocuments(filter),
+    ]);
 
     res.json({
       success: true,
