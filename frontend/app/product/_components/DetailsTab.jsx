@@ -1,20 +1,28 @@
-import { Package, Tag, Calendar, Eye, Clock } from 'lucide-react';
+import { Package, Tag, Calendar, Eye, ShieldCheck, Layers } from 'lucide-react';
 import { formatDateTime } from './utils';
 
 export default function DetailsTab({ product }) {
   // Get condition from metadata
   const condition = product.metadata?.condition || product.condition;
-  
+
   const details = [
     {
       icon: Package,
       label: 'Tình trạng',
-      value: condition === 'new' ? 'Mới 100%' : 
-             condition === 'used' ? 'Đã qua sử dụng' : 
-             condition || 'Không xác định'
+      value: (function () {
+        const map = {
+          'new': 'Mới 100%',
+          'like-new': 'Như mới',
+          'like new': 'Như mới',
+          'used-good': 'Đã sử dụng - Tốt',
+          'used-fair': 'Đã sử dụng - Khá',
+          'used': 'Đã qua sử dụng'
+        };
+        return map[condition] || condition || 'Không xác định';
+      })()
     },
     {
-      icon: Tag,
+      icon: Layers,
       label: 'Danh mục',
       value: product.categoryId?.name || 'Chưa phân loại'
     },
@@ -28,13 +36,17 @@ export default function DetailsTab({ product }) {
       label: 'Lượt xem',
       value: `${product.views || 0} lượt`
     },
-    {
-      icon: Clock,
-      label: 'Thời gian đấu giá',
-      value: product.auction 
-        ? `${formatDateTime(product.auction.startAt)} - ${formatDateTime(product.auction.endAt)}`
-        : 'Không xác định'
-    }
+
+    ...(product.metadata?.warranty ? [{
+      icon: ShieldCheck,
+      label: 'Bảo hành',
+      value: product.metadata.warranty
+    }] : []),
+    ...(product.metadata?.tags && product.metadata.tags.length > 0 ? [{
+      icon: Tag,
+      label: 'Tags',
+      value: Array.isArray(product.metadata.tags) ? product.metadata.tags.join(', ') : product.metadata.tags
+    }] : [])
   ];
 
   return (
@@ -44,7 +56,7 @@ export default function DetailsTab({ product }) {
         {details.map((detail, index) => {
           const Icon = detail.icon;
           return (
-            <div 
+            <div
               key={index}
               className="bg-muted/30 rounded-lg p-4 hover:bg-muted/50 transition"
             >
@@ -65,7 +77,7 @@ export default function DetailsTab({ product }) {
           );
         })}
       </div>
-      
+
       {/* Seller Notes (if any) */}
       {product.sellerNotes && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

@@ -101,6 +101,8 @@ const productSchema = new mongoose.Schema({
     brand: String,
     model: String,
     condition: String,
+    warranty: String,
+    tags: [String],
     specs: mongoose.Schema.Types.Mixed
   },
   // Bidder approval configuration
@@ -126,8 +128,8 @@ const productSchema = new mongoose.Schema({
 // INDEXES (Quan trọng cho performance)
 // ========================================
 // API 1.4: Text index cho full-text search - bao gồm title, brand, model, condition
-productSchema.index({ 
-  title: 'text', 
+productSchema.index({
+  title: 'text',
   'metadata.brand': 'text',
   'metadata.model': 'text',
   'metadata.condition': 'text'
@@ -140,7 +142,7 @@ productSchema.index({ sellerId: 1 });
 productSchema.index({ isActive: 1 });
 
 // Update updatedAt on save
-productSchema.pre('save', function() {
+productSchema.pre('save', function () {
   this.updatedAt = Date.now();
 });
 

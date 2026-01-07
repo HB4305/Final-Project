@@ -19,8 +19,10 @@ export default function UpdateProductDescription({
   currentDescription,
   currentMetadata = {},
   onUpdate,
+  onCancel,
+  defaultEditing = false,
 }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(defaultEditing);
   const [additionalInfo, setAdditionalInfo] = useState(""); // Changed: only for new info
   const [metadata, setMetadata] = useState({
     condition: currentMetadata.condition || "",
