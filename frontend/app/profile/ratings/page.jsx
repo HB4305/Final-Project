@@ -139,17 +139,7 @@ export default function RatingsPage() {
 
   // REMOVED early return if (loading && !ratings.length) ...
 
-  // Helper to determine sub-filter labels based on active tab
-  const getSubFilterLabel = (key) => {
-    if (activeTab === "received") {
-      if (key === "nguoi_mua_danh_gia") return "Từ người mua";
-      if (key === "nguoi_ban_danh_gia") return "Từ người bán";
-    } else {
-      if (key === "nguoi_mua_danh_gia") return "Cho người bán"; // I am buyer -> rating seller
-      if (key === "nguoi_ban_danh_gia") return "Cho người mua"; // I am seller -> rating buyer
-    }
-    return "";
-  };
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -250,41 +240,7 @@ export default function RatingsPage() {
             </button>
           </div>
 
-          {/* Sub Filters */}
-          <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none">
-            <button
-              onClick={() => handleSubFilterChange("all")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap ${
-                subFilter === "all"
-                  ? "bg-white/10 text-white border border-white/20"
-                  : "bg-transparent text-gray-400 hover:bg-white/5"
-              }`}
-            >
-              Tất cả
-            </button>
-
-            <button
-              onClick={() => handleSubFilterChange("nguoi_mua_danh_gia")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap ${
-                subFilter === "nguoi_mua_danh_gia"
-                  ? "bg-white/10 text-white border border-white/20"
-                  : "bg-transparent text-gray-400 hover:bg-white/5"
-              }`}
-            >
-              {getSubFilterLabel("nguoi_mua_danh_gia")}
-            </button>
-
-            <button
-              onClick={() => handleSubFilterChange("nguoi_ban_danh_gia")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap ${
-                subFilter === "nguoi_ban_danh_gia"
-                  ? "bg-white/10 text-white border border-white/20"
-                  : "bg-transparent text-gray-400 hover:bg-white/5"
-              }`}
-            >
-              {getSubFilterLabel("nguoi_ban_danh_gia")}
-            </button>
-          </div>
+          {/* Sub Filters - Removed as per request */}
 
           {/* Error Message */}
           {error && (

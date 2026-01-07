@@ -34,18 +34,18 @@ export default function BidHistory({ bids = [] }) {
     <div className="bg-background border border-border rounded-lg p-6">
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="w-5 h-5 text-primary" />
-        <h2 className="text-xl font-bold">Bid History</h2>
+        <h2 className="text-xl font-bold">Lịch sử đấu giá</h2>
       </div>
 
       {bids.length === 0 ? (
-        <p className="text-muted-foreground text-center py-8">No bids yet. Be the first!</p>
+        <p className="text-muted-foreground text-center py-8">Chưa có lượt đấu giá nào. Hãy là người đầu tiên!</p>
       ) : (
         <div className="space-y-2">
           {/* Header */}
           <div className="grid grid-cols-3 gap-4 pb-2 border-b-2 border-border font-semibold text-sm text-muted-foreground">
-            <span>Time</span>
-            <span>Bidder</span>
-            <span className="text-right">Amount</span>
+            <span>Thời gian</span>
+            <span>Người đấu giá</span>
+            <span className="text-right">Số tiền</span>
           </div>
 
           {/* Bid Rows */}
@@ -67,13 +67,13 @@ export default function BidHistory({ bids = [] }) {
                   {maskUsername(bid.bidderName)}
                   {index === 0 && (
                     <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded">
-                      Highest
+                      Cao nhất
                     </span>
                   )}
                 </div>
                 <div className="text-right">
                   <span className={`font-bold ${index === 0 ? 'text-primary' : 'text-foreground'}`}>
-                    ${bid.amount.toLocaleString()}
+                    {bid.amount.toLocaleString()} VNĐ
                   </span>
                 </div>
               </div>
@@ -83,18 +83,18 @@ export default function BidHistory({ bids = [] }) {
           {/* Stats */}
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total Bids:</span>
+              <span className="text-muted-foreground">Tổng lượt đấu giá:</span>
               <span className="font-semibold">{bids.length}</span>
             </div>
             {bids.length > 0 && (
               <>
                 <div className="flex justify-between text-sm mt-2">
-                  <span className="text-muted-foreground">Starting Price:</span>
-                  <span className="font-semibold">${bids[bids.length - 1].amount.toLocaleString()}</span>
+                  <span className="text-muted-foreground">Giá khởi điểm:</span>
+                  <span className="font-semibold">{bids[bids.length - 1].amount.toLocaleString()} VNĐ</span>
                 </div>
                 <div className="flex justify-between text-sm mt-2">
-                  <span className="text-muted-foreground">Current Price:</span>
-                  <span className="font-semibold text-primary">${bids[0].amount.toLocaleString()}</span>
+                  <span className="text-muted-foreground">Giá hiện tại:</span>
+                  <span className="font-semibold text-primary">{bids[0].amount.toLocaleString()} VNĐ</span>
                 </div>
               </>
             )}

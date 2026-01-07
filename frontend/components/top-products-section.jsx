@@ -336,14 +336,14 @@ function ProductCard({
             </div>
 
             {/* Time Remaining */}
-            <div className="flex items-center gap-1.5 text-xs font-medium">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium">
               <Clock size={14} className={time.isEnded ? "text-red-500" : "text-orange-500 dark:text-orange-400"} />
               <span className={time.isEnded ? "text-red-500" : "text-orange-600 dark:text-orange-400"}>
                 {time.isEnded ? (
                   "Kết thúc"
                 ) : (
                   <>
-                    {time.days}d {time.hours}h {time.minutes}m
+                    {time.days} ngày {time.hours} giờ {time.minutes} phút
                   </>
                 )}
               </span>

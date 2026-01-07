@@ -6,6 +6,8 @@ import {
   CreditCard,
   Truck,
   Star,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 import { orderService } from "../app/services/orderService.js";
 import Toast from "./Toast";
@@ -71,6 +73,10 @@ export default function OrderCompletion({
     shippingTrackingNumber: order.shippingInfo?.trackingNumber || "",
     shippingCarrier: order.shippingInfo?.carrier || "",
   });
+
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const [hasRated, setHasRated] = useState(false);
 
@@ -210,27 +216,35 @@ export default function OrderCompletion({
     }
   };
 
-  const handleCancelTransaction = async () => {
-    const reason = prompt("Vui lòng nhập lý do hủy đơn hàng:");
+  const handleCancelTransaction = () => {
+    setShowCancelModal(true);
+  };
 
-    if (!reason) return;
+  const confirmCancelTransaction = async () => {
+    if (!cancelReason.trim()) {
+        setToast({ message: "Vui lòng nhập lý do hủy đơn hàng", type: "error" });
+        return;
+    }
 
-    if (window.confirm("Bạn có chắc chắn muốn hủy giao dịch này không?")) {
-      try {
-        await orderService.cancelOrder(order._id, reason);
-        onUpdateOrder &&
-          onUpdateOrder({
-            ...order,
-            status: "cancelled",
-            cancelledBy: userRole,
-          });
-        setToast({ message: "Đã hủy đơn hàng", type: "success" });
-      } catch (error) {
-        setToast({
-          message: "Lỗi: " + (error.message || "Không thể hủy đơn hàng"),
-          type: "error",
+    try {
+      setIsCancelling(true);
+      await orderService.cancelOrder(order._id, cancelReason);
+      onUpdateOrder &&
+        onUpdateOrder({
+          ...order,
+          status: "cancelled",
+          cancelledBy: userRole,
         });
-      }
+      setToast({ message: "Đã hủy đơn hàng", type: "success" });
+      setShowCancelModal(false);
+      window.location.reload(); 
+    } catch (error) {
+      setToast({
+        message: "Lỗi: " + (error.message || "Không thể hủy đơn hàng"),
+        type: "error",
+      });
+    } finally {
+        setIsCancelling(false);
     }
   };
 
@@ -246,8 +260,9 @@ export default function OrderCompletion({
           {userRole === "seller" && currentStep < 4 && (
             <button
               onClick={handleCancelTransaction}
-              className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition text-sm font-medium"
+              className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition text-sm font-medium flex items-center gap-2"
             >
+              <AlertTriangle className="w-4 h-4" />
               Hủy giao dịch
             </button>
           )}
@@ -686,6 +701,70 @@ export default function OrderCompletion({
           </div>
         )}
       </div>
+
+
+      {/* Cancel Transaction Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl animate-scale-in">
+            <button
+              onClick={() => setShowCancelModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/30">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Xác nhận hủy đơn</h3>
+                  <p className="text-sm text-gray-400 text-red-300">Hành động này không thể hoàn tác</p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                 <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Lý do hủy đơn hàng <span className="text-red-500">*</span>
+                 </label>
+                 <textarea 
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Ví dụ: Người mua không phản hồi, Hết hàng..."
+                    className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-white placeholder-gray-500 resize-none h-32"
+                    autoFocus
+                 />
+                 <p className="text-xs text-gray-500 mt-2">
+                    * Đánh giá tiêu cực (-1) sẽ tự động được gửi cho người có lỗi trong việc hủy đơn này.
+                 </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmCancelTransaction}
+                  disabled={isCancelling || !cancelReason.trim()}
+                  className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {isCancelling ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Xác nhận hủy"
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  disabled={isCancelling}
+                  className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-medium transition border border-white/10"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

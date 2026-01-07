@@ -20,9 +20,9 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
 
   const getStatusBadge = (status) => {
     const badges = {
-      active: <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Active</span>,
-      ended: <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">Ended</span>,
-      pending: <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-semibold rounded-full">Pending</span>
+      active: <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Đang diễn ra</span>,
+      ended: <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">Đã kết thúc</span>,
+      pending: <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-semibold rounded-full">Chờ duyệt</span>
     };
     return badges[status] || null;
   };
@@ -40,7 +40,7 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
                 : 'bg-background border border-border hover:bg-muted'
             }`}
           >
-            Active
+            Đang diễn ra
           </button>
           <button
             onClick={() => setFilter('ended')}
@@ -50,7 +50,7 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
                 : 'bg-background border border-border hover:bg-muted'
             }`}
           >
-            Ended
+            Đã kết thúc
           </button>
           <button
             onClick={() => setFilter('all')}
@@ -60,7 +60,7 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
                 : 'bg-background border border-border hover:bg-muted'
             }`}
           >
-            All
+            Tất cả
           </button>
         </div>
         <Link
@@ -68,7 +68,7 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
           className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium"
         >
           <Plus className="w-4 h-4" />
-          New Listing
+          Đăng bán mới
         </Link>
       </div>
 
@@ -76,7 +76,7 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
       {filteredProducts.length === 0 ? (
         <div className="text-center py-12 bg-background border border-border rounded-lg">
           <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <p className="text-muted-foreground">No products found</p>
+          <p className="text-muted-foreground">Không tìm thấy sản phẩm</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -110,22 +110,22 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">Current Bid</p>
+                      <p className="text-xs text-muted-foreground">Giá hiện tại</p>
                       <p className="font-bold text-primary">${product.currentBid.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total Bids</p>
+                      <p className="text-xs text-muted-foreground">Lượt đấu giá</p>
                       <p className="font-semibold">{product.totalBids}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Time Left</p>
+                      <p className="text-xs text-muted-foreground">Thời gian còn lại</p>
                       <p className="font-semibold flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {product.timeLeft || 'Ended'}
+                        {product.timeLeft || 'Đã kết thúc'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Starting Price</p>
+                      <p className="text-xs text-muted-foreground">Giá khởi điểm</p>
                       <p className="font-semibold">${product.startingBid.toLocaleString()}</p>
                     </div>
                   </div>
@@ -136,7 +136,7 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
                       <div className="flex items-center gap-2 text-sm">
                         <CheckCircle className="w-4 h-4 text-green-600" />
                         <span className="font-medium text-green-800">
-                          Won by: {product.winner.name}
+                          Người thắng: {product.winner.name}
                         </span>
                         <span className="text-green-700">
                           ${product.winner.amount.toLocaleString()}
@@ -152,20 +152,20 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
                       className="flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded hover:bg-primary/90 transition text-sm font-medium"
                     >
                       <Edit className="w-4 h-4" />
-                      Edit
+                      Sửa
                     </Link>
                     <Link
                       to={`/seller/products/${product.id}/bids`}
                       className="flex items-center gap-1 px-3 py-1.5 border border-border rounded hover:bg-muted transition text-sm font-medium"
                     >
-                      View Bids
+                      Xem đấu giá
                     </Link>
                     {product.status === 'ended' && product.winner && (
                       <Link
                         to={`/seller/orders/${product.orderId}`}
                         className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm font-medium"
                       >
-                        Manage Order
+                        Quản lý đơn hàng
                       </Link>
                     )}
                     <button
@@ -173,7 +173,7 @@ export default function SellerProductList({ products = [], onEdit, onDelete }) {
                       className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm font-medium ml-auto"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Delete
+                      Xóa
                     </button>
                   </div>
                 </div>
