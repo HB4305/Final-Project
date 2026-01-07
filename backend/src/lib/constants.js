@@ -52,9 +52,9 @@ export const RATING_SCORE = {
 };
 
 export const RATING_CONTEXT = {
-  BUYER_TO_SELLER: "buyer_to_seller",
-  SELLER_TO_BUYER: "seller_to_buyer",
-  POST_TRANSACTION: "post_transaction",
+  BUYER_TO_SELLER: "nguoi_mua_danh_gia",
+  SELLER_TO_BUYER: "nguoi_ban_danh_gia",
+  POST_TRANSACTION: "danh_gia_giao_dich",
 };
 
 export const ERROR_CODES = {

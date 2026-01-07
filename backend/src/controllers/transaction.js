@@ -66,7 +66,7 @@ export const cancelTransaction = async (req, res, next) => {
       productId: auction.productId._id,
       score: -1,
       comment: defaultComment,
-      context: "seller_to_buyer",
+      context: "nguoi_ban_danh_gia",
     });
 
     // Cập nhật ratingSummary của người thắng

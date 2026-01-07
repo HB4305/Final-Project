@@ -341,14 +341,14 @@ export default function DashboardPage() {
 
     if (diff <= 0) return "Đã kết thúc";
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      return `${days} ngày`;
+    if (days > 0) {
+      return `${days} ngày ${hours} giờ`;
     }
-    return `${hours}h ${minutes}m`;
+    return `${hours} giờ ${minutes} phút`;
   };
 
   if (authLoading) {
@@ -497,7 +497,7 @@ export default function DashboardPage() {
                               <div className="w-full sm:w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden">
                                 <img
                                   src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                  className="w-full h-full object-contain p-2 bg-white rounded-lg group-hover:scale-105 transition-transform duration-500"
                                   alt={auction.productId?.title}
                                   onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
                                 />
@@ -598,7 +598,7 @@ export default function DashboardPage() {
                                   <img
                                     src={item.productId?.primaryImageUrl || "/placeholder.svg"}
                                     alt={item.productId?.title}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    className="w-full h-full object-contain p-2 bg-white rounded-lg group-hover:scale-105 transition-transform duration-500"
                                     onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
                                   />
                                   <button
@@ -649,7 +649,7 @@ export default function DashboardPage() {
                               <img
                                 src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
                                 alt={auction.productId?.title}
-                                className="w-20 h-20 rounded-lg object-cover ring-2 ring-green-500/20"
+                                className="w-20 h-20 rounded-lg object-contain p-1 bg-white ring-2 ring-green-500/20"
                                 onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
                               />
                               <div className="flex-1 text-center sm:text-left">
@@ -704,7 +704,7 @@ export default function DashboardPage() {
                               <img
                                 src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
                                 alt={auction.productId?.title}
-                                className="w-20 h-20 rounded-lg object-cover"
+                                className="w-20 h-20 rounded-lg object-contain p-1 bg-white"
                                 onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
                               />
                               <div className="flex-1 text-center sm:text-left">
@@ -800,7 +800,7 @@ export default function DashboardPage() {
                               <img
                                 src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
                                 alt={auction.productId?.title}
-                                className="w-20 h-20 rounded-lg object-cover grayscale"
+                                className="w-20 h-20 rounded-lg object-contain p-1 bg-white grayscale"
                               />
                               <div className="flex-1 text-center sm:text-left">
                                 <h3 className="font-bold text-lg mb-1 text-gray-200">{auction.productId?.title}</h3>
@@ -888,7 +888,7 @@ export default function DashboardPage() {
                 userType={selectedTransactionForRating.type === "rating_seller" ? "buyer" : "seller"}
                 onSubmitRating={handleRatingSuccess}
                 customSubmitAction={async ({ score, comment }) => {
-                  const context = selectedTransactionForRating.type === "rating_seller" ? "buyer_to_seller" : "seller_to_buyer";
+                  const context = selectedTransactionForRating.type === "rating_seller" ? "nguoi_mua_danh_gia" : "nguoi_ban_danh_gia";
                   await ratingService.createRating(selectedTransactionForRating.targetUser._id, {
                     score,
                     comment,

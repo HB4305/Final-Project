@@ -25,7 +25,7 @@ export default function RelatedProductCard({ product }) {
         <img 
           src={imageUrl}
           alt={product.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-contain p-2 bg-white group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
             e.target.src = FALLBACK_IMAGE;
           }}
@@ -75,7 +75,7 @@ export default function RelatedProductCard({ product }) {
             <span className={time.isEnded ? 'text-red-500 font-medium' : 'text-orange-400 font-medium'}>
               {time.isEnded 
                 ? 'Đã kết thúc'
-                : `${time.days}d ${time.hours}h`
+                : `${time.days} ngày ${time.hours} giờ`
               }
             </span>
           </div>

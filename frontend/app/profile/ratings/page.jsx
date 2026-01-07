@@ -39,7 +39,7 @@ export default function RatingsPage() {
     totalPages: 0,
   });
   const [activeTab, setActiveTab] = useState("received"); // 'received' or 'given'
-  const [subFilter, setSubFilter] = useState("all"); // 'all', 'buyer_to_seller', 'seller_to_buyer'
+  const [subFilter, setSubFilter] = useState("all"); // 'all', 'nguoi_mua_danh_gia', 'nguoi_ban_danh_gia'
 
   // Update fetchRatings when activeTab or subFilter changes
   useEffect(() => {
@@ -142,11 +142,11 @@ export default function RatingsPage() {
   // Helper to determine sub-filter labels based on active tab
   const getSubFilterLabel = (key) => {
     if (activeTab === "received") {
-      if (key === "buyer_to_seller") return "Từ người mua";
-      if (key === "seller_to_buyer") return "Từ người bán";
+      if (key === "nguoi_mua_danh_gia") return "Từ người mua";
+      if (key === "nguoi_ban_danh_gia") return "Từ người bán";
     } else {
-      if (key === "buyer_to_seller") return "Cho người bán"; // I am buyer -> rating seller
-      if (key === "seller_to_buyer") return "Cho người mua"; // I am seller -> rating buyer
+      if (key === "nguoi_mua_danh_gia") return "Cho người bán"; // I am buyer -> rating seller
+      if (key === "nguoi_ban_danh_gia") return "Cho người mua"; // I am seller -> rating buyer
     }
     return "";
   };
@@ -264,25 +264,25 @@ export default function RatingsPage() {
             </button>
 
             <button
-              onClick={() => handleSubFilterChange("buyer_to_seller")}
+              onClick={() => handleSubFilterChange("nguoi_mua_danh_gia")}
               className={`px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap ${
-                subFilter === "buyer_to_seller"
+                subFilter === "nguoi_mua_danh_gia"
                   ? "bg-white/10 text-white border border-white/20"
                   : "bg-transparent text-gray-400 hover:bg-white/5"
               }`}
             >
-              {getSubFilterLabel("buyer_to_seller")}
+              {getSubFilterLabel("nguoi_mua_danh_gia")}
             </button>
 
             <button
-              onClick={() => handleSubFilterChange("seller_to_buyer")}
+              onClick={() => handleSubFilterChange("nguoi_ban_danh_gia")}
               className={`px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap ${
-                subFilter === "seller_to_buyer"
+                subFilter === "nguoi_ban_danh_gia"
                   ? "bg-white/10 text-white border border-white/20"
                   : "bg-transparent text-gray-400 hover:bg-white/5"
               }`}
             >
-              {getSubFilterLabel("seller_to_buyer")}
+              {getSubFilterLabel("nguoi_ban_danh_gia")}
             </button>
           </div>
 
@@ -362,11 +362,11 @@ export default function RatingsPage() {
                         </span>
                         <span className="text-xs text-gray-400 font-medium px-2 py-0.5 bg-white/10 rounded">
                           {(() => {
-                            if (rating.context === "post_transaction") {
+                            if (rating.context === "danh_gia_giao_dich") {
                               return rating.score === -1 ? "Hủy giao dịch" : "Giao dịch thành công";
                             }
-                            if (rating.context === "buyer_to_seller") return "Người mua đánh giá";
-                            if (rating.context === "seller_to_buyer") return "Người bán đánh giá";
+                            if (rating.context === "nguoi_mua_danh_gia") return "Người mua đánh giá";
+                            if (rating.context === "nguoi_ban_danh_gia") return "Người bán đánh giá";
                             return (rating.context || "").replace(/_/g, " ");
                           })()}
                         </span>

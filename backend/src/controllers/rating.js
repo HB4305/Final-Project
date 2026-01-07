@@ -11,7 +11,7 @@ export const createRating = async (req, res, next) => {
     const raterId = req.user._id;
 
     const rating = await ratingService.createRating(raterId, rateeId, {
-      score,
+      score: Number(score),
       comment,
       orderId,
       context
@@ -37,7 +37,7 @@ export const updateRating = async (req, res, next) => {
     const raterId = req.user._id;
 
     const rating = await ratingService.updateRating(ratingId, raterId, {
-      score,
+      score: Number(score),
       comment
     });
 

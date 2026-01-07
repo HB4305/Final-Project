@@ -558,52 +558,43 @@ export const rateTransaction = async (req, res, next) => {
         context = 'danh_gia_giao_dich';
     }
 
-    if (![1, -1].includes(score)) {
+    // Verify score is number
+    const numericScore = Number(score);
+    if (![1, -1].includes(numericScore)) {
       throw new AppError("Score must be 1 or -1", 400);
     }
 
     let rating;
     if (orderId) {
-      // Check for existing via service (Service handles this verify but controller can do pre-check if needed, 
-      // but service.createRating handles duplicate check better)
-      // Actually service throws if exists. 
-      // But here we might want to support update? 
-      // The current controller supports update if rating exists. 
-      // The Service createRating throws if exists.
-      // We should check if ratingService has updateRating support or if createRating can handle it.
-      // Looking at RatingService.js, createRating throws if exists.
-      // So we might need to handle update separately or modify service.
-      // However, for now, let's keep the update logic here slightly or use service if available.
-      // RatingService doesn't seem to have updateRating exposed well for this context or I didn't see it fully.
-      // Let's re-read RatingService in next step if needed, but safe bet:
-
-      const existingRating = await Rating.findOne({ orderId, raterId });
+      // Find existing rating with SPECIFIC context
+      const existingRating = await Rating.findOne({ 
+        orderId, 
+        raterId,
+        context 
+      });
 
       if (existingRating) {
         // Update existing
-        existingRating.score = score;
+        existingRating.score = numericScore;
         existingRating.comment = comment;
         existingRating.updatedAt = new Date();
         await existingRating.save();
-        // Update summary via service private method? No, service doesn't expose it publically easily?
-        // Actually RatingService has _updateUserRatingSummary but it is private convention.
-        // But we can call it if we import the instance. 
-        // Javascript classes, _ is just convention.
+        
         await ratingService._updateUserRatingSummary(rateeId);
         rating = existingRating;
       } else {
         // Create new
         rating = await ratingService.createRating(raterId, rateeId, {
-          score,
+          score: numericScore,
           comment,
           orderId,
           context
         });
       }
     } else {
-      // No orderId case? (Unlikely for rateTransaction but possible in code path)
+      // No orderId case
       rating = await ratingService.createRating(raterId, rateeId, {
-        score,
+        score: numericScore,
         comment,
         orderId,
         context

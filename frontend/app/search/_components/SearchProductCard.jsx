@@ -64,7 +64,7 @@ const SearchProductCard = ({ product }) => {
           <img
             src={product.primaryImageUrl || product.imageUrls?.[0] || FALLBACK_IMAGE}
             alt={product.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+            className="w-full h-full object-contain p-2 bg-white group-hover:scale-105 transition duration-300"
             onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
           />
 
@@ -136,6 +136,7 @@ const SearchProductCard = ({ product }) => {
                 {product.auction?.bidCount || 0} lượt đấu giá
               </span>
               <span className={`font-semibold ${endingSoon ? 'text-red-500' : 'text-orange-500'}`}>
+                {/* calculateTimeLeft already returns localized string from utils */}
                 {calculateTimeLeft(product.auction?.endAt)}
               </span>
             </div>

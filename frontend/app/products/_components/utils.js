@@ -30,10 +30,16 @@ export const calculateTimeLeft = (endDate) => {
   if (!endDate) return "N/A";
   const end = new Date(endDate);
   const now = new Date();
-  if (end <= now) return "Ended";
+  if (end <= now) return "Đã kết thúc";
 
-  const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-  return days === 1 ? "1 day" : `${days} days`;
+  const diff = end - now;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (days > 0) return `${days} ngày ${hours} giờ`;
+  if (hours > 0) return `${hours} giờ ${minutes} phút`;
+  return `${minutes} phút`;
 };
 
 /**
