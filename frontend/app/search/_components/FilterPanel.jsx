@@ -58,18 +58,44 @@ const FilterPanel = ({
                {!selectedCategory && <ChevronDown className="w-4 h-4 -rotate-90" />}
              </button>
             {categories.map((cat) => (
-              <button
-                key={cat._id}
-                onClick={() => onCategoryChange(cat._id)}
-                className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm font-medium flex items-center justify-between group ${
-                  selectedCategory === cat._id
-                    ? 'bg-primary text-white shadow-lg shadow-primary/25'
-                    : 'hover:bg-white/10 text-gray-400 hover:text-white'
-                }`}
-              >
-                {cat.name}
-                {selectedCategory === cat._id && <ChevronDown className="w-4 h-4 -rotate-90" />}
-              </button>
+              <div key={cat._id}>
+                <button
+                  onClick={() => onCategoryChange(cat._id)}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm font-medium flex items-center justify-between group ${
+                    selectedCategory === cat._id
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25'
+                      : 'hover:bg-white/10 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {cat.name}
+                  {(selectedCategory === cat._id || (cat.children && cat.children.some(c => c._id === selectedCategory))) && (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+                
+                {/* Render children for search filter */}
+                {(selectedCategory === cat._id || (cat.children && cat.children.some(c => c._id === selectedCategory))) && 
+                 cat.children && cat.children.length > 0 && (
+                  <div className="ml-4 mt-1 border-l border-white/10 pl-2 space-y-1">
+                     {cat.children.map((child) => (
+                       <button
+                         key={child._id}
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           onCategoryChange(child._id);
+                         }}
+                         className={`w-full text-left px-3 py-2 rounded-lg transition-all text-xs font-medium ${
+                           selectedCategory === child._id
+                             ? 'text-primary'
+                             : 'text-gray-500 hover:text-gray-300'
+                         }`}
+                       >
+                         {child.name}
+                       </button>
+                     ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

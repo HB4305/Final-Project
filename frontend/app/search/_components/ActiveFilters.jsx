@@ -21,9 +21,22 @@ const ActiveFilters = ({
   onClearAll 
 }) => {
   // Tìm tên category từ ID
+  // Tìm tên category từ ID (Recursive)
   const getCategoryName = (categoryId) => {
-    const category = categories?.find(c => c._id === categoryId);
-    return category?.name || categoryId;
+    if (!categories) return categoryId;
+
+    const findRecursive = (cats) => {
+      for (const cat of cats) {
+        if (cat._id === categoryId) return cat.name;
+        if (cat.children && cat.children.length > 0) {
+          const foundName = findRecursive(cat.children);
+          if (foundName) return foundName;
+        }
+      }
+      return null;
+    };
+
+    return findRecursive(categories) || categoryId;
   };
 
   // Tìm tên sort option từ value

@@ -5,6 +5,8 @@ const FilterSidebar = ({
   categories,
   selectedCategory,
   onCategoryChange,
+  selectedSubcategory,
+  onSubCategoryChange,
   priceRange,
   onPriceRangeChange,
   sortBy,
@@ -32,18 +34,44 @@ const FilterSidebar = ({
           <h3 className="font-bold text-sm mb-4 text-gray-700 dark:text-gray-200">Danh mục</h3>
           <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => onCategoryChange(cat)}
-                className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm font-medium flex items-center justify-between group ${
-                  selectedCategory === cat
-                    ? 'bg-primary text-white shadow-lg shadow-primary/25'
-                    : 'hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white'
-                }`}
-              >
-                {cat === 'All' ? 'Tất cả' : cat}
-                {selectedCategory === cat && <ChevronDown className="w-4 h-4 -rotate-90" />}
-              </button>
+              <div key={cat._id || cat.name}>
+                <button
+                  onClick={() => onCategoryChange(cat.name)}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm font-medium flex items-center justify-between group ${
+                    selectedCategory === cat.name
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25'
+                      : 'hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-white'
+                  }`}
+                >
+                  {cat.name === 'All' ? 'Tất cả' : cat.name}
+                  {(selectedCategory === cat.name || (cat.children && cat.children.some(c => c.name === selectedSubcategory))) && (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+                
+                {/* Render Subcategories if parent is selected or has selected subcategory */}
+                {(selectedCategory === cat.name || (cat.children && cat.children.some(c => c.name === selectedSubcategory))) && 
+                 cat.children && cat.children.length > 0 && (
+                  <div className="ml-4 mt-1 border-l-2 border-gray-100 dark:border-white/10 pl-2 space-y-1">
+                    {cat.children.map((child) => (
+                      <button
+                        key={child._id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSubCategoryChange && onSubCategoryChange(child.name);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-all text-xs font-medium ${
+                          selectedSubcategory === child.name
+                            ? 'bg-primary/10 text-primary dark:text-primary-foreground'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-primary hover:bg-gray-50 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        {child.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

@@ -40,7 +40,8 @@ const useCategories = () => {
           setAllCategories(allCats);
           const parentCats = allCats.filter(cat => cat.level === 1);
 
-          setCategories(['All', ...parentCats.map(cat => cat.name)]);
+          // Store full objects, with 'All' as a special object
+          setCategories([{ _id: 'all', name: 'All' }, ...parentCats]);
           setCategoryMap(buildCategoryMap(allCats));
         }
       } catch (err) {
@@ -302,11 +303,32 @@ export default function ProductsPage() {
 
   // Sync filters to API call
   useEffect(() => {
-    // Find categoryId from selectedCategory name
-    // Note: selectedCategory can be "All" or a name
+    // Find categoryId from selectedCategory name (or selectedSubcategory)
     let categoryId = null;
-    if (selectedCategory && selectedCategory !== 'All' && allCategories.length > 0) {
-      const cat = allCategories.find(c => c.name === selectedCategory);
+    
+    // Priority 1: Match subcategory
+    // Helper to find category by name recursively in the tree
+    const findCategoryByName = (cats, name) => {
+      for (const cat of cats) {
+        if (cat.name === name) return cat;
+        if (cat.children && cat.children.length > 0) {
+          const found = findCategoryByName(cat.children, name);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    if (selectedSubcategory && allCategories.length > 0) {
+      const subCat = findCategoryByName(allCategories, selectedSubcategory);
+      if (subCat) categoryId = subCat._id;
+    }
+    
+    // Priority 2: Match parent category if no subcategory found/selected
+    if (!categoryId && selectedCategory && selectedCategory !== 'All' && allCategories.length > 0) {
+      // Logic for parent lookup can also use recursive helper to be safe, 
+      // though parents are usually top level.
+      const cat = findCategoryByName(allCategories, selectedCategory);
       if (cat) categoryId = cat._id;
     }
 
@@ -322,7 +344,7 @@ export default function ProductsPage() {
     };
 
     refetch(params);
-  }, [currentPage, itemsPerPage, sortBy, selectedCategory, searchQuery, priceRange, status, allCategories, refetch]);
+  }, [currentPage, itemsPerPage, sortBy, selectedCategory, selectedSubcategory, searchQuery, priceRange, status, allCategories, refetch]);
 
   // Derived data
   const filteredProducts = useMemo(() => {
@@ -408,6 +430,12 @@ export default function ProductsPage() {
             categories={categories}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
+            selectedSubcategory={selectedSubcategory}
+            onSubCategoryChange={(subCat) => {
+              setSelectedSubcategory(subCat);
+              // reset page when subcategory changes
+              setCurrentPage(1);
+            }}
             priceRange={priceRange}
             onPriceRangeChange={setPriceRange}
             sortBy={sortBy}
