@@ -1,9 +1,10 @@
-import { Heart, Clock, TrendingUp, User, ShoppingBag, Sparkles, Gavel } from 'lucide-react';
+import { Heart, Clock, TrendingUp, User, ShoppingBag, Sparkles, Gavel, Crown } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatPrice, FALLBACK_IMAGE, isNewProduct } from './utils';
 
 const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
+
   const [imgSrc, setImgSrc] = React.useState(product.image || FALLBACK_IMAGE);
   const [imgError, setImgError] = React.useState(false);
 
@@ -66,8 +67,8 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
               </span>
             )}
             <span className={`px-2.5 py-1 text-xs font-bold rounded-full backdrop-blur-md shadow-lg ${product.auction?.status === 'active'
-                ? 'bg-green-500/90 text-white'
-                : 'bg-gray-600/90 text-white'
+              ? 'bg-green-500/90 text-white'
+              : 'bg-gray-600/90 text-white'
               }`}>
               {product.auction?.status === 'active' ? 'Đang diễn ra' : product.auction?.status || 'N/A'}
             </span>
@@ -91,18 +92,32 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
 
         {/* Info Section */}
         <div className="p-5 flex-1 flex flex-col">
-          {/* Category */}
+          {/* Category & Current Bidder */}
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium px-2 py-0.5 rounded bg-blue-50 dark:bg-white/10 text-blue-600 dark:text-blue-200 border border-blue-100 dark:border-white/10">
               {product.category}
             </span>
 
+            {/* Current Bidder (Moved here) */}
+            <div className="flex items-center gap-1 text-gray-600 dark:text-gray-300 text-xs">
+              <Crown className="w-3.5 h-3.5 text-yellow-500" />
+              <span className="text-gray-500 mr-1">Giữ giá:</span>
+              <span className="font-medium" title={product.auction?.currentHighestBidder || 'Chưa có'}>
+                {product.auction?.currentHighestBidder || 'Chưa có'}
+              </span>
+            </div>
           </div>
 
           {/* Title */}
-          <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-2 line-clamp-2 group-hover:text-primary transition text-base min-h-[3rem]">
+          <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-1 line-clamp-2 group-hover:text-primary transition text-base min-h-[3rem]">
             {product.name}
           </h3>
+
+          {/* Bid Count (Moved here) */}
+          <div className="flex items-center gap-1 text-gray-500 text-xs mb-3">
+            <Gavel className="w-3 h-3" />
+            <span>{product.auction?.bidCount || 0} lượt ra giá</span>
+          </div>
 
           {/* Seller info */}
           {product.sellerId && (

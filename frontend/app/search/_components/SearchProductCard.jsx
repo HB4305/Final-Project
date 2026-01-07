@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, TrendingUp, Heart, Sparkles } from 'lucide-react';
+import { Clock, TrendingUp, Heart, Sparkles, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FALLBACK_IMAGE } from './constants.js';
 import { formatPrice, calculateTimeLeft, isEndingSoon, isHotProduct, isNewProduct } from './utils.js';
@@ -94,8 +94,8 @@ const SearchProductCard = ({ product }) => {
           >
             <Heart
               className={`w-5 h-5 transition-colors ${isWatchlisted
-                  ? "fill-red-500 text-red-500"
-                  : "text-white hover:text-red-400"
+                ? "fill-red-500 text-red-500"
+                : "text-white hover:text-red-400"
                 }`}
             />
           </button>
@@ -138,6 +138,15 @@ const SearchProductCard = ({ product }) => {
               <span className={`font-semibold ${endingSoon ? 'text-red-500' : 'text-orange-500'}`}>
                 {/* calculateTimeLeft already returns localized string from utils */}
                 {calculateTimeLeft(product.auction?.endAt)}
+              </span>
+            </div>
+
+            {/* Current Bidder */}
+            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Crown className="w-3.5 h-3.5 text-yellow-500" />
+              <span>Giữ giá:</span>
+              <span className="font-medium text-foreground" title={product.auction?.currentHighestBidder || 'Chưa có'}>
+                {product.auction?.currentHighestBidder || 'Chưa có'}
               </span>
             </div>
           </div>
