@@ -22,7 +22,9 @@ export default function AdminCategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData] = useState({ name: "" });
+  const [subcategories, setSubcategories] = useState([""]);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -77,27 +79,79 @@ export default function AdminCategoriesPage() {
     try {
       let response;
       if (editingCategory) {
+        // Edit mode - update category name
         response = await categoryService.updateCategory(
           editingCategory._id,
           formData
         );
+        if (response.success) {
+          // If editing a parent category (level 1), create new subcategories
+          if (editingCategory.level === 1) {
+            setSubmitting(true);
+            const validSubcategories = subcategories.filter(name => name.trim() !== "");
+            for (const subName of validSubcategories) {
+              await categoryService.createCategory({
+                name: subName,
+                parentId: editingCategory._id,
+                level: 2
+              });
+            }
+            const successMsg = validSubcategories.length > 0
+              ? `Cập nhật danh mục "${formData.name}" thành công và đã thêm ${validSubcategories.length} danh mục con`
+              : `Cập nhật danh mục "${formData.name}" thành công`;
+            setModalMessage(successMsg);
+            setSubmitting(false);
+          } else {
+            setModalMessage(response.message);
+          }
+          setShowSuccessModal(true);
+          setShowModal(false);
+          setFormData({ name: "" });
+          setSubcategories([""]);
+          setEditingCategory(null);
+          fetchCategories();
+        } else {
+          setError(response.message);
+        }
       } else {
-        response = await categoryService.createCategory(formData);
-      }
+        // Create mode - create parent + children
+        setSubmitting(true);
 
-      if (response.success) {
-        console.log("[CATEGORY ADMIN]:", response.data);
-        setModalMessage(response.message);
+        // Create parent category
+        const parentResponse = await categoryService.createCategory({
+          name: formData.name,
+          level: 1
+        });
+
+        if (!parentResponse.success) {
+          throw new Error(parentResponse.message);
+        }
+
+        const parentId = parentResponse.data._id;
+
+        // Create subcategories if any
+        const validSubcategories = subcategories.filter(name => name.trim() !== "");
+        for (const subName of validSubcategories) {
+          await categoryService.createCategory({
+            name: subName,
+            parentId: parentId,
+            level: 2
+          });
+        }
+
+        const successMsg = `Đã tạo danh mục "${formData.name}" thành công${validSubcategories.length > 0 ? ` với ${validSubcategories.length} danh mục con` : ""}`;
+        setModalMessage(successMsg);
         setShowSuccessModal(true);
         setShowModal(false);
-        setFormData({ name: "", description: "" });
+        setFormData({ name: "" });
+        setSubcategories([""]);
         setEditingCategory(null);
         fetchCategories();
-      } else {
-        setError(response.message);
+        setSubmitting(false);
       }
     } catch (error) {
-      setError("Đã xảy ra lỗi. Vui lòng thử lại.");
+      setError(error.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
+      setSubmitting(false);
     }
   };
 
@@ -134,14 +188,36 @@ export default function AdminCategoriesPage() {
 
   const openEditModal = (category) => {
     setEditingCategory(category);
-    setFormData({ name: category.name, description: category.description });
+    setFormData({ name: category.name });
+    // For parent categories (level 1), allow adding subcategories
+    if (category.level === 1) {
+      setSubcategories([""]);
+    } else {
+      setSubcategories([]);
+    }
     setShowModal(true);
   };
 
   const openCreateModal = () => {
     setEditingCategory(null);
-    setFormData({ name: "", description: "" });
+    setFormData({ name: "" });
+    setSubcategories([""]);
     setShowModal(true);
+  };
+
+  const handleAddSubcategoryField = () => {
+    setSubcategories([...subcategories, ""]);
+  };
+
+  const handleRemoveSubcategoryField = (index) => {
+    const newSubcategories = subcategories.filter((_, i) => i !== index);
+    setSubcategories(newSubcategories);
+  };
+
+  const handleSubcategoryChange = (index, value) => {
+    const newSubcategories = [...subcategories];
+    newSubcategories[index] = value;
+    setSubcategories(newSubcategories);
   };
 
   const openDetailModal = (category) => {
@@ -533,7 +609,7 @@ export default function AdminCategoriesPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    Tên danh mục
+                    {editingCategory ? "Tên danh mục" : "Tên danh mục cha"} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -547,34 +623,70 @@ export default function AdminCategoriesPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    Mô tả
-                  </label>
-                  <textarea
-                    placeholder="Nhập mô tả danh mục..."
-                    className="w-full px-4 py-3 bg-muted border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition min-h-[100px]"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                  />
-                </div>
+                {/* Subcategories - Show in create mode OR when editing a parent category (level 1) */}
+                {(!editingCategory || (editingCategory && editingCategory.level === 1)) && (
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                        {editingCategory ? "Thêm danh mục con (Tùy chọn)" : "Danh mục con (Tùy chọn)"}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAddSubcategoryField}
+                        className="text-sm text-blue-500 hover:text-blue-400 font-medium transition"
+                      >
+                        + Thêm danh mục con
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {subcategories.map((subcat, index) => (
+                        <div key={index} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={subcat}
+                            onChange={(e) => handleSubcategoryChange(index, e.target.value)}
+                            placeholder="VD: Điện thoại, Laptop..."
+                            className="flex-1 px-4 py-3 bg-muted border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                          />
+                          {subcategories.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSubcategoryField(index)}
+                              className="p-3 text-red-500 hover:bg-red-50 rounded-lg transition"
+                              title="Xóa"
+                            >
+                              <XCircle className="w-5 h-5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 bg-muted text-foreground border border-border rounded-lg hover:bg-muted/80 transition font-medium"
+                  disabled={submitting}
+                  className="px-5 py-2.5 bg-muted text-foreground border border-border rounded-lg hover:bg-muted/80 transition font-medium disabled:opacity-50"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-lg shadow-blue-600/20"
+                  disabled={submitting}
+                  className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
                 >
-                  {editingCategory ? "Cập nhật" : "Thêm mới"}
+                  {submitting ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    editingCategory ? "Cập nhật" : "Thêm mới"
+                  )}
                 </button>
               </div>
             </form>
