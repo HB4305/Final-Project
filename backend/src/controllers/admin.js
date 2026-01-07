@@ -616,8 +616,7 @@ export const getAllCategories = async (req, res, next) => {
 
         return {
           ...p,
-          productCount: totalProductCount, // Update with cumulative count
-          ownProductCount: p.productCount, // Keep original count reference if needed
+          productCount: p.productCount, // Update with cumulative count
           children: myChildren,
         };
       });
@@ -833,7 +832,8 @@ export const updateCategory = async (req, res, next) => {
 /**
  * Delete category
  * DELETE /api/admin/categories/:id
- * Cannot delete if there are products using this category
+ * Cannot delete if there are products using this category or its subcategories
+ * If parent category is deleted and all subcategories are empty, subcategories will be auto-deleted
  */
 export const deleteCategory = async (req, res, next) => {
   try {
@@ -847,7 +847,7 @@ export const deleteCategory = async (req, res, next) => {
       });
     }
 
-    // Check if category has products
+    // Check if this category has products
     const productCount = await Product.countDocuments({ categoryId: id });
     if (productCount > 0) {
       return res.status(400).json({
@@ -857,18 +857,45 @@ export const deleteCategory = async (req, res, next) => {
       });
     }
 
-    // Check if category has subcategories (if level 1)
+    // If level 1 (parent category), check subcategories
     if (category.level === 1) {
-      const subcategoryCount = await Category.countDocuments({ parentId: id });
-      if (subcategoryCount > 0) {
-        return res.status(400).json({
-          success: false,
-          message: `Không thể xóa danh mục. Có ${subcategoryCount} danh mục con thuộc danh mục này.`,
-          data: { subcategoryCount },
+      const subcategories = await Category.find({ parentId: id });
+
+      if (subcategories.length > 0) {
+        // Check if any subcategory has products
+        const subcategoryIds = subcategories.map(sub => sub._id);
+        const subcategoryProductCount = await Product.countDocuments({
+          categoryId: { $in: subcategoryIds }
+        });
+
+        if (subcategoryProductCount > 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Không thể xóa danh mục. Có ${subcategoryProductCount} sản phẩm trong các danh mục con.`,
+            data: {
+              subcategoryCount: subcategories.length,
+              subcategoryProductCount
+            },
+          });
+        }
+
+        // All subcategories are empty, delete them automatically
+        await Category.deleteMany({ parentId: id });
+
+        // Delete the parent category
+        await Category.findByIdAndDelete(id);
+
+        return res.json({
+          success: true,
+          message: `Xóa danh mục thành công. ${subcategories.length} danh mục con cũng đã được xóa.`,
+          data: {
+            deletedSubcategories: subcategories.length
+          }
         });
       }
     }
 
+    // Delete single category (level 2 or level 1 without children)
     await Category.findByIdAndDelete(id);
 
     res.json({
