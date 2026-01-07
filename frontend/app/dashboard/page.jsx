@@ -52,14 +52,15 @@ export default function DashboardPage() {
   const [toast, setToast] = useState(null);
 
   // Data states
-  const [participatingAuctions, setParticipatingAuctions] = useState([]);
-  const [watchlist, setWatchlist] = useState([]);
-  const [wonAuctions, setWonAuctions] = useState([]);
-  const [sellingAuctions, setSellingAuctions] = useState([]);
-  const [soldAuctions, setSoldAuctions] = useState([]);
+  // Data states - initialized as null to indicate loading state
+  const [participatingAuctions, setParticipatingAuctions] = useState(null);
+  const [watchlist, setWatchlist] = useState(null);
+  const [wonAuctions, setWonAuctions] = useState(null);
+  const [sellingAuctions, setSellingAuctions] = useState(null);
+  const [soldAuctions, setSoldAuctions] = useState(null);
 
   // Loading and error states
-  const [loading, setLoading] = useState(false);
+  // Removed global loading state to prevent blocking UI
   const [error, setError] = useState(null);
 
   // Stats
@@ -82,7 +83,7 @@ export default function DashboardPage() {
   // Delete Product Confirmation Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
-  
+
   // Toggle Bidder Approval Loading State
   const [togglingProductId, setTogglingProductId] = useState(null);
 
@@ -110,38 +111,46 @@ export default function DashboardPage() {
   }, []);
 
   const fetchAllData = async () => {
-    setLoading(true);
     setError(null);
 
-    try {
-      const [participatingData, watchlistData, wonData, sellingData, soldData] =
-        await Promise.all([
-          auctionService.getParticipatingAuctions({ page: 1, limit: 10 }),
-          watchlistService.getWatchlist({ page: 1, limit: 10 }),
-          auctionService.getWonAuctions({ page: 1, limit: 10 }),
-          auctionService.getSellingAuctions({ page: 1, limit: 10 }),
-          auctionService.getSoldAuctions({ page: 1, limit: 10 }),
-        ]);
+    // Fetch Participating
+    auctionService.getParticipatingAuctions({ page: 1, limit: 10 })
+      .then(res => {
+        setParticipatingAuctions(res.data.auctions);
+        setStats(prev => ({ ...prev, activeBids: res.data.pagination.total }));
+      })
+      .catch(err => console.error("Error fetching participating:", err));
 
-      setParticipatingAuctions(participatingData.data.auctions);
-      setWatchlist(watchlistData.data.watchlist);
-      setWonAuctions(wonData.data.auctions);
-      setSellingAuctions(sellingData.data.auctions);
-      setSoldAuctions(soldData.data.auctions);
+    // Fetch Watchlist
+    watchlistService.getWatchlist({ page: 1, limit: 10 })
+      .then(res => {
+        setWatchlist(res.data.watchlist);
+        setStats(prev => ({ ...prev, watchlistCount: res.data.pagination.total }));
+      })
+      .catch(err => console.error("Error fetching watchlist:", err));
 
-      setStats({
-        activeBids: participatingData.data.pagination.total,
-        watchlistCount: watchlistData.data.pagination.total,
-        wonCount: wonData.data.pagination.total,
-        sellingCount: sellingData.data.pagination.total,
-      });
-    } catch (err) {
-      console.error("Error loading dashboard data:", err);
-      // Don't show error immediately on UI to avoid flashing if it's just one failed request
-      // but log it.
-    } finally {
-      setLoading(false);
-    }
+    // Fetch Won Auctions
+    auctionService.getWonAuctions({ page: 1, limit: 10 })
+      .then(res => {
+        setWonAuctions(res.data.auctions);
+        setStats(prev => ({ ...prev, wonCount: res.data.pagination.total }));
+      })
+      .catch(err => console.error("Error fetching won auctions:", err));
+
+    // Fetch Selling Auctions
+    auctionService.getSellingAuctions({ page: 1, limit: 10 })
+      .then(res => {
+        setSellingAuctions(res.data.auctions);
+        setStats(prev => ({ ...prev, sellingCount: res.data.pagination.total }));
+      })
+      .catch(err => console.error("Error fetching selling auctions:", err));
+
+    // Fetch Sold Auctions
+    auctionService.getSoldAuctions({ page: 1, limit: 10 })
+      .then(res => {
+        setSoldAuctions(res.data.auctions);
+      })
+      .catch(err => console.error("Error fetching sold auctions:", err));
   };
 
   const handleRemoveFromWatchlist = async (productId) => {
@@ -459,12 +468,7 @@ export default function DashboardPage() {
           {/* Main Content Area */}
           <div className="flex-1">
             <div className="glass-card border border-white/10 bg-[#1e293b]/60 rounded-2xl p-6 min-h-[500px]">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                  <Loader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-                  <p className="font-medium animate-pulse">Đang tải dữ liệu...</p>
-                </div>
-              ) : error ? (
+              {error ? (
                 <div className="flex flex-col items-center justify-center h-64 text-red-500">
                   <AlertCircle className="w-10 h-10 mb-4" />
                   <p>{error}</p>
@@ -479,7 +483,9 @@ export default function DashboardPage() {
                         <Gavel className="w-5 h-5 text-blue-500" />
                         Đang tham gia đấu giá
                       </h2>
-                      {participatingAuctions.length === 0 ? (
+                      {!participatingAuctions ? (
+                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-blue-500" /></div>
+                      ) : participatingAuctions.length === 0 ? (
                         <EmptyState message="Bạn chưa tham gia đấu giá nào." />
                       ) : (
                         participatingAuctions.map((auction) => {
@@ -488,69 +494,68 @@ export default function DashboardPage() {
                           if (auction.isWinning) {
                             cardStyle = "bg-green-500/5 border-green-500/50 hover:bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.1)]";
                           } else if (auction.userHighestBid?.amount < auction.currentPrice) {
-                            cardStyle = "bg-red-500/5 border-red-500/30 hover:bg-red-500/10"; 
+                            cardStyle = "bg-red-500/5 border-red-500/30 hover:bg-red-500/10";
                           }
 
                           return (
-                          <div key={auction._id} className={`group relative glass-card border rounded-xl p-4 transition-all duration-300 ${cardStyle}`}>
-                            <div className="flex flex-col sm:flex-row gap-4">
-                              <div className="w-full sm:w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden">
-                                <img
-                                  src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
-                                  className="w-full h-full object-contain p-2 bg-white rounded-lg group-hover:scale-105 transition-transform duration-500"
-                                  alt={auction.productId?.title}
-                                  onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <h3 className="font-bold text-lg text-foreground mb-1 group-hover:text-primary transition-colors line-clamp-1">
-                                      {auction.productId?.title}
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                                      {auction.productId?.description || "Không có mô tả"}
-                                    </p>
-                                  </div>
-                                  <div className="text-right flex-shrink-0 ml-4">
-                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                        auction.isWinning 
-                                          ? "bg-green-100 text-green-800" 
+                            <div key={auction._id} className={`group relative glass-card border rounded-xl p-4 transition-all duration-300 ${cardStyle}`}>
+                              <div className="flex flex-col sm:flex-row gap-4">
+                                <div className="w-full sm:w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden">
+                                  <img
+                                    src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
+                                    className="w-full h-full object-contain p-2 bg-white rounded-lg group-hover:scale-105 transition-transform duration-500"
+                                    alt={auction.productId?.title}
+                                    onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <h3 className="font-bold text-lg text-foreground mb-1 group-hover:text-primary transition-colors line-clamp-1">
+                                        {auction.productId?.title}
+                                      </h3>
+                                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                                        {auction.productId?.description || "Không có mô tả"}
+                                      </p>
+                                    </div>
+                                    <div className="text-right flex-shrink-0 ml-4">
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${auction.isWinning
+                                        ? "bg-green-100 text-green-800"
+                                        : (auction.userHighestBid?.amount >= auction.currentPrice)
+                                          ? "bg-orange-100 text-orange-800" // Tied/Lost to auto-bid
+                                          : "bg-red-100 text-red-800" // Outbid
+                                        }`}>
+                                        {auction.isWinning
+                                          ? "Đang dẫn đầu"
                                           : (auction.userHighestBid?.amount >= auction.currentPrice)
-                                            ? "bg-orange-100 text-orange-800" // Tied/Lost to auto-bid
-                                            : "bg-red-100 text-red-800" // Outbid
-                                      }`}>
-                                        {auction.isWinning 
-                                          ? "Đang dẫn đầu" 
-                                          : (auction.userHighestBid?.amount >= auction.currentPrice)
-                                            ? "Có người đặt trước" 
+                                            ? "Có người đặt trước"
                                             : "Bị vượt giá"}
                                       </span>
+                                    </div>
                                   </div>
-                                </div>
 
-                                <div className="flex flex-wrap items-end justify-between gap-4 mt-2">
-                                  <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Giá của bạn</p>
-                                    <p className="text-lg font-bold text-primary">
-                                      {auction.userHighestBid?.amount?.toLocaleString('vi-VN')} VNĐ
-                                    </p>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Giá hiện tại</p>
-                                    <p className="text-lg font-bold text-foreground">
-                                      {auction.currentPrice?.toLocaleString('vi-VN')} VNĐ
-                                    </p>
-                                  </div>
-                                  <div className="ml-auto">
-                                    <Link to={`/product/${auction.productId?._id || auction.productId}`} className="btn-primary py-2 px-4 shadow-md text-sm">
-                                      Đặt thêm giá
-                                    </Link>
+                                  <div className="flex flex-wrap items-end justify-between gap-4 mt-2">
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Giá của bạn</p>
+                                      <p className="text-lg font-bold text-primary">
+                                        {auction.userHighestBid?.amount?.toLocaleString('vi-VN')} VNĐ
+                                      </p>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Giá hiện tại</p>
+                                      <p className="text-lg font-bold text-foreground">
+                                        {auction.currentPrice?.toLocaleString('vi-VN')} VNĐ
+                                      </p>
+                                    </div>
+                                    <div className="ml-auto">
+                                      <Link to={`/product/${auction.productId?._id || auction.productId}`} className="btn-primary py-2 px-4 shadow-md text-sm">
+                                        Đặt thêm giá
+                                      </Link>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
                           );
                         })
                       )}
@@ -564,7 +569,9 @@ export default function DashboardPage() {
                         <Heart className="w-5 h-5 text-pink-500" />
                         Sản phẩm đang theo dõi
                       </h2>
-                      {watchlist.length === 0 ? (
+                      {!watchlist ? (
+                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-pink-500" /></div>
+                      ) : watchlist.length === 0 ? (
                         <EmptyState message="Danh sách theo dõi trống." />
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -639,7 +646,9 @@ export default function DashboardPage() {
                         <CheckCircle className="w-5 h-5 text-green-500" />
                         Đấu giá đã thắng
                       </h2>
-                      {wonAuctions.length === 0 ? (
+                      {!wonAuctions ? (
+                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-green-500" /></div>
+                      ) : wonAuctions.length === 0 ? (
                         <EmptyState message="Bạn chưa thắng phiên đấu giá nào." />
                       ) : (
                         wonAuctions.map((auction) => (
@@ -695,7 +704,9 @@ export default function DashboardPage() {
                         </Link>
                       </div>
 
-                      {sellingAuctions.length === 0 ? (
+                      {!sellingAuctions ? (
+                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-orange-500" /></div>
+                      ) : sellingAuctions.length === 0 ? (
                         <EmptyState message="Bạn chưa đăng bán sản phẩm nào." />
                       ) : (
                         sellingAuctions.map((auction) => (
@@ -718,11 +729,10 @@ export default function DashboardPage() {
                                   <button
                                     onClick={() => handleToggleBidderApproval(auction.productId?._id, auction.productId?.requireBidderApproval)}
                                     disabled={togglingProductId === auction.productId?._id}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                                      !auction.productId?.requireBidderApproval
-                                        ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
-                                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/30 hover:bg-gray-500/30'
-                                    }`}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${!auction.productId?.requireBidderApproval
+                                      ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
+                                      : 'bg-gray-500/20 text-gray-400 border border-gray-500/30 hover:bg-gray-500/30'
+                                      }`}
                                     title={!auction.productId?.requireBidderApproval ? "Tắt chế độ cho phép người mới" : "Bật chế độ cho phép người mới"}
                                   >
                                     {togglingProductId === auction.productId?._id ? (
@@ -791,7 +801,9 @@ export default function DashboardPage() {
                         <PackageCheck className="w-5 h-5 text-indigo-500" />
                         Đã bán thành công
                       </h2>
-                      {soldAuctions.length === 0 ? (
+                      {!soldAuctions ? (
+                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-indigo-500" /></div>
+                      ) : soldAuctions.length === 0 ? (
                         <EmptyState message="Chưa có sản phẩm nào được bán." />
                       ) : (
                         soldAuctions.map((auction) => (
@@ -969,7 +981,7 @@ export default function DashboardPage() {
                   Bạn có chắc chắn muốn xóa sản phẩm{" "}
                   <strong className="text-white">"{productToDelete.title}"</strong>?
                 </p>
-                
+
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
                   <p className="text-sm font-semibold text-yellow-400 mb-2">
                     ⚠️ Lưu ý:
