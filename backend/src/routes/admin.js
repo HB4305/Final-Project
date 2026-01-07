@@ -28,11 +28,12 @@ const router = express.Router();
 
 /**
  * Admin cấu hình tự động gia hạn
+ * GET: Cho phép tất cả user xem
+ * PUT: Chỉ admin mới được thay đổi
  */
 router.get(
   "/settings/auto-extend",
   authenticate,
-  authorize(USER_ROLES.ADMIN),
   getAutoExtendSettings
 );
 

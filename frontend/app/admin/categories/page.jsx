@@ -374,7 +374,7 @@ export default function AdminCategoriesPage() {
                                 <span className="text-sm text-muted-foreground">—</span>
                               </td>
                               <td className="px-6 py-4 text-right whitespace-nowrap" style={{ minWidth: '140px' }}>
-                                <div className="flex justify-end gap-2">F
+                                <div className="flex justify-end gap-2">
                                   <button
                                     onClick={() => openEditModal(subCategory)}
                                     className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"

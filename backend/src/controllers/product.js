@@ -199,6 +199,28 @@ export const sellerDeleteProduct = async (req, res, next) => {
       await Promise.all(emailPromises);
     }
 
+    // Giảm productCount cho category
+    if (product.categoryId) {
+      const category = await Category.findById(product.categoryId);
+      if (category) {
+        // Giảm productCount cho category được chọn
+        await Category.findByIdAndUpdate(
+          product.categoryId,
+          { $inc: { productCount: -1 } },
+          { new: true }
+        );
+
+        // Nếu là subcategory, cũng giảm productCount cho parent
+        if (category.level === 2 && category.parentId) {
+          await Category.findByIdAndUpdate(
+            category.parentId,
+            { $inc: { productCount: -1 } },
+            { new: true }
+          );
+        }
+      }
+    }
+
     res.status(200).json({
       status: "success",
       message: `Xóa sản phẩm thành công. Đã gửi thông báo cho ${bidders.length} người đặt giá.`,
@@ -324,6 +346,28 @@ export const deleteProduct = async (req, res, next) => {
     deletePromises.push(Product.findByIdAndDelete(productId));
 
     await Promise.all(deletePromises);
+
+    // Giảm productCount cho category
+    if (product.categoryId) {
+      const category = await Category.findById(product.categoryId);
+      if (category) {
+        // Giảm productCount cho category được chọn
+        await Category.findByIdAndUpdate(
+          product.categoryId,
+          { $inc: { productCount: -1 } },
+          { new: true }
+        );
+
+        // Nếu là subcategory, cũng giảm productCount cho parent
+        if (category.level === 2 && category.parentId) {
+          await Category.findByIdAndUpdate(
+            category.parentId,
+            { $inc: { productCount: -1 } },
+            { new: true }
+          );
+        }
+      }
+    }
 
     res.status(200).json({
       status: "success",
@@ -947,6 +991,25 @@ export const postProduct = async (req, res) => {
     const savedAuction = await newAuction.save();
     await savedProduct.populate("categoryId", "name slug");
 
+    // ========================================
+    // 10. CẬP NHẬT PRODUCT COUNT CHO CATEGORY
+    // ========================================
+    // Tăng productCount cho category được chọn
+    await Category.findByIdAndUpdate(
+      categoryId,
+      { $inc: { productCount: 1 } },
+      { new: true }
+    );
+
+    // Nếu category là subcategory (level 2), cũng tăng productCount cho parent category
+    if (categoryExists.level === 2 && categoryExists.parentId) {
+      await Category.findByIdAndUpdate(
+        categoryExists.parentId,
+        { $inc: { productCount: 1 } },
+        { new: true }
+      );
+    }
+
     const isTestMode = !primaryImageFile || additionalImageFiles.length === 0;
 
     return res.status(201).json({
@@ -1194,11 +1257,11 @@ export const updateProductDescription = async (req, res, next) => {
         // Get unique bidders (filter out null/deleted users)
         const uniqueBidders = [];
         const seenIds = new Set();
-        
+
         for (const bid of bids) {
           if (bid.bidderId && !seenIds.has(bid.bidderId._id.toString())) {
-             seenIds.add(bid.bidderId._id.toString());
-             uniqueBidders.push(bid.bidderId);
+            seenIds.add(bid.bidderId._id.toString());
+            uniqueBidders.push(bid.bidderId);
           }
         }
 

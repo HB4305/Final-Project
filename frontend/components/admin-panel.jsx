@@ -395,8 +395,8 @@ function UserManagement({ searchQuery, setSearchQuery }) {
               {/* User Profile Section */}
               <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                 <div className="w-24 h-24 rounded-full p-1 bg-white/10 shadow-lg ring-2 ring-white/20 flex-shrink-0">
-                  <img 
-                    src={selectedUser.profileImageUrl || `http://localhost:5001/api/admin/users/${selectedUser._id}/avatar?token=${localStorage.getItem('token')}`} 
+                  <img
+                    src={selectedUser.profileImageUrl || `http://localhost:5001/api/admin/users/${selectedUser._id}/avatar?token=${localStorage.getItem('token')}`}
                     alt={selectedUser.username}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
@@ -1255,7 +1255,22 @@ function SettingsManagement() {
   };
 
   const handleChange = (field, value) => {
-    const newSettings = { ...settings, [field]: value };
+    // Chỉ cho phép nhập số
+    const numValue = value === '' ? '' : parseInt(value);
+
+    // Validate giới hạn
+    let validatedValue = numValue;
+    if (field === 'autoExtendThreshold') {
+      if (numValue !== '' && (numValue < 1 || numValue > 60)) {
+        return; // Không cho nhập giá trị ngoài giới hạn
+      }
+    } else if (field === 'autoExtendDuration') {
+      if (numValue !== '' && (numValue < 1 || numValue > 120)) {
+        return;
+      }
+    }
+
+    const newSettings = { ...settings, [field]: validatedValue };
     setSettings(newSettings);
 
     // Check if there are changes
@@ -1319,18 +1334,25 @@ function SettingsManagement() {
                 Ngưỡng thời gian kích hoạt
               </label>
             </div>
-            <p className="text-sm text-gray-300 ml-7">
-              Nếu có bid mới trong khoảng X phút trước khi kết thúc, hệ thống sẽ tự động gia hạn (nếu seller đã bật)
-            </p>
             <div className="ml-7 flex items-center gap-4">
               <div className="flex items-center bg-white/5 border border-white/10 rounded-lg focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all">
                 <input
-                  type="number"
-                  min="1"
-                  max="60"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={settings.autoExtendThreshold}
-                  onChange={(e) => handleChange('autoExtendThreshold', parseInt(e.target.value) || 5)}
-                  className="w-24 pl-4 pr-2 py-2.5 bg-transparent text-white placeholder-gray-500 font-mono outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '');
+                    handleChange('autoExtendThreshold', value);
+                  }}
+                  onBlur={(e) => {
+                    // Nếu để trống, set về giá trị mặc định
+                    if (e.target.value === '') {
+                      handleChange('autoExtendThreshold', 5);
+                    }
+                  }}
+                  placeholder="5"
+                  className="w-24 pl-4 pr-2 py-2.5 bg-transparent text-white placeholder-gray-500 font-mono outline-none text-right"
                 />
                 <span className="pr-4 text-gray-400 font-medium select-none border-l border-white/5 pl-2 ml-1">phút</span>
               </div>
@@ -1348,18 +1370,25 @@ function SettingsManagement() {
                 Thời gian gia hạn
               </label>
             </div>
-            <p className="text-sm text-gray-300 ml-7">
-              Số phút được thêm vào thời gian kết thúc khi có bid mới trong ngưỡng thời gian
-            </p>
             <div className="ml-7 flex items-center gap-4">
               <div className="flex items-center bg-white/5 border border-white/10 rounded-lg focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all">
                 <input
-                  type="number"
-                  min="1"
-                  max="120"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={settings.autoExtendDuration}
-                  onChange={(e) => handleChange('autoExtendDuration', parseInt(e.target.value) || 10)}
-                  className="w-24 pl-4 pr-2 py-2.5 bg-transparent text-white placeholder-gray-500 font-mono outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '');
+                    handleChange('autoExtendDuration', value);
+                  }}
+                  onBlur={(e) => {
+                    // Nếu để trống, set về giá trị mặc định
+                    if (e.target.value === '') {
+                      handleChange('autoExtendDuration', 10);
+                    }
+                  }}
+                  placeholder="10"
+                  className="w-24 pl-4 pr-2 py-2.5 bg-transparent text-white placeholder-gray-500 font-mono outline-none text-right"
                 />
                 <span className="pr-4 text-gray-400 font-medium select-none border-l border-white/5 pl-2 ml-1">phút</span>
               </div>
