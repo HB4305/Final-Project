@@ -108,7 +108,7 @@ const productSchema = new mongoose.Schema({
   // Bidder approval configuration
   requireBidderApproval: {
     type: Boolean,
-    default: false
+    default: true
   },
   approvedBidders: [{
     type: mongoose.Schema.Types.ObjectId,

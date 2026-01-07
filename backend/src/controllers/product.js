@@ -69,8 +69,8 @@ export const getAllProducts = async (req, res, next) => {
     }
 
     // Validate status options
-    const validStatusOptions = Object.values(AUCTION_STATUS);
-    if (!validStatusOptions.includes(status)) {
+    const validStatusOptions = [...Object.values(AUCTION_STATUS), 'all'];
+    if (status && !validStatusOptions.includes(status)) {
       throw new AppError(
         `Trạng thái không hợp lệ. Chọn: ${validStatusOptions.join(", ")}`,
         400,
@@ -948,6 +948,7 @@ export const postProduct = async (req, res) => {
         typeof metadata === "string" ? JSON.parse(metadata) : metadata || {},
       baseCurrency: "VND",
       isActive: true,
+      requireBidderApproval: true,
       flags: {
         featured: false,
         highlightedUntil: null,

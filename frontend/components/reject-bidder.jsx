@@ -49,16 +49,19 @@ export default function RejectBidder({ productId, bidder, onReject }) {
       );
 
       if (response.success) {
+        setShowModal(false); // Close immediately
+        setReason(""); // Reset for next time
+        setError("");
+
+        // Trigger UI update immediately
+        if (onReject) {
+          onReject(response.data);
+        }
+
         setToast({
           type: "success",
           message: `Đã từ chối bidder ${bidder.username || bidder.name
             } thành công!`,
-          onClose: () => {
-            setShowModal(false);
-            if (onReject) {
-              onReject(response.data);
-            }
-          },
         });
       } else {
         setError(response.message || "Không thể từ chối bidder");

@@ -52,8 +52,13 @@ export default function TopBiddersSection({ bidders = [], productId, isSeller = 
     return username.slice(0, 3) + '****';
   };
 
-  // Sort by amount descending - hiển thị tất cả
-  const allBidders = [...bidders].sort((a, b) => b.amount - a.amount);
+  // Sort by amount descending, then by createdAt ascending (earlier bid wins tie)
+  const allBidders = [...bidders].sort((a, b) => {
+    if (b.amount !== a.amount) {
+      return b.amount - a.amount;
+    }
+    return new Date(a.createdAt) - new Date(b.createdAt);
+  });
 
   return (
     <div className="space-y-4">

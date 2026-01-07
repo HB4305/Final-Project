@@ -15,7 +15,7 @@ const ProductCard = ({ product, isWatchlisted, onToggleWatchlist }) => {
   const isEndingSoon = () => {
     if (!product.auction?.endAt) return false;
     const hoursRemaining = (new Date(product.auction.endAt) - new Date()) / (1000 * 60 * 60);
-    return hoursRemaining > 0 && hoursRemaining < 120;
+    return hoursRemaining > 0 && hoursRemaining < 168;
   };
 
   const isHot = product.bids > 10;

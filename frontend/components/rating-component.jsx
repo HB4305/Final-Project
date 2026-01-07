@@ -72,7 +72,7 @@ export default function RatingComponent({
   };
 
   return (
-    <div className="bg-background border border-border rounded-lg p-6">
+    <div className="glass-card bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-2xl">
       {toast && (
         <Toast
           message={toast.message}
@@ -80,23 +80,29 @@ export default function RatingComponent({
           onClose={() => setToast(null)}
         />
       )}
-      <div className="flex items-center gap-2 mb-4">
-        <Star className="w-5 h-5 text-primary" />
-        <h3 className="text-lg font-bold">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+          <Star className="w-5 h-5 text-primary" />
+        </div>
+        <h3 className="text-xl font-bold text-white">
           Đánh giá {userType === "buyer" ? "Người bán" : "Người mua"}
         </h3>
       </div>
 
       {/* User Info */}
-      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg mb-4">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-lg">
-          {targetUser.name.charAt(0).toUpperCase()}
+      <div className="flex items-center gap-4 p-4 bg-white/5 border border-white/5 rounded-2xl mb-6">
+        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center font-bold text-xl text-white shadow-lg">
+          {targetUser.name?.charAt(0).toUpperCase()}
         </div>
         <div>
-          <p className="font-semibold">{targetUser.name}</p>
-          <p className="text-sm text-muted-foreground">
-            Đánh giá hiện tại: {targetUser.ratingSummary?.totalCount ? ((targetUser.ratingSummary.score || 0) <= 1 ? (targetUser.ratingSummary.score || 0) * 100 : (targetUser.ratingSummary.score || 0)).toFixed(0) : 0}% ({targetUser.ratingSummary?.totalCount || targetUser.totalRatings || 0}{" "}
-            lượt)
+          <p className="font-bold text-lg text-white">{targetUser.name}</p>
+          <p className="text-sm text-gray-400 flex items-center gap-2">
+            <span className="text-primary font-semibold">
+              Đánh giá hiện tại: {targetUser.totalRatings > 0 ? (targetUser.rating || 0).toFixed(0) : 0}%
+            </span>
+            <span className="text-gray-500">
+              ({targetUser.totalRatings || 0} lượt)
+            </span>
           </p>
         </div>
       </div>
@@ -104,34 +110,34 @@ export default function RatingComponent({
       {isSubmitted ? (
         /* Display Submitted Rating */
         <div className="space-y-4">
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="p-5 bg-green-500/10 border border-green-500/20 rounded-2xl">
+            <div className="flex items-center gap-3 mb-3">
               {rating === 1 ? (
-                <ThumbsUp className="w-5 h-5 text-green-600" />
+                <ThumbsUp className="w-6 h-6 text-green-400" />
               ) : (
-                <ThumbsDown className="w-5 h-5 text-red-600" />
+                <ThumbsDown className="w-6 h-6 text-red-400" />
               )}
-              <span className="font-semibold text-green-900">
-                Đánh giá của bạn đã được gửi
+              <span className="font-bold text-green-400 text-lg">
+                Đánh giá đã được gửi
               </span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-green-800">Đánh giá:</span>
+                <span className="text-sm text-gray-400">Trạng thái:</span>
                 <span
-                  className={`px-2 py-1 rounded text-sm font-bold ${rating === 1
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${rating === 1
+                    ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                    : "bg-red-500/20 text-red-400 border border-red-500/30"
                     }`}
                 >
                   {rating === 1 ? "+1 Tích cực" : "-1 Tiêu cực"}
                 </span>
               </div>
-              <div>
-                <span className="text-sm text-green-800 block mb-1">
+              <div className="bg-black/20 p-4 rounded-xl border border-white/5">
+                <span className="text-xs text-gray-400 block mb-2 uppercase tracking-wider font-semibold">
                   Nhận xét của bạn:
                 </span>
-                <p className="text-sm bg-white p-2 rounded border border-green-200">
+                <p className="text-sm text-gray-200 leading-relaxed">
                   {comment}
                 </p>
               </div>
@@ -140,56 +146,56 @@ export default function RatingComponent({
 
           <button
             onClick={handleUpdate}
-            className="w-full px-4 py-2 border border-border rounded-lg hover:bg-muted transition font-medium"
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all font-semibold text-gray-300"
           >
             Cập nhật đánh giá
           </button>
         </div>
       ) : (
         /* Rating Form */
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Rating Selection */}
           <div>
-            <label className="block text-sm font-medium mb-3">
+            <label className="block text-sm font-semibold text-gray-300 mb-4 ml-1">
               Trải nghiệm của bạn thế nào?
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
                 onClick={() => setRating(1)}
-                className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition ${rating === 1
-                  ? "border-green-500 bg-green-50 text-green-700"
-                  : "border-border hover:bg-muted"
+                className={`group flex items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all duration-300 ${rating === 1
+                  ? "border-green-500 bg-green-500/10 text-green-400 shadow-[0_0_20px_rgba(34,197,94,0.15)]"
+                  : "border-white/5 bg-white/5 hover:border-white/20 text-gray-400 hover:text-gray-200"
                   }`}
               >
-                <ThumbsUp className="w-6 h-6" />
+                <ThumbsUp className={`w-7 h-7 transition-transform duration-300 ${rating === 1 ? 'scale-110' : 'group-hover:scale-110'}`} />
                 <div className="text-left">
-                  <p className="font-bold">Tích cực</p>
-                  <p className="text-xs">+1</p>
+                  <p className="font-bold text-lg">Tích cực</p>
+                  <p className="text-xs opacity-60 text-green-500">+1 điểm</p>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRating(-1)}
-                className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition ${rating === -1
-                  ? "border-red-500 bg-red-50 text-red-700"
-                  : "border-border hover:bg-muted"
+                className={`group flex items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all duration-300 ${rating === -1
+                  ? "border-red-500 bg-red-500/10 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+                  : "border-white/5 bg-white/5 hover:border-white/20 text-gray-400 hover:text-gray-200"
                   }`}
               >
-                <ThumbsDown className="w-6 h-6" />
+                <ThumbsDown className={`w-7 h-7 transition-transform duration-300 ${rating === -1 ? 'scale-110' : 'group-hover:scale-110'}`} />
                 <div className="text-left">
-                  <p className="font-bold">Tiêu cực</p>
-                  <p className="text-xs">-1</p>
+                  <p className="font-bold text-lg">Tiêu cực</p>
+                  <p className="text-xs opacity-60 text-red-500">-1 điểm</p>
                 </div>
               </button>
             </div>
           </div>
 
           {/* Comment */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              <MessageSquare className="w-4 h-4 inline mr-1" />
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 ml-1">
+              <MessageSquare className="w-4 h-4 text-primary" />
               Nhận xét của bạn (Bắt buộc)
             </label>
             <textarea
@@ -197,72 +203,49 @@ export default function RatingComponent({
               onChange={(e) => setComment(e.target.value)}
               placeholder="Chia sẻ trải nghiệm của bạn với người dùng này..."
               rows="4"
-              className="w-full px-3 py-2 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all resize-none"
               required
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Phản hồi của bạn giúp xây dựng cộng đồng tin cậy
-            </p>
           </div>
 
           {/* Quick Comment Suggestions */}
           {rating && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-2">Gợi ý nhanh:</p>
+            <div className="animate-fade-in">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-gray-500 mb-2 ml-1">Gợi ý nhanh:</p>
               <div className="flex flex-wrap gap-2">
                 {rating === 1 ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setComment("Giao tiếp tốt và giao hàng nhanh!")
-                      }
-                      className="px-3 py-1 bg-muted rounded-full text-xs hover:bg-primary hover:text-white transition"
-                    >
-                      Giao tiếp tốt
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setComment("Sản phẩm đúng mô tả, rất đáng tin cậy!")
-                      }
-                      className="px-3 py-1 bg-muted rounded-full text-xs hover:bg-primary hover:text-white transition"
-                    >
-                      Đúng mô tả
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setComment("Giao dịch suôn sẻ, sẽ ủng hộ lần sau!")
-                      }
-                      className="px-3 py-1 bg-muted rounded-full text-xs hover:bg-primary hover:text-white transition"
-                    >
-                      Giao dịch suôn sẻ
-                    </button>
+                    {[
+                      "Giao tiếp tốt và giao hàng nhanh!",
+                      "Sản phẩm đúng mô tả, rất đáng tin cậy!",
+                      "Giao dịch suôn sẻ, sẽ ủng hộ lần sau!"
+                    ].map((text) => (
+                      <button
+                        key={text}
+                        type="button"
+                        onClick={() => setComment(text)}
+                        className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs text-gray-400 hover:bg-primary hover:text-white hover:border-primary transition-all duration-300"
+                      >
+                        {text.split('!')[0]}
+                      </button>
+                    ))}
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => setComment("Sản phẩm không đúng mô tả")}
-                      className="px-3 py-1 bg-muted rounded-full text-xs hover:bg-red-500 hover:text-white transition"
-                    >
-                      Không đúng mô tả
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setComment("Giao tiếp kém")}
-                      className="px-3 py-1 bg-muted rounded-full text-xs hover:bg-red-500 hover:text-white transition"
-                    >
-                      Giao tiếp kém
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setComment("Không hoàn thành giao dịch")}
-                      className="px-3 py-1 bg-muted rounded-full text-xs hover:bg-red-500 hover:text-white transition"
-                    >
-                      Không hoàn thành
-                    </button>
+                    {[
+                      "Sản phẩm không đúng mô tả",
+                      "Giao diện giao tiếp kém",
+                      "Không hoàn thành giao dịch"
+                    ].map((text) => (
+                      <button
+                        key={text}
+                        type="button"
+                        onClick={() => setComment(text)}
+                        className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs text-gray-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-300"
+                      >
+                        {text}
+                      </button>
+                    ))}
                   </>
                 )}
               </div>
@@ -273,27 +256,17 @@ export default function RatingComponent({
           <button
             type="submit"
             disabled={!rating || !comment.trim()}
-            className={`w-full px-4 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${rating === 1
-              ? "bg-green-500 hover:bg-green-600 text-white"
+            className={`w-full px-4 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl disabled:opacity-30 disabled:cursor-not-allowed ${rating === 1
+              ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-green-500/25"
               : rating === -1
-                ? "bg-red-500 hover:bg-red-600 text-white"
-                : "bg-muted text-muted-foreground"
+                ? "bg-gradient-to-r from-red-500 to-rose-600 text-white hover:shadow-red-500/25"
+                : "bg-white/5 text-gray-500 border border-white/10"
               }`}
           >
             Gửi đánh giá
           </button>
         </form>
       )}
-
-      {/* Info Note */}
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-        <p className="font-semibold mb-1">Hướng dẫn đánh giá:</p>
-        <ul className="list-disc list-inside space-y-1 text-xs">
-          <li>Hãy trung thực và công bằng trong đánh giá của bạn</li>
-          <li>Bạn có thể cập nhật đánh giá sau nếu tình huống thay đổi</li>
-          <li>Đánh giá ảnh hưởng đến uy tín và quyền lợi của người dùng</li>
-        </ul>
-      </div>
     </div>
   );
 }

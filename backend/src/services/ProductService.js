@@ -1,18 +1,17 @@
-/**
- * ============================================
- * PRODUCT SERVICE - Xử lý logic kinh doanh sản phẩm
- * API 1.1, 1.2, 1.3, 1.4, 1.5
- * ============================================
- */
-
+import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import Auction from "../models/Auction.js";
 import Bid from "../models/Bid.js";
 import Rating from "../models/Rating.js";
 import { AppError } from "../utils/errors.js";
-import mongoose from "mongoose";
 
+/**
+ * ============================================
+ * PRODUCT SERVICE - Xử lý logic kinh doanh sản phẩm
+ * API 1.1, 1.2, 1.3, 1.4, 1.5
+ * ============================================
+ */
 export class ProductService {
   /**
    * API 1.1: Lấy tất cả sản phẩm (không lọc danh mục, có phân trang)
@@ -32,17 +31,18 @@ export class ProductService {
 
       // 1. Resolve Category IDs (including children if parent)
       let categoryIds = [];
-      if (categoryId) {
-        if (mongoose.Types.ObjectId.isValid(categoryId)) {
-             const category = await Category.findById(categoryId);
-             if (category) {
-                 const catObjId = new mongoose.Types.ObjectId(categoryId);
-                 categoryIds = [catObjId];
-                 if (category.level === 1) {
-                     const childCategories = await Category.find({ parentId: catObjId });
-                     categoryIds = [...categoryIds, ...childCategories.map(c => c._id)];
-                 }
-             }
+      if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+        const category = await Category.findById(categoryId);
+        if (category) {
+          const catObjId = new mongoose.Types.ObjectId(categoryId);
+          categoryIds = [catObjId];
+          if (category.level === 1) {
+            const childCategories = await Category.find({ parentId: catObjId });
+            categoryIds = [
+              ...categoryIds,
+              ...childCategories.map((c) => c._id),
+            ];
+          }
         }
       }
 
@@ -54,40 +54,62 @@ export class ProductService {
       if (sortBy === "most_bids") sortStage = { bidCount: -1 };
 
       // 1. Match Auction filters (Status + Price)
-      let auctionMatch = { status: status };
+      let auctionMatch = {};
+      if (status && status !== "all") {
+        auctionMatch.status = status;
+      }
+
       if (minPrice || maxPrice) {
-          auctionMatch.currentPrice = {};
-          if (minPrice) auctionMatch.currentPrice.$gte = parseInt(minPrice);
-          if (maxPrice) auctionMatch.currentPrice.$lte = parseInt(maxPrice);
+        auctionMatch.currentPrice = {};
+        if (minPrice && !isNaN(parseInt(minPrice)))
+          auctionMatch.currentPrice.$gte = parseInt(minPrice);
+        if (maxPrice && !isNaN(parseInt(maxPrice)))
+          auctionMatch.currentPrice.$lte = parseInt(maxPrice);
       }
 
       const pipeline = [
         // 1. Match active auctions (and price)
         { $match: auctionMatch },
-        
+
         // 2. Lookup existing product
         {
           $lookup: {
             from: "products",
             localField: "productId",
             foreignField: "_id",
+            pipeline: [
+              {
+                $project: {
+                  title: 1,
+                  slug: 1,
+                  primaryImageUrl: 1,
+                  categoryId: 1,
+                  isActive: 1,
+                  createdAt: 1,
+                },
+              },
+            ],
             as: "product",
           },
         },
-        
+
         // 3. Unwind product and filter active products + Category + Search
         { $unwind: "$product" },
-        { 
-            $match: { 
-                "product.isActive": true,
-                ...(categoryIds.length > 0 && { "product.categoryId": { $in: categoryIds } }),
-                ...(search && { "product.title": { $regex: search, $options: 'i' } })
-            } 
+        {
+          $match: {
+            "product.isActive": true,
+            ...(categoryIds.length > 0 && {
+              "product.categoryId": { $in: categoryIds },
+            }),
+            ...(search && {
+              "product.title": { $regex: search, $options: "i" },
+            }),
+          },
         },
-        
+
         // 4. Sort
         { $sort: sortStage },
-        
+
         // 5. Facet for data and total count
         {
           $facet: {
@@ -103,7 +125,9 @@ export class ProductService {
                   as: "seller",
                 },
               },
-              { $unwind: { path: "$seller", preserveNullAndEmptyArrays: true } },
+              {
+                $unwind: { path: "$seller", preserveNullAndEmptyArrays: true },
+              },
               {
                 $lookup: {
                   from: "users",
@@ -112,7 +136,9 @@ export class ProductService {
                   as: "bidder",
                 },
               },
-              { $unwind: { path: "$bidder", preserveNullAndEmptyArrays: true } },
+              {
+                $unwind: { path: "$bidder", preserveNullAndEmptyArrays: true },
+              },
               {
                 $lookup: {
                   from: "categories",
@@ -121,7 +147,12 @@ export class ProductService {
                   as: "category",
                 },
               },
-              { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+              {
+                $unwind: {
+                  path: "$category",
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
               {
                 $project: {
                   _id: "$product._id",
@@ -147,9 +178,9 @@ export class ProductService {
                       $cond: [
                         { $ifNull: ["$seller.ratingSummary.score", false] },
                         { $multiply: ["$seller.ratingSummary.score", 5] },
-                        null
-                      ]
-                    }
+                        null,
+                      ],
+                    },
                   },
                   category: {
                     _id: "$category._id",
@@ -164,8 +195,8 @@ export class ProductService {
       ];
 
       const result = await Auction.aggregate(pipeline);
-      const products = result[0].data;
-      const total = result[0].total[0]?.count || 0;
+      const products = result[0]?.data || [];
+      const total = result[0]?.total[0]?.count || 0;
       const totalPages = Math.ceil(total / limit);
 
       return {
@@ -191,12 +222,20 @@ export class ProductService {
    */
   async getTopProducts() {
     try {
+      const now = new Date();
+      const sevenDaysFromNow = new Date(
+        now.getTime() + 7 * 24 * 60 * 60 * 1000
+      );
+
       // Execute queries in parallel
       const [endingSoon, mostBids, highestPrice] = await Promise.all([
-        // Top 10 gần kết thúc (To ensure 5 valid ones after filtering)
-        Auction.find({ status: "active" })
+        // Top 5 ending soon but latest in the window (7 days)
+        Auction.find({
+          status: "active",
+          endAt: { $gt: now, $lte: sevenDaysFromNow },
+        })
           .sort({ endAt: 1 })
-          .limit(10)
+          .limit(5)
           .populate({
             path: "productId",
             select: "title primaryImageUrl",
@@ -209,7 +248,11 @@ export class ProductService {
           .lean(),
 
         // Top 10 nhiều bids nhất
-        Auction.find({ status: "active" })
+        Auction.find({
+          status: "active",
+          // Only show auctions with at least 1 bid for "Most Bids" list
+          bidCount: { $gt: 0 },
+        })
           .sort({ bidCount: -1 })
           .limit(10)
           .populate({
@@ -478,23 +521,40 @@ export class ProductService {
    */
   async searchProducts(searchQuery, filters = {}, page = 1, limit = 12) {
     try {
-
       const skip = (page - 1) * limit;
       const searchTerm = searchQuery?.trim().toLowerCase();
 
       // 1. SMART KEYWORD DETECTION - Phát hiện từ khóa đặc biệt
       let detectedSort = null;
       let actualSearchTerm = searchTerm; // Từ khóa thực để search sau khi loại bỏ keyword đặc biệt
-      
+
       // Detect keywords nếu sortBy là relevance (mặc định) hoặc không có
-      if (searchTerm && (!filters.sortBy || filters.sortBy === 'relevance')) {
+      if (searchTerm && (!filters.sortBy || filters.sortBy === "relevance")) {
         // Định nghĩa các từ khóa đặc biệt
         const keywordMap = {
-          newest: ['mới nhất', 'mới', 'sản phẩm mới', 'vừa đăng', 'vừa lên'],
-          ending_soon: ['sắp kết thúc', 'gần kết thúc', 'sắp hết hạn', 'sắp đóng'],
-          most_bids: ['hot', 'nổi bật', 'nhiều lượt', 'nhiều người đấu', 'đấu giá nhiều', 'phổ biến'],
-          price_desc: ['giá cao', 'đắt nhất', 'cao nhất', 'giá cao nhất'],
-          price_asc: ['giá thấp', 'rẻ nhất', 'giá rẻ', 'thấp nhất', 'giá thấp nhất']
+          newest: ["mới nhất", "mới", "sản phẩm mới", "vừa đăng", "vừa lên"],
+          ending_soon: [
+            "sắp kết thúc",
+            "gần kết thúc",
+            "sắp hết hạn",
+            "sắp đóng",
+          ],
+          most_bids: [
+            "hot",
+            "nổi bật",
+            "nhiều lượt",
+            "nhiều người đấu",
+            "đấu giá nhiều",
+            "phổ biến",
+          ],
+          price_desc: ["giá cao", "đắt nhất", "cao nhất", "giá cao nhất"],
+          price_asc: [
+            "giá thấp",
+            "rẻ nhất",
+            "giá rẻ",
+            "thấp nhất",
+            "giá thấp nhất",
+          ],
         };
 
         // Kiểm tra từng nhóm keyword
@@ -503,7 +563,9 @@ export class ProductService {
             if (searchTerm.includes(keyword)) {
               detectedSort = sortType;
               // Loại bỏ keyword đặc biệt ra khỏi search term
-              actualSearchTerm = searchTerm.replace(new RegExp(keyword, 'gi'), '').trim();
+              actualSearchTerm = searchTerm
+                .replace(new RegExp(keyword, "gi"), "")
+                .trim();
               break;
             }
           }
@@ -512,23 +574,31 @@ export class ProductService {
 
         // Nếu chỉ gõ "đấu giá" hoặc "đang đấu giá" → return tất cả active auctions, sort mới nhất
         if (searchTerm.match(/^(đấu giá|đang đấu giá)$/i)) {
-          detectedSort = 'newest';
-          actualSearchTerm = ''; // Không search gì cả, chỉ filter active auctions
+          detectedSort = "newest";
+          actualSearchTerm = ""; // Không search gì cả, chỉ filter active auctions
         }
       }
 
       // 2. Resolve categoryIds (including children if parent category)
       let categoryIds = [];
-      if (filters.categoryId && mongoose.Types.ObjectId.isValid(filters.categoryId)) {
+      if (
+        filters.categoryId &&
+        mongoose.Types.ObjectId.isValid(filters.categoryId)
+      ) {
         const categoryObjId = new mongoose.Types.ObjectId(filters.categoryId);
         const category = await Category.findById(categoryObjId);
-        
+
         if (category) {
           categoryIds = [categoryObjId];
           // Nếu là parent category (level 1), lấy tất cả child categories
           if (category.level === 1) {
-            const childCategories = await Category.find({ parentId: categoryObjId });
-            categoryIds = [...categoryIds, ...childCategories.map(c => c._id)];
+            const childCategories = await Category.find({
+              parentId: categoryObjId,
+            });
+            categoryIds = [
+              ...categoryIds,
+              ...childCategories.map((c) => c._id),
+            ];
           }
         }
       }
@@ -540,18 +610,18 @@ export class ProductService {
       let searchPattern = null;
       if (actualSearchTerm) {
         // Escape special regex characters và tách từ
-        const words = actualSearchTerm.split(/\s+/).filter(w => w.length > 0);
+        const words = actualSearchTerm.split(/\s+/).filter((w) => w.length > 0);
         if (words.length > 0) {
-          searchPattern = words.map(word => 
-            word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-          ).join('|'); // OR operator between words
+          searchPattern = words
+            .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+            .join("|"); // OR operator between words
         }
       }
 
       // 5. Xác định sort order (ưu tiên: detected keyword > user filter > default)
       let sortQuery = { _id: -1 };
-      const finalSort = detectedSort || filters.sortBy || 'newest';
-      
+      const finalSort = detectedSort || filters.sortBy || "newest";
+
       if (finalSort === "price_asc") {
         sortQuery = { "auction.currentPrice": 1, _id: -1 };
       } else if (finalSort === "price_desc") {
@@ -561,7 +631,7 @@ export class ProductService {
       } else if (finalSort === "most_bids") {
         sortQuery = { "auction.bidCount": -1, _id: -1 };
       } else if (finalSort === "newest") {
-        sortQuery = { "createdAt": -1, _id: -1 };
+        sortQuery = { createdAt: -1, _id: -1 };
       }
 
       // 5. Build main aggregation pipeline
@@ -575,24 +645,50 @@ export class ProductService {
             from: "categories",
             localField: "categoryId",
             foreignField: "_id",
-            as: "category"
-          }
+            as: "category",
+          },
         },
         { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
 
         // Stage 3: REGEX SEARCH cho title, description, category name, metadata
-        ...(searchPattern ? [{
-          $match: {
-            $or: [
-              { title: { $regex: searchPattern, $options: 'i' } },
-              { 'descriptionHistory.text': { $regex: searchPattern, $options: 'i' } },
-              { 'category.name': { $regex: searchPattern, $options: 'i' } }, // ← TÌM THEO TÊN DANH MỤC
-              { 'metadata.brand': { $regex: searchPattern, $options: 'i' } },
-              { 'metadata.model': { $regex: searchPattern, $options: 'i' } },
-              { 'metadata.condition': { $regex: searchPattern, $options: 'i' } }
+        ...(searchPattern
+          ? [
+              {
+                $match: {
+                  $or: [
+                    { title: { $regex: searchPattern, $options: "i" } },
+                    {
+                      "descriptionHistory.text": {
+                        $regex: searchPattern,
+                        $options: "i",
+                      },
+                    },
+                    {
+                      "category.name": { $regex: searchPattern, $options: "i" },
+                    }, // ← TÌM THEO TÊN DANH MỤC
+                    {
+                      "metadata.brand": {
+                        $regex: searchPattern,
+                        $options: "i",
+                      },
+                    },
+                    {
+                      "metadata.model": {
+                        $regex: searchPattern,
+                        $options: "i",
+                      },
+                    },
+                    {
+                      "metadata.condition": {
+                        $regex: searchPattern,
+                        $options: "i",
+                      },
+                    },
+                  ],
+                },
+              },
             ]
-          }
-        }] : []),
+          : []),
 
         // Stage 4: Lookup auction
         {
@@ -604,26 +700,38 @@ export class ProductService {
           },
         },
         { $unwind: "$auction" },
-        
+
         // Stage 5: Match active auctions
         { $match: { "auction.status": "active" } },
 
         // Stage 6: Filter by category (including children)
-        ...(categoryIds.length > 0 ? [{
-          $match: { categoryId: { $in: categoryIds } }
-        }] : []),
+        ...(categoryIds.length > 0
+          ? [
+              {
+                $match: { categoryId: { $in: categoryIds } },
+              },
+            ]
+          : []),
 
         // Stage 7: Filter by price range
-        ...(filters.minPrice || filters.maxPrice ? [{
-          $match: {
-            ...(filters.minPrice && {
-              "auction.currentPrice": { $gte: parseInt(filters.minPrice) },
-            }),
-            ...(filters.maxPrice && {
-              "auction.currentPrice": { $lte: parseInt(filters.maxPrice) },
-            }),
-          },
-        }] : []),
+        ...(filters.minPrice || filters.maxPrice
+          ? [
+              {
+                $match: {
+                  ...(filters.minPrice && {
+                    "auction.currentPrice": {
+                      $gte: parseInt(filters.minPrice),
+                    },
+                  }),
+                  ...(filters.maxPrice && {
+                    "auction.currentPrice": {
+                      $lte: parseInt(filters.maxPrice),
+                    },
+                  }),
+                },
+              },
+            ]
+          : []),
 
         // Stage 8: Sort
         { $sort: sortQuery },
@@ -665,7 +773,7 @@ export class ProductService {
             createdAt: 1,
             category: {
               _id: "$category._id",
-              name: "$category.name"
+              name: "$category.name",
             },
             auction: {
               _id: "$auction._id",
@@ -708,23 +816,49 @@ export class ProductService {
             from: "categories",
             localField: "categoryId",
             foreignField: "_id",
-            as: "category"
-          }
+            as: "category",
+          },
         },
         { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
-        
-        ...(searchPattern ? [{
-          $match: {
-            $or: [
-              { title: { $regex: searchPattern, $options: 'i' } },
-              { 'descriptionHistory.text': { $regex: searchPattern, $options: 'i' } },
-              { 'category.name': { $regex: searchPattern, $options: 'i' } },
-              { 'metadata.brand': { $regex: searchPattern, $options: 'i' } },
-              { 'metadata.model': { $regex: searchPattern, $options: 'i' } },
-              { 'metadata.condition': { $regex: searchPattern, $options: 'i' } }
+
+        ...(searchPattern
+          ? [
+              {
+                $match: {
+                  $or: [
+                    { title: { $regex: searchPattern, $options: "i" } },
+                    {
+                      "descriptionHistory.text": {
+                        $regex: searchPattern,
+                        $options: "i",
+                      },
+                    },
+                    {
+                      "category.name": { $regex: searchPattern, $options: "i" },
+                    },
+                    {
+                      "metadata.brand": {
+                        $regex: searchPattern,
+                        $options: "i",
+                      },
+                    },
+                    {
+                      "metadata.model": {
+                        $regex: searchPattern,
+                        $options: "i",
+                      },
+                    },
+                    {
+                      "metadata.condition": {
+                        $regex: searchPattern,
+                        $options: "i",
+                      },
+                    },
+                  ],
+                },
+              },
             ]
-          }
-        }] : []),
+          : []),
 
         {
           $lookup: {
@@ -737,20 +871,32 @@ export class ProductService {
         { $unwind: "$auction" },
         { $match: { "auction.status": "active" } },
 
-        ...(categoryIds.length > 0 ? [{
-          $match: { categoryId: { $in: categoryIds } }
-        }] : []),
+        ...(categoryIds.length > 0
+          ? [
+              {
+                $match: { categoryId: { $in: categoryIds } },
+              },
+            ]
+          : []),
 
-        ...(filters.minPrice || filters.maxPrice ? [{
-          $match: {
-            ...(filters.minPrice && {
-              "auction.currentPrice": { $gte: parseInt(filters.minPrice) },
-            }),
-            ...(filters.maxPrice && {
-              "auction.currentPrice": { $lte: parseInt(filters.maxPrice) },
-            }),
-          },
-        }] : []),
+        ...(filters.minPrice || filters.maxPrice
+          ? [
+              {
+                $match: {
+                  ...(filters.minPrice && {
+                    "auction.currentPrice": {
+                      $gte: parseInt(filters.minPrice),
+                    },
+                  }),
+                  ...(filters.maxPrice && {
+                    "auction.currentPrice": {
+                      $lte: parseInt(filters.maxPrice),
+                    },
+                  }),
+                },
+              },
+            ]
+          : []),
 
         { $count: "total" },
       ];
@@ -758,7 +904,7 @@ export class ProductService {
       // 7. Execute pipelines
       const [products, totalResult] = await Promise.all([
         Product.aggregate(pipeline),
-        Product.aggregate(countPipeline)
+        Product.aggregate(countPipeline),
       ]);
 
       const total = totalResult.length > 0 ? totalResult[0].total : 0;
@@ -766,7 +912,7 @@ export class ProductService {
       if (products.length > 0) {
         console.log(`[PRODUCT SERVICE] Sample result:`, {
           title: products[0].title,
-          category: products[0].category?.name
+          category: products[0].category?.name,
         });
       }
 
@@ -780,14 +926,14 @@ export class ProductService {
         },
         query: searchQuery,
         appliedFilters: {
-          categoryIds: categoryIds.map(id => id.toString()),
+          categoryIds: categoryIds.map((id) => id.toString()),
           priceRange: {
             min: filters.minPrice || null,
-            max: filters.maxPrice || null
+            max: filters.maxPrice || null,
           },
           sortBy: finalSort, // Hiển thị sort đã được detect hoặc user chọn
-          detectedKeyword: detectedSort ? true : false // Flag để frontend biết có keyword đặc biệt
-        }
+          detectedKeyword: detectedSort ? true : false, // Flag để frontend biết có keyword đặc biệt
+        },
       };
     } catch (error) {
       console.error("[PRODUCT SERVICE] Search error:", error);
@@ -811,11 +957,14 @@ export class ProductService {
   async getProductDetail(productId, options = {}) {
     try {
       const { incrementView = true } = options;
-      
+
       // 1. Fetch product (Read-only, fast)
       const product = await Product.findById(productId)
         .populate("categoryId", "name slug")
-        .populate("sellerId", "username email profileImageUrl ratingSummary createdAt address")
+        .populate(
+          "sellerId",
+          "username email profileImageUrl ratingSummary createdAt address"
+        )
         .lean();
 
       if (!product) {
@@ -825,9 +974,14 @@ export class ProductService {
       // 2. Increment view (Async / Non-blocking)
       if (incrementView) {
         // Fire and forget - don't await to avoid blocking response
-        Product.updateOne({ _id: productId }, { $inc: { views: 1 } }).catch(err => {
-            console.error(`[PRODUCT SERVICE] Failed to increment view for ${productId}:`, err.message);
-        });
+        Product.updateOne({ _id: productId }, { $inc: { views: 1 } }).catch(
+          (err) => {
+            console.error(
+              `[PRODUCT SERVICE] Failed to increment view for ${productId}:`,
+              err.message
+            );
+          }
+        );
       }
 
       // Product is already a plain object due to lean()
@@ -853,31 +1007,45 @@ export class ProductService {
       const isAuctionActive = timeRemaining > 0 && auction.status === "active";
 
       // Lấy tất cả bidders
-      const topBidders = await Bid.find({ auctionId: auction._id })
-        .sort({ amount: -1, createdAt: -1 })
+      const topBidders = await Bid.find({
+        auctionId: auction._id,
+        isValid: true,
+      })
+        .sort({ amount: -1, createdAt: 1 })
         .populate("bidderId", "username ratingSummary")
-        .select("amount createdAt bidderId")
+        .select("_id amount createdAt bidderId")
         .lean();
 
       // Get unique bidder IDs for fetching real-time ratings
-      const uniqueBidderIds = [...new Set(topBidders.map(b => b.bidderId?._id?.toString()).filter(Boolean))];
+      const uniqueBidderIds = [
+        ...new Set(
+          topBidders.map((b) => b.bidderId?._id?.toString()).filter(Boolean)
+        ),
+      ];
 
       // Calculate ratings directly from Rating collection
       const ratingStats = await Rating.aggregate([
-        { $match: { rateeId: { $in: uniqueBidderIds.map(id => new mongoose.Types.ObjectId(id)) } } },
-        { $group: {
+        {
+          $match: {
+            rateeId: {
+              $in: uniqueBidderIds.map((id) => new mongoose.Types.ObjectId(id)),
+            },
+          },
+        },
+        {
+          $group: {
             _id: "$rateeId",
             total: { $sum: 1 },
-            positive: { $sum: { $cond: [{ $eq: ["$score", 1] }, 1, 0] } }
-          }
-        }
+            positive: { $sum: { $cond: [{ $eq: ["$score", 1] }, 1, 0] } },
+          },
+        },
       ]);
 
       // Create lookup map
       const ratingsMap = ratingStats.reduce((acc, stat) => {
         acc[stat._id.toString()] = {
           total: stat.total,
-          score: stat.total > 0 ? (stat.positive / stat.total) : 0
+          score: stat.total > 0 ? stat.positive / stat.total : 0,
         };
         return acc;
       }, {});
@@ -896,23 +1064,25 @@ export class ProductService {
         // Calculate Profile % (0-100)
         let profileScore = 0;
         if (profileStats && profileStats.totalCount > 0) {
-           // profileStats.score is 0-100 (or 0-1). Normalize it.
-           let rawScore = profileStats.score !== undefined 
-             ? profileStats.score 
-             : (profileStats.countPositive / profileStats.totalCount);
-           
-           // If rawScore is 0-1 (e.g. 0.9), convert to 0-100 (90)
-           // If it was calculated from counts (0.9), it also needs * 100.
-           // However, let's be careful.
-           
-           if (profileStats.score !== undefined) {
-                profileScore = profileStats.score;
-                if (profileScore <= 1 && profileScore > 0) {
-                    profileScore *= 100;
-                }
-           } else {
-                profileScore = (profileStats.countPositive / profileStats.totalCount) * 100;
-           }
+          // profileStats.score is 0-100 (or 0-1). Normalize it.
+          let rawScore =
+            profileStats.score !== undefined
+              ? profileStats.score
+              : profileStats.countPositive / profileStats.totalCount;
+
+          // If rawScore is 0-1 (e.g. 0.9), convert to 0-100 (90)
+          // If it was calculated from counts (0.9), it also needs * 100.
+          // However, let's be careful.
+
+          if (profileStats.score !== undefined) {
+            profileScore = profileStats.score;
+            if (profileScore <= 1 && profileScore > 0) {
+              profileScore *= 100;
+            }
+          } else {
+            profileScore =
+              (profileStats.countPositive / profileStats.totalCount) * 100;
+          }
         }
 
         // Determine Best Rating
@@ -921,13 +1091,22 @@ export class ProductService {
         // Determine Count based on best source
         let finalCount = 0;
         // Compare with tolerance for float precision
-        if (Math.abs(bestScore - profileScore) < 0.01 && profileStats?.totalCount > 0) {
-            finalCount = profileStats.totalCount;
-        } else if (Math.abs(bestScore - realtimeScore) < 0.01 && realtimeStats?.total > 0) {
-            finalCount = realtimeStats.total;
+        if (
+          Math.abs(bestScore - profileScore) < 0.01 &&
+          profileStats?.totalCount > 0
+        ) {
+          finalCount = profileStats.totalCount;
+        } else if (
+          Math.abs(bestScore - realtimeScore) < 0.01 &&
+          realtimeStats?.total > 0
+        ) {
+          finalCount = realtimeStats.total;
         } else {
-            // Fallback: use the count from the source that provided the higher score
-            finalCount = bestScore === realtimeScore ? (realtimeStats?.total || 0) : (profileStats?.totalCount || 0);
+          // Fallback: use the count from the source that provided the higher score
+          finalCount =
+            bestScore === realtimeScore
+              ? realtimeStats?.total || 0
+              : profileStats?.totalCount || 0;
         }
 
         return {
@@ -1023,47 +1202,56 @@ export class ProductService {
    */
   async getProductAdminDetails(productId) {
     try {
-      console.log(`[PRODUCT SERVICE] Lấy chi tiết admin cho sản phẩm: ${productId}`);
+      console.log(
+        `[PRODUCT SERVICE] Lấy chi tiết admin cho sản phẩm: ${productId}`
+      );
 
       const product = await Product.findById(productId)
-        .populate('categoryId', 'name slug')
-        .populate('sellerId', 'username email fullName phoneNumber address profileImageUrl ratingSummary')
+        .populate("categoryId", "name slug")
+        .populate(
+          "sellerId",
+          "username email fullName phoneNumber address profileImageUrl ratingSummary"
+        )
         .lean();
 
       if (!product) {
-        throw new AppError('Sản phẩm không tồn tại', 404, 'PRODUCT_NOT_FOUND');
+        throw new AppError("Sản phẩm không tồn tại", 404, "PRODUCT_NOT_FOUND");
       }
 
       // Lấy tất cả thông tin auction
       const auction = await Auction.findOne({ productId: productId })
-        .populate('currentHighestBidderId', 'username email')
+        .populate("currentHighestBidderId", "username email")
         .lean();
 
       if (!auction) {
-        throw new AppError('Phiên đấu giá không tồn tại', 404, 'AUCTION_NOT_FOUND');
+        throw new AppError(
+          "Phiên đấu giá không tồn tại",
+          404,
+          "AUCTION_NOT_FOUND"
+        );
       }
 
       // Lấy tất cả bids
       const bids = await Bid.find({ auctionId: auction._id })
         .sort({ amount: -1, createdAt: -1 })
-        .populate('bidderId', 'username email ratingSummary')
+        .populate("bidderId", "username email ratingSummary")
         .lean();
 
-      const formattedBids = bids.map(bid => ({
+      const formattedBids = bids.map((bid) => ({
         _id: bid._id,
         amount: bid.amount,
         bidder: {
           _id: bid.bidderId?._id,
           username: bid.bidderId?.username,
           email: bid.bidderId?.email,
-          rating: bid.bidderId?.ratingSummary?.score || 0
+          rating: bid.bidderId?.ratingSummary?.score || 0,
         },
-        createdAt: bid.createdAt
+        createdAt: bid.createdAt,
       }));
 
       // Tính thời gian còn lại
       const timeRemaining = new Date(auction.endAt) - new Date();
-      const isAuctionActive = timeRemaining > 0 && auction.status === 'active';
+      const isAuctionActive = timeRemaining > 0 && auction.status === "active";
 
       return {
         product: {
@@ -1071,10 +1259,10 @@ export class ProductService {
           // Normalize seller rating
           sellerId: {
             ...product.sellerId,
-            rating: product.sellerId?.ratingSummary?.score 
-              ? Math.round((product.sellerId.ratingSummary.score * 5) * 10) / 10 
-              : null
-          }
+            rating: product.sellerId?.ratingSummary?.score
+              ? Math.round(product.sellerId.ratingSummary.score * 5 * 10) / 10
+              : null,
+          },
         },
         auction: {
           ...auction,
@@ -1082,24 +1270,29 @@ export class ProductService {
           isActive: isAuctionActive,
           // Thêm thông tin formatted
           autoExtendHistory: auction.autoExtendHistory || [],
-          currentHighestBidder: auction.currentHighestBidderId ? {
-            _id: auction.currentHighestBidderId._id,
-            username: auction.currentHighestBidderId.username,
-            email: auction.currentHighestBidderId.email
-          } : null
+          currentHighestBidder: auction.currentHighestBidderId
+            ? {
+                _id: auction.currentHighestBidderId._id,
+                username: auction.currentHighestBidderId.username,
+                email: auction.currentHighestBidderId.email,
+              }
+            : null,
         },
         bids: formattedBids,
         stats: {
           totalBids: bids.length,
-          uniqueBidders: [...new Set(bids.map(b => b.bidderId?._id?.toString()))].length,
-          averageBidAmount: bids.length > 0 
-            ? bids.reduce((sum, b) => sum + b.amount, 0) / bids.length 
-            : 0,
-          highestBid: bids.length > 0 ? bids[0].amount : auction.startPrice
-        }
+          uniqueBidders: [
+            ...new Set(bids.map((b) => b.bidderId?._id?.toString())),
+          ].length,
+          averageBidAmount:
+            bids.length > 0
+              ? bids.reduce((sum, b) => sum + b.amount, 0) / bids.length
+              : 0,
+          highestBid: bids.length > 0 ? bids[0].amount : auction.startPrice,
+        },
       };
     } catch (error) {
-      console.error('[PRODUCT SERVICE] Lỗi khi lấy chi tiết admin:', error);
+      console.error("[PRODUCT SERVICE] Lỗi khi lấy chi tiết admin:", error);
       throw error;
     }
   }

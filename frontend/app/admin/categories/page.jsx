@@ -14,7 +14,7 @@ import {
   Eye,
 } from "lucide-react";
 import AdminNavigation from "../../../components/admin-navigation";
-import categoryService from "../../services/categoryService";
+import adminService from "../../services/adminService";
 import Pagination from "../../../components/Pagination";
 
 export default function AdminCategoriesPage() {
@@ -46,10 +46,9 @@ export default function AdminCategoriesPage() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await categoryService.getAllCategories();
-      console.log("[CATEGORY ADMIN]:", response.data);
-      if (response.success) {
-        setCategories(Array.isArray(response.data) ? response.data : []);
+      const response = await adminService.getCategories({ tree: true });
+      if (response.data.success) {
+        setCategories(Array.isArray(response.data.data) ? response.data.data : []);
       }
       setLoading(false);
     } catch (error) {

@@ -34,7 +34,7 @@ export const MIN_SEARCH_LENGTH = 2;
  * Ending Soon Hours Threshold
  * Số giờ để xác định sản phẩm "sắp kết thúc"
  */
-export const ENDING_SOON_HOURS = 24;
+export const ENDING_SOON_HOURS = 168;
 
 /**
  * Hot Bids Threshold

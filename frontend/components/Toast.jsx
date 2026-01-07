@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { CheckCircle, XCircle, AlertCircle, Info, X } from "lucide-react";
 
 export default function Toast({
@@ -37,10 +38,9 @@ export default function Toast({
     info: "text-blue-600",
   };
 
-  return (
+  const toastContent = (
     <div
-      style={{ zIndex: 9999 }}
-      className={`fixed top-4 right-4 max-w-md w-full md:w-auto min-w-[300px] border-l-4 rounded-lg shadow-lg p-4 flex items-start gap-3 animate-slide-in ${styles[type]}`}
+      className={`fixed top-4 right-4 z-[99999] max-w-md w-full md:w-auto min-w-[300px] border-l-4 rounded-lg shadow-lg p-4 flex items-start gap-3 animate-slide-in ${styles[type]}`}
     >
       <div className={iconColors[type]}>{icons[type]}</div>
       <p className="flex-1 text-sm font-medium">{message}</p>
@@ -54,4 +54,6 @@ export default function Toast({
       )}
     </div>
   );
+
+  return createPortal(toastContent, document.body);
 }

@@ -70,12 +70,28 @@ export class BidService {
       );
     }
 
-    // 3. Kiểm tra Rejected Bidder
+    // 3. Fetch complex data in parallel: Product, Bidder, Rating stats, and Rejected Bidder check
+    const [product, bidder, isRejected, ratingStats] = await Promise.all([
+      Product.findById(auction.productId),
+      User.findById(bidderId),
+      RejectedBidder.findOne({ productId: auction.productId, bidderId: bidderId }),
+      Rating.aggregate([
+        { $match: { rateeId: new mongoose.Types.ObjectId(bidderId) } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            positive: { $sum: { $cond: [{ $eq: ["$score", 1] }, 1, 0] } }
+          }
+        }
+      ])
+    ]);
+
+    if (!product) throw new AppError("Sản phẩm không tồn tại", 404);
+    if (!bidder) throw new AppError("Không tìm thấy người dùng", 404);
+
+    // 4. Kiểm tra Rejected Bidder
     console.log(`[BID SERVICE] Checking rejected bidder - productId: ${auction.productId}, bidderId: ${bidderId}`);
-    const isRejected = await RejectedBidder.findOne({
-      productId: auction.productId,
-      bidderId: bidderId,
-    });
     console.log(`[BID SERVICE] Rejected check result:`, isRejected);
     if (isRejected) {
       throw new AppError(
@@ -85,32 +101,13 @@ export class BidService {
       );
     }
 
-    // 4. Validate Rating & Eligibility
-    const product = await Product.findById(auction.productId);
-    if (!product) throw new AppError("Sản phẩm không tồn tại", 404);
-
     // Prevent Seller from bidding on their own product
     if (product.sellerId.toString() === bidderId.toString()) {
       throw new AppError("Bạn không thể tự đấu giá sản phẩm của chính mình", 403);
     }
 
-    const bidder = await User.findById(bidderId);
-    if (!bidder) {
-      throw new AppError("Không tìm thấy người dùng", 404);
-    }
-
     // --- RATING CALCULATION ---
     // 1. Real-time stats from Rating collection
-    const ratingStats = await Rating.aggregate([
-      { $match: { rateeId: new mongoose.Types.ObjectId(bidderId) } },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          positive: { $sum: { $cond: [{ $eq: ["$score", 1] }, 1, 0] } }
-        }
-      }
-    ]);
     const realtimeStats = ratingStats[0] || { total: 0, positive: 0 };
     let realtimePercent = 0;
     if (realtimeStats.total > 0) {
@@ -337,9 +334,14 @@ export class BidService {
       // Don't await these to improve response time
       (async () => {
         try {
-          const product = await Product.findById(auction.productId);
+          // Fetch required data in parallel
+          const [product, bidder] = await Promise.all([
+            Product.findById(auction.productId),
+            User.findById(bidderId)
+          ]);
+          
+          if (!product) return;
           const seller = await User.findById(product.sellerId);
-          const bidder = await User.findById(bidderId);
 
           // 1. Send Bid Success to the current bidder
           const isHighest = resolveResult.currentHighestBidderId?.toString() === bidderId.toString();
@@ -370,13 +372,19 @@ export class BidService {
 
           // 3. Send Outbid Notification to previous winner
           const previousWinnerId = auction.currentHighestBidderId;
-          if (previousWinnerId && previousWinnerId.toString() !== resolveResult.currentHighestBidderId?.toString()) {
+          const currentWinnerId = resolveResult.currentHighestBidderId;
+
+          if (previousWinnerId && previousWinnerId.toString() !== currentWinnerId?.toString()) {
             if (previousWinnerId.toString() !== bidderId.toString()) {
-              const previousWinner = await User.findById(previousWinnerId);
-              const prevBid = await AutoBid.findOne({ auctionId: auction._id, bidderId: previousWinnerId });
-              const yourBidAmount = prevBid ? prevBid.maxAmount : auction.currentPrice;
+              // Fetch previous winner info in parallel
+              const [previousWinner, prevBid] = await Promise.all([
+                User.findById(previousWinnerId),
+                AutoBid.findOne({ auctionId: auction._id, bidderId: previousWinnerId })
+              ]);
 
               if (previousWinner) {
+                const yourBidAmount = prevBid ? prevBid.maxAmount : auction.currentPrice;
+
                 // Email Notification
                 await sendOutbidNotification({
                   previousBidderEmail: previousWinner.email,
@@ -429,7 +437,25 @@ export class BidService {
       .session(session);
 
     if (autoBids.length === 0) {
-      return { success: true, message: "No bids" };
+      // 1.1 Reset auction state if no active bids remain
+      await Auction.findByIdAndUpdate(
+        auctionId,
+        {
+          currentPrice: auction.startPrice,
+          currentHighestBidderId: null,
+          currentHighestBidId: null,
+          bidCount: 0,
+          updatedAt: new Date(),
+        },
+        { session }
+      );
+
+      return {
+        success: true,
+        currentPrice: auction.startPrice,
+        currentHighestBidderId: null,
+        bidCount: 0,
+      };
     }
 
     const highestBidder = autoBids[0];
@@ -451,23 +477,25 @@ export class BidService {
       // 2. Nếu người nhất không đổi (Người cũ Defend):
       //    Chỉ cần Match giá của người thứ 2 là thắng (do Time ưu tiên).
 
-      // Logic Consistent: Always beat the second bidder by one price step (if possible)
-      // Regardless of whether it's a new winner or defending winner.
-      newPrice = secondBidder.maxAmount + auction.priceStep;
+      // Logic Consistent: 
+      // 1. If Win is strictly higher than Second -> beat the second bidder by one price step (if possible)
+      // 2. If Win is equal to Second (Tie) -> price is equal to Second (Time priority determines winner)
+      if (highestBidder.maxAmount > secondBidder.maxAmount) {
+        newPrice = secondBidder.maxAmount + auction.priceStep;
+      } else {
+        // Tie scenario: Winner is the one who bid first (by time), price is exactly second bidder's max
+        newPrice = secondBidder.maxAmount;
+      }
 
       // Cap giá không vượt quá Max của người thắng
       if (newPrice > highestBidder.maxAmount) {
         newPrice = highestBidder.maxAmount;
       }
     } else {
-      // Chỉ có 1 người duy nhất
-      // Nếu là bid đầu tiên -> StartPrice
-      if (auction.bidCount === 0) {
-        newPrice = auction.startPrice;
-      } else {
-        // Nếu đã có giá rồi -> Giá phải ít nhất là giá hiện tại (không giảm giá).
-        newPrice = Math.max(auction.currentPrice, auction.startPrice);
-      }
+      // Chỉ có 1 người duy nhất duy nhất còn lại
+      // Trong proxy bidding, nếu chỉ có 1 người, giá luôn quay về startPrice 
+      // vì không có đối thủ cạnh tranh để đẩy giá lên.
+      newPrice = auction.startPrice;
     }
 
     // 3. Chuẩn bị danh sách Bids để tạo (Lịch sử đấu giá)
@@ -520,16 +548,29 @@ export class BidService {
     let winnerBidId = null;
 
     if (shouldLogWinnerBid) {
-      const winnerBid = {
+      // ✅ Check if this specific bid already exists to avoid duplication
+      const existingBid = await Bid.findOne({
         auctionId,
-        productId: auction.productId,
         bidderId: highestBidder.bidderId,
         amount: newPrice,
-        isAuto: true,
         isValid: true,
-        createdAt: now,
-      };
-      bidsToCreate.push(winnerBid);
+      }).session(session);
+
+      if (!existingBid) {
+        const winnerBid = {
+          auctionId,
+          productId: auction.productId,
+          bidderId: highestBidder.bidderId,
+          amount: newPrice,
+          isAuto: true,
+          isValid: true,
+          createdAt: now,
+        };
+        bidsToCreate.push(winnerBid);
+      } else {
+        // Reuse existing bid ID for auction update
+        winnerBidId = existingBid._id;
+      }
     }
 
     // Insert Bids
@@ -570,33 +611,25 @@ export class BidService {
       shouldUpdate = true;
     }
 
-    if (bidsToCreate.length > 0) {
-      // Tăng bid count theo số lượng bid records tạo ra
-      // Hoặc chỉ tính mỗi lần user action là 1 bid?
-      // Hệ thống đấu giá thường tính số lần giá thay đổi hoặc số lần đặt.
-      // Ở đây ta cộng số record tạo ra.
-      updateData.$inc = { bidCount: bidsToCreate.length };
+    if (bidsToCreate.length > 0 || isWinnerChanged || auction.currentPrice !== newPrice) {
+      // Calculate active bid count correctly (Bid.create already happened if bidsToCreate.length > 0)
+      updateData.bidCount = await Bid.countDocuments({
+        auctionId,
+        isValid: true,
+      }).session(session);
       updateData.updatedAt = new Date();
       shouldUpdate = true;
     }
 
     // 4.1 Auto Extend Logic
-    const autoExtendEnabled = await SystemSetting.getSetting(
-      "autoExtendEnabled",
-      true
-    );
+    const settings = await SystemSetting.getAllSettings();
+    const autoExtendEnabled = settings.autoExtendEnabled ?? true;
     let autoExtended = false;
     let newEndTime = auction.endAt;
 
     if (autoExtendEnabled && bidsToCreate.length > 0) {
-      const thresholdMinutes = await SystemSetting.getSetting(
-        "autoExtendThreshold",
-        5
-      );
-      const extendMinutes = await SystemSetting.getSetting(
-        "autoExtendDuration",
-        10
-      );
+      const thresholdMinutes = settings.autoExtendThreshold ?? 5;
+      const extendMinutes = settings.autoExtendDuration ?? 10;
 
       const timeLeft = new Date(auction.endAt).getTime() - now.getTime();
 
@@ -705,34 +738,36 @@ export class BidService {
 
       await session.commitTransaction();
 
-      // 6. Gửi email thông báo (Sau khi commit thành công)
-      // Lấy thông tin để gửi email
-      try {
-        const rejectedUser = await User.findById(bidderId);
-        const product = await Product.findById(productId);
-        const seller = await User.findById(sellerId);
+      // 6. Gửi email thông báo (Chạy ngầm - không await)
+      (async () => {
+        try {
+          const [rejectedUser, product, seller] = await Promise.all([
+            User.findById(bidderId),
+            Product.findById(productId),
+            User.findById(sellerId),
+          ]);
 
-        if (rejectedUser && rejectedUser.email) {
-          const rejectedDate = new Date().toLocaleString('vi-VN', {
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', hour12: false
-          });
+          if (rejectedUser && rejectedUser.email) {
+            const rejectedDate = new Date().toLocaleString('vi-VN', {
+              year: 'numeric', month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit', hour12: false
+            });
 
-          await sendBidRejectedNotification({
-            bidderEmail: rejectedUser.email,
-            bidderName: rejectedUser.fullName || rejectedUser.username,
-            productTitle: product.title,
-            sellerName: seller?.fullName || seller?.username || 'Người bán',
-            reason: reason,
-            rejectedDate: rejectedDate,
-            homeUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
-          });
-          console.log(`[BID SERVICE] Sent rejection email to ${rejectedUser.email}`);
+            await sendBidRejectedNotification({
+              bidderEmail: rejectedUser.email,
+              bidderName: rejectedUser.fullName || rejectedUser.username,
+              productTitle: product?.title || 'Sản phẩm',
+              sellerName: seller?.fullName || seller?.username || 'Người bán',
+              reason: reason,
+              rejectedDate: rejectedDate,
+              homeUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
+            });
+            console.log(`[BID SERVICE] Sent rejection email in background to ${rejectedUser.email}`);
+          }
+        } catch (emailError) {
+          console.error(`[BID SERVICE] Background Notification Error:`, emailError);
         }
-      } catch (emailError) {
-        console.error(`[BID SERVICE] Email Error:`, emailError);
-        // Không throw lỗi vì transaction đã commit
-      }
+      })();
 
       return result;
     } catch (error) {
@@ -755,12 +790,12 @@ export class BidService {
     const skip = (page - 1) * limit;
 
     const [bids, total] = await Promise.all([
-      Bid.find({ auctionId })
+      Bid.find({ auctionId, isValid: true })
         .populate("bidderId", "username")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Bid.countDocuments({ auctionId }),
+      Bid.countDocuments({ auctionId, isValid: true }),
     ]);
 
     return {
@@ -778,7 +813,7 @@ export class BidService {
    * @returns {number} Số bids
    */
   async getBidCountByBidder(auctionId, bidderId) {
-    return await Bid.countDocuments({ auctionId, bidderId });
+    return await Bid.countDocuments({ auctionId, bidderId, isValid: true });
   }
 
 

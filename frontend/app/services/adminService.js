@@ -1,12 +1,26 @@
 import api from "./api";
 
-
-const getAllUsers = () => {
-  return api.get("/admin/users");
+const getAllUsers = (page = 1, limit = 5, search = "") => {
+  return api.get(`/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
 };
 
-const getUpgradeRequests = () => {
-  return api.get("/admin/upgrade-requests");
+const getUpgradeRequests = (page = 1, limit = 5) => {
+  return api.get(`/admin/upgrade-requests?page=${page}&limit=${limit}`);
+};
+
+const getCategories = (params = {}) => {
+  const { page = 1, limit = 10, tree = false } = params;
+  return api.get(`/admin/categories?page=${page}&limit=${limit}&tree=${tree}`);
+};
+
+const getAuctions = (page = 1, limit = 10, status = "") => {
+  let url = `/admin/auctions?page=${page}&limit=${limit}`;
+  if (status) url += `&status=${status}`;
+  return api.get(url);
+};
+
+const getStatistics = () => {
+  return api.get("/admin/statistics");
 };
 
 const approveUpgradeRequest = (requestId) => {
@@ -32,6 +46,9 @@ const updateAutoExtendSettings = (settings) => {
 export default {
   getAllUsers,
   getUpgradeRequests,
+  getCategories,
+  getAuctions,
+  getStatistics,
   approveUpgradeRequest,
   rejectUpgradeRequest,
   deleteUser,

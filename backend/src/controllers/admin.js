@@ -1,15 +1,16 @@
-import SystemSetting from '../models/SystemSetting.js';
-import User from '../models/User.js';
-import Product from '../models/Product.js';
-import Auction from '../models/Auction.js';
-import Bid from '../models/Bid.js';
-import AuditLog from '../models/AuditLog.js';
-import Category from '../models/Category.js';
-import Watchlist from '../models/Watchlist.js';
-import Question from '../models/Question.js';
-import UpgradeRequest from '../models/UpgradeRequest.js';
-import { sendEmail } from '../utils/email.js';
-import AutoBid from '../models/AutoBid.js';
+import mongoose from "mongoose";
+import SystemSetting from "../models/SystemSetting.js";
+import User from "../models/User.js";
+import Product from "../models/Product.js";
+import Auction from "../models/Auction.js";
+import Bid from "../models/Bid.js";
+import AuditLog from "../models/AuditLog.js";
+import Category from "../models/Category.js";
+import Watchlist from "../models/Watchlist.js";
+import Question from "../models/Question.js";
+import UpgradeRequest from "../models/UpgradeRequest.js";
+import { sendEmail } from "../utils/email.js";
+import AutoBid from "../models/AutoBid.js";
 
 /**
  * Get auto-extend settings
@@ -17,15 +18,15 @@ import AutoBid from '../models/AutoBid.js';
  */
 export const getAutoExtendSettings = async (req, res, next) => {
   try {
-    const threshold = await SystemSetting.getSetting('autoExtendThreshold', 5);
-    const duration = await SystemSetting.getSetting('autoExtendDuration', 10);
+    const threshold = await SystemSetting.getSetting("autoExtendThreshold", 5);
+    const duration = await SystemSetting.getSetting("autoExtendDuration", 10);
 
     res.json({
       success: true,
       data: {
         autoExtendThreshold: threshold,
-        autoExtendDuration: duration
-      }
+        autoExtendDuration: duration,
+      },
     });
   } catch (error) {
     next(error);
@@ -43,38 +44,54 @@ export const updateAutoExtendSettings = async (req, res, next) => {
 
     // Validate inputs
     if (autoExtendThreshold !== undefined) {
-      if (typeof autoExtendThreshold !== 'number' || autoExtendThreshold < 1 || autoExtendThreshold > 60) {
+      if (
+        typeof autoExtendThreshold !== "number" ||
+        autoExtendThreshold < 1 ||
+        autoExtendThreshold > 60
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'autoExtendThreshold must be between 1 and 60 minutes'
+          message: "autoExtendThreshold must be between 1 and 60 minutes",
         });
       }
     }
 
     if (autoExtendDuration !== undefined) {
-      if (typeof autoExtendDuration !== 'number' || autoExtendDuration < 1 || autoExtendDuration > 120) {
+      if (
+        typeof autoExtendDuration !== "number" ||
+        autoExtendDuration < 1 ||
+        autoExtendDuration > 120
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'autoExtendDuration must be between 1 and 120 minutes'
+          message: "autoExtendDuration must be between 1 and 120 minutes",
         });
       }
     }
 
     // Update settings
     const updates = {};
-    if (typeof autoExtendThreshold !== 'undefined') {
-      await SystemSetting.updateSetting('autoExtendThreshold', autoExtendThreshold, adminId);
+    if (typeof autoExtendThreshold !== "undefined") {
+      await SystemSetting.updateSetting(
+        "autoExtendThreshold",
+        autoExtendThreshold,
+        adminId
+      );
       updates.autoExtendThreshold = autoExtendThreshold;
     }
-    if (typeof autoExtendDuration !== 'undefined') {
-      await SystemSetting.updateSetting('autoExtendDuration', autoExtendDuration, adminId);
+    if (typeof autoExtendDuration !== "undefined") {
+      await SystemSetting.updateSetting(
+        "autoExtendDuration",
+        autoExtendDuration,
+        adminId
+      );
       updates.autoExtendDuration = autoExtendDuration;
     }
 
     res.json({
       success: true,
-      message: 'Auto-extend settings updated successfully',
-      data: updates
+      message: "Auto-extend settings updated successfully",
+      data: updates,
     });
   } catch (error) {
     next(error);
@@ -87,17 +104,24 @@ export const updateAutoExtendSettings = async (req, res, next) => {
  */
 export const getAllUsers = async (req, res, next) => {
   try {
-    console.log('Admin fetching all users with query:', req.query);
-    const { page, limit, role, status } = req.query;
+    console.log("Admin fetching all users with query:", req.query);
+    const { page, limit, role, status, search } = req.query;
 
     const filter = {};
-    if (role) filter.role = role;
+    if (role) filter.roles = role;
     if (status) filter.status = status;
+    if (search) {
+      filter.$or = [
+        { username: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { fullName: { $regex: search, $options: "i" } },
+      ];
+    }
 
     // If no pagination params, return all users
     if (!page && !limit) {
       const users = await User.find(filter)
-        .select('-password')
+        .select("-password")
         .sort({ createdAt: -1 });
 
       const total = users.length;
@@ -110,9 +134,9 @@ export const getAllUsers = async (req, res, next) => {
             page: 1,
             limit: total,
             total,
-            pages: 1
-          }
-        }
+            pages: 1,
+          },
+        },
       });
     } else {
       // Use pagination
@@ -121,7 +145,7 @@ export const getAllUsers = async (req, res, next) => {
       const skip = (pageNum - 1) * limitNum;
 
       const users = await User.find(filter)
-        .select('-password')
+        .select("-password")
         .skip(skip)
         .limit(limitNum)
         .sort({ createdAt: -1 });
@@ -136,9 +160,9 @@ export const getAllUsers = async (req, res, next) => {
             page: pageNum,
             limit: limitNum,
             total,
-            pages: Math.ceil(total / limitNum)
-          }
-        }
+            pages: Math.ceil(total / limitNum),
+          },
+        },
       });
     }
   } catch (error) {
@@ -153,11 +177,11 @@ export const getAllUsers = async (req, res, next) => {
 export const getUserAvatar = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId).select('profileImageUrl');
+    const user = await User.findById(userId).select("profileImageUrl");
 
     // Default avatar if no user or no image
     if (!user || !user.profileImageUrl) {
-       return res.status(404).send('No avatar found');
+      return res.status(404).send("No avatar found");
     }
 
     const { profileImageUrl } = user;
@@ -165,17 +189,17 @@ export const getUserAvatar = async (req, res, next) => {
     // Check if Base64
     const matches = profileImageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
     if (matches && matches.length === 3) {
-        const type = matches[1];
-        const data = Buffer.from(matches[2], 'base64');
-        res.writeHead(200, {
-            'Content-Type': type,
-            'Content-Length': data.length,
-            'Cache-Control': 'public, max-age=86400'
-        });
-        res.end(data);
+      const type = matches[1];
+      const data = Buffer.from(matches[2], "base64");
+      res.writeHead(200, {
+        "Content-Type": type,
+        "Content-Length": data.length,
+        "Cache-Control": "public, max-age=86400",
+      });
+      res.end(data);
     } else {
-        // It's a regular URL, redirect
-        res.redirect(profileImageUrl);
+      // It's a regular URL, redirect
+      res.redirect(profileImageUrl);
     }
   } catch (error) {
     next(error);
@@ -195,7 +219,7 @@ export const updateUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
@@ -206,8 +230,8 @@ export const updateUser = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'User updated successfully',
-      data: { user }
+      message: "User updated successfully",
+      data: { user },
     });
   } catch (error) {
     next(error);
@@ -227,15 +251,15 @@ export const deleteUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
     // Prevent deleting superadmin
-    if (user.roles?.includes('superadmin')) {
+    if (user.roles?.includes("superadmin")) {
       return res.status(403).json({
         success: false,
-        message: 'Cannot delete superadmin account'
+        message: "Cannot delete superadmin account",
       });
     }
 
@@ -246,23 +270,26 @@ export const deleteUser = async (req, res, next) => {
       auctionsDeleted: 0,
       productsDeleted: 0,
       bidsInvalidated: 0,
-      emailsSent: 0
+      emailsSent: 0,
     };
 
     // 1. Handle active auctions where user is seller - Cancel and notify
-    const activeSellerAuctions = await Auction.find({ 
+    const activeSellerAuctions = await Auction.find({
       sellerId: userId,
-      status: 'active'
-    }).populate('productId');
+      status: "active",
+    }).populate("productId");
 
     for (const auction of activeSellerAuctions) {
       // Get all unique bidders for this auction to notify them
-      const bidderIds = await Bid.find({ 
+      const bidderIds = await Bid.find({
         auctionId: auction._id,
-        isValid: true 
-      }).distinct('bidderId');
+        isValid: true,
+      }).distinct("bidderId");
 
-      const bidders = await User.find({ _id: { $in: bidderIds } }, 'email fullName');
+      const bidders = await User.find(
+        { _id: { $in: bidderIds } },
+        "email fullName"
+      );
 
       // Send notification emails to all participants
       for (const bidder of bidders) {
@@ -270,19 +297,24 @@ export const deleteUser = async (req, res, next) => {
           try {
             await sendEmail({
               to: bidder.email,
-              subject: 'Đấu giá bị hủy - Tài khoản người bán đã bị xóa',
+              subject: "Đấu giá bị hủy - Tài khoản người bán đã bị xóa",
               html: `
                 <h2>Đấu giá bị hủy</h2>
-                <p>Xin chào ${bidder.fullName || 'người dùng'},</p>
-                <p>Cuộc đấu giá cho sản phẩm <strong>${auction.productId?.title || 'product'}</strong> đã bị hủy vì tài khoản người bán đã bị quản trị viên xóa.</p>
+                <p>Xin chào ${bidder.fullName || "người dùng"},</p>
+                <p>Cuộc đấu giá cho sản phẩm <strong>${
+                  auction.productId?.title || "product"
+                }</strong> đã bị hủy vì tài khoản người bán đã bị quản trị viên xóa.</p>
                 <p>Tất cả các lượt đặt giá của bạn trong cuộc đấu giá này đã bị vô hiệu và sẽ không được xử lý.</p>
                 <p>Chúng tôi xin lỗi vì sự bất tiện này.</p>
                 <p>Trân trọng,<br/>Đội ngũ Auction Platform</p>
-              `
+              `,
             });
             deletionSummary.emailsSent++;
           } catch (emailError) {
-            console.error(`Failed to send email to ${bidder.email}:`, emailError);
+            console.error(
+              `Failed to send email to ${bidder.email}:`,
+              emailError
+            );
           }
         }
       }
@@ -291,19 +323,19 @@ export const deleteUser = async (req, res, next) => {
     }
 
     // 2. Get all products by this seller to delete associated auctions and bids
-    const userProducts = await Product.find({ sellerId: userId }).select('_id');
-    const productIds = userProducts.map(p => p._id);
+    const userProducts = await Product.find({ sellerId: userId }).select("_id");
+    const productIds = userProducts.map((p) => p._id);
 
     // 3. Delete ALL auctions associated with user's products
     const auctionsDeleteResult = await Auction.deleteMany({
-      productId: { $in: productIds }
+      productId: { $in: productIds },
     });
     deletionSummary.auctionsDeleted = auctionsDeleteResult.deletedCount || 0;
 
     // Get all auction IDs that were deleted to remove associated bids
     const auctionIds = await Auction.find({
-      productId: { $in: productIds }
-    }).distinct('_id');
+      productId: { $in: productIds },
+    }).distinct("_id");
 
     // 4. Delete all bids on auctions of this seller's products
     await Bid.deleteMany({ auctionId: { $in: auctionIds } });
@@ -314,22 +346,24 @@ export const deleteUser = async (req, res, next) => {
     deletionSummary.productsDeleted = productsDeleted.deletedCount || 0;
 
     // 6. Handle bids where user is the bidder
-    const userBids = await Bid.find({ 
+    const userBids = await Bid.find({
       bidderId: userId,
-      isValid: true 
+      isValid: true,
     });
 
     for (const bid of userBids) {
-      const auction = await Auction.findById(bid.auctionId).populate('productId');
-      
-      if (auction && auction.status === 'active') {
+      const auction = await Auction.findById(bid.auctionId).populate(
+        "productId"
+      );
+
+      if (auction && auction.status === "active") {
         // Check if this user is the highest bidder
         if (auction.currentHighestBidderId?.toString() === userId.toString()) {
           // Find the second highest valid bid
           const secondHighestBid = await Bid.findOne({
             auctionId: auction._id,
             bidderId: { $ne: userId },
-            isValid: true
+            isValid: true,
           }).sort({ amount: -1 });
 
           if (secondHighestBid) {
@@ -339,24 +373,35 @@ export const deleteUser = async (req, res, next) => {
             await auction.save();
 
             // Notify the new highest bidder
-            const newHighestBidder = await User.findById(secondHighestBid.bidderId);
+            const newHighestBidder = await User.findById(
+              secondHighestBid.bidderId
+            );
             if (newHighestBidder && newHighestBidder.email) {
               try {
                 await sendEmail({
                   to: newHighestBidder.email,
-                  subject: 'Bạn hiện là người đặt giá cao nhất!',
+                  subject: "Bạn hiện là người đặt giá cao nhất!",
                   html: `
                     <h2>Cập nhật trạng thái đặt giá</h2>
-                    <p>Xin chào ${newHighestBidder.fullName || 'người dùng'},</p>
-                    <p>Bạn hiện là người đặt giá cao nhất trong cuộc đấu giá cho sản phẩm <strong>${auction.productId?.title || 'product'}</strong>.</p>
-                    <p>Giá hiện tại: ${auction.currentPrice?.toLocaleString('vi-VN')} VND</p>
+                    <p>Xin chào ${
+                      newHighestBidder.fullName || "người dùng"
+                    },</p>
+                    <p>Bạn hiện là người đặt giá cao nhất trong cuộc đấu giá cho sản phẩm <strong>${
+                      auction.productId?.title || "product"
+                    }</strong>.</p>
+                    <p>Giá hiện tại: ${auction.currentPrice?.toLocaleString(
+                      "vi-VN"
+                    )} VND</p>
                     <p>Người đặt giá cao nhất trước đó đã bị xóa tài khoản.</p>
                     <p>Trân trọng,<br/>Đội ngũ Auction Platform</p>
-                  `
+                  `,
                 });
                 deletionSummary.emailsSent++;
               } catch (emailError) {
-                console.error(`Failed to send email to new highest bidder:`, emailError);
+                console.error(
+                  `Failed to send email to new highest bidder:`,
+                  emailError
+                );
               }
             }
           } else {
@@ -371,7 +416,7 @@ export const deleteUser = async (req, res, next) => {
         // Invalidate user's bid
         bid.isValid = false;
         bid.invalidatedAt = new Date();
-        bid.invalidatedReason = 'Tài khoản người dùng bị xóa bởi admin';
+        bid.invalidatedReason = "Tài khoản người dùng bị xóa bởi admin";
         await bid.save();
         deletionSummary.bidsInvalidated++;
       }
@@ -397,26 +442,26 @@ export const deleteUser = async (req, res, next) => {
 
     // 13. Create audit log
     await AuditLog.create({
-      entityType: 'User',
+      entityType: "User",
       entityId: userId,
-      action: 'DELETE_USER',
+      action: "DELETE_USER",
       performedBy: adminId,
       changes: {
         deletedUser: {
           email: user.email,
           fullName: user.fullName,
-          roles: user.roles
+          roles: user.roles,
         },
-        summary: deletionSummary
-      }
+        summary: deletionSummary,
+      },
     });
 
     res.json({
       success: true,
-      message: 'User deleted successfully',
+      message: "User deleted successfully",
       data: {
-        summary: deletionSummary
-      }
+        summary: deletionSummary,
+      },
     });
   } catch (error) {
     next(error);
@@ -436,9 +481,9 @@ export const getAllAuctions = async (req, res, next) => {
     if (status) filter.status = status;
 
     const auctions = await Auction.find(filter)
-      .populate('product')
-      .populate('seller', 'fullName email')
-      .populate('currentBidder', 'fullName email')
+      .populate("product")
+      .populate("seller", "fullName email")
+      .populate("currentBidder", "fullName email")
       .skip(skip)
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
@@ -453,9 +498,9 @@ export const getAllAuctions = async (req, res, next) => {
           page: parseInt(page),
           limit: parseInt(limit),
           total,
-          pages: Math.ceil(total / limit)
-        }
-      }
+          pages: Math.ceil(total / limit),
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -476,7 +521,7 @@ export const getAuditLogs = async (req, res, next) => {
     if (userId) filter.user = userId;
 
     const logs = await AuditLog.find(filter)
-      .populate('user', 'fullName email')
+      .populate("user", "fullName email")
       .skip(skip)
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
@@ -491,9 +536,9 @@ export const getAuditLogs = async (req, res, next) => {
           page: parseInt(page),
           limit: parseInt(limit),
           total,
-          pages: Math.ceil(total / limit)
-        }
-      }
+          pages: Math.ceil(total / limit),
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -506,11 +551,19 @@ export const getAuditLogs = async (req, res, next) => {
  */
 export const getStatistics = async (req, res, next) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalAuctions = await Auction.countDocuments();
-    const activeAuctions = await Auction.countDocuments({ status: 'active' });
-    const totalBids = await Bid.countDocuments();
-    const totalProducts = await Product.countDocuments();
+    const [
+      totalUsers,
+      totalAuctions,
+      activeAuctions,
+      totalBids,
+      totalProducts,
+    ] = await Promise.all([
+      User.countDocuments(),
+      Auction.countDocuments(),
+      Auction.countDocuments({ status: "active" }),
+      Bid.countDocuments(),
+      Product.countDocuments(),
+    ]);
 
     res.json({
       success: true,
@@ -519,8 +572,8 @@ export const getStatistics = async (req, res, next) => {
         totalAuctions,
         activeAuctions,
         totalBids,
-        totalProducts
-      }
+        totalProducts,
+      },
     });
   } catch (error) {
     next(error);
@@ -539,34 +592,101 @@ export const getStatistics = async (req, res, next) => {
  */
 export const getAllCategories = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, level, isActive } = req.query;
-    const skip = (page - 1) * limit;
+    const { page, limit, level, isActive, tree = "false" } = req.query;
 
-    const filter = {};
-    if (level) filter.level = parseInt(level);
-    if (isActive !== undefined) filter.isActive = isActive === 'true';
+    // Base aggregation pipeline
+    const pipeline = [
+      {
+        $lookup: {
+          from: "products",
+          localField: "_id",
+          foreignField: "categoryId",
+          pipeline: [{ $project: { _id: 1 } }],
+          as: "products",
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          slug: 1,
+          description: 1,
+          level: 1,
+          parentId: 1,
+          isActive: 1,
+          createdAt: 1,
+          productCount: { $size: { $ifNull: ["$products", []] } },
+        },
+      },
+    ];
 
-    const categories = await Category.find(filter)
-      .populate('parentId', 'name')
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+    // Apply filters if any
+    const matchStage = {};
+    if (level && !isNaN(parseInt(level))) matchStage.level = parseInt(level);
+    if (isActive !== undefined) matchStage.isActive = isActive === "true";
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.unshift({ $match: matchStage });
+    }
 
-    const total = await Category.countDocuments(filter);
+    // Sort by level then name
+    pipeline.push({ $sort: { level: 1, name: 1 } });
+
+    if (tree === "true") {
+      const allCategories = await Category.aggregate(pipeline);
+      const parents = allCategories.filter((c) => c.level === 1 || !c.parentId);
+      const children = allCategories.filter((c) => c.level !== 1 && c.parentId);
+
+      const treeData = parents.map((p) => ({
+        ...p,
+        children: children.filter((c) => String(c.parentId) === String(p._id)),
+      }));
+
+      return res.json({
+        success: true,
+        data: treeData,
+      });
+    }
+
+    // Pagination logic
+    if (!page && !limit) {
+      const categories = await Category.aggregate(pipeline);
+      return res.json({
+        success: true,
+        data: categories,
+      });
+    }
+
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+    const skip = (pageNum - 1) * limitNum;
+
+    const facetPipeline = [
+      ...pipeline,
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limitNum }],
+          total: [{ $count: "count" }],
+        },
+      },
+    ];
+
+    const [result] = await Category.aggregate(facetPipeline);
+    const categories = result?.data || [];
+    const total = result?.total[0]?.count || 0;
 
     res.json({
       success: true,
       data: {
         categories,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: pageNum,
+          limit: limitNum,
           total,
-          pages: Math.ceil(total / limit)
-        }
-      }
+          pages: Math.ceil(total / limitNum),
+        },
+      },
     });
   } catch (error) {
+    console.error("Error in getAllCategories:", error);
     next(error);
   }
 };
@@ -579,23 +699,26 @@ export const getCategoryById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const category = await Category.findById(id).populate('parentId', 'name');
+    const category = await Category.findById(id).populate("parentId", "name");
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: 'Category not found'
+        message: "Category not found",
       });
     }
 
     // Get product count for this category
-    const productCount = await Product.countDocuments({ categoryId: id, isActive: true });
+    const productCount = await Product.countDocuments({
+      categoryId: id,
+      isActive: true,
+    });
 
     res.json({
       success: true,
       data: {
         category,
-        productCount
-      }
+        productCount,
+      },
     });
   } catch (error) {
     next(error);
@@ -614,7 +737,7 @@ export const createCategory = async (req, res, next) => {
     if (!name || !slug || !level) {
       return res.status(400).json({
         success: false,
-        message: 'Name, slug, and level are required'
+        message: "Name, slug, and level are required",
       });
     }
 
@@ -623,7 +746,7 @@ export const createCategory = async (req, res, next) => {
     if (existingCategory) {
       return res.status(400).json({
         success: false,
-        message: 'Slug already exists'
+        message: "Slug already exists",
       });
     }
 
@@ -631,7 +754,7 @@ export const createCategory = async (req, res, next) => {
     if (![1, 2].includes(level)) {
       return res.status(400).json({
         success: false,
-        message: 'Level must be 1 or 2'
+        message: "Level must be 1 or 2",
       });
     }
 
@@ -639,7 +762,7 @@ export const createCategory = async (req, res, next) => {
     if (level === 2 && !parentId) {
       return res.status(400).json({
         success: false,
-        message: 'Parent category is required for level 2 categories'
+        message: "Parent category is required for level 2 categories",
       });
     }
 
@@ -649,13 +772,13 @@ export const createCategory = async (req, res, next) => {
       if (!parent) {
         return res.status(404).json({
           success: false,
-          message: 'Parent category not found'
+          message: "Parent category not found",
         });
       }
       if (parent.level !== 1) {
         return res.status(400).json({
           success: false,
-          message: 'Parent must be a level 1 category'
+          message: "Parent must be a level 1 category",
         });
       }
     }
@@ -665,15 +788,15 @@ export const createCategory = async (req, res, next) => {
       slug,
       parentId: level === 2 ? parentId : null,
       level,
-      path: level === 2 && parentId ? [parentId] : []
+      path: level === 2 && parentId ? [parentId] : [],
     });
 
     await newCategory.save();
 
     res.status(201).json({
       success: true,
-      message: 'Category created successfully',
-      data: { category: newCategory }
+      message: "Category created successfully",
+      data: { category: newCategory },
     });
   } catch (error) {
     next(error);
@@ -693,17 +816,20 @@ export const updateCategory = async (req, res, next) => {
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: 'Category not found'
+        message: "Category not found",
       });
     }
 
     // Check slug uniqueness if changed
     if (slug && slug !== category.slug) {
-      const existingCategory = await Category.findOne({ slug, _id: { $ne: id } });
+      const existingCategory = await Category.findOne({
+        slug,
+        _id: { $ne: id },
+      });
       if (existingCategory) {
         return res.status(400).json({
           success: false,
-          message: 'Slug already exists'
+          message: "Slug already exists",
         });
       }
       category.slug = slug;
@@ -717,8 +843,8 @@ export const updateCategory = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Category updated successfully',
-      data: { category }
+      message: "Category updated successfully",
+      data: { category },
     });
   } catch (error) {
     next(error);
@@ -738,7 +864,7 @@ export const deleteCategory = async (req, res, next) => {
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: 'Category not found'
+        message: "Category not found",
       });
     }
 
@@ -748,7 +874,7 @@ export const deleteCategory = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: `Cannot delete category. There are ${productCount} product(s) using this category.`,
-        data: { productCount }
+        data: { productCount },
       });
     }
 
@@ -759,7 +885,7 @@ export const deleteCategory = async (req, res, next) => {
         return res.status(400).json({
           success: false,
           message: `Cannot delete category. There are ${subcategoryCount} subcategory(ies) under this category.`,
-          data: { subcategoryCount }
+          data: { subcategoryCount },
         });
       }
     }
@@ -768,7 +894,7 @@ export const deleteCategory = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Category deleted successfully'
+      message: "Category deleted successfully",
     });
   } catch (error) {
     next(error);
@@ -795,7 +921,7 @@ export const removeProduct = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found'
+        message: "Product not found",
       });
     }
 
@@ -803,47 +929,44 @@ export const removeProduct = async (req, res, next) => {
     if (!auction) {
       return res.status(404).json({
         success: false,
-        message: 'Auction not found for this product'
+        message: "Auction not found for this product",
       });
     }
 
-    let action = '';
-    let message = '';
+    let action = "";
+    let message = "";
 
     // Strategy 1: Hard delete if auction hasn't started or no bids
-    if (auction.status === 'pending' || auction.bidCount === 0) {
+    if (auction.status === "pending" || auction.bidCount === 0) {
       // Delete related records
       await Promise.all([
         Product.findByIdAndDelete(productId),
         Auction.findByIdAndDelete(auction._id),
         Watchlist.deleteMany({ product: productId }),
         Question.deleteMany({ product: productId }),
-        Bid.deleteMany({ auctionId: auction._id })
+        Bid.deleteMany({ auctionId: auction._id }),
       ]);
 
-      action = 'hard_delete';
-      message = 'Product and all related data have been permanently deleted';
+      action = "hard_delete";
+      message = "Product and all related data have been permanently deleted";
     }
     // Strategy 2: Cancel auction if active with bids
-    else if (auction.status === 'active' && auction.bidCount > 0) {
-      auction.status = 'cancelled';
+    else if (auction.status === "active" && auction.bidCount > 0) {
+      auction.status = "cancelled";
       product.isActive = false;
       product.deletedAt = new Date();
       product.deletedBy = adminId;
 
-      await Promise.all([
-        auction.save(),
-        product.save()
-      ]);
+      await Promise.all([auction.save(), product.save()]);
 
       // TODO: Notify bidders about cancellation
       // TODO: Process refunds if needed
 
-      action = 'cancelled';
+      action = "cancelled";
       message = `Auction cancelled. ${auction.bidCount} bidder(s) will be notified`;
     }
     // Strategy 3: Archive if already ended
-    else if (auction.status === 'ended') {
+    else if (auction.status === "ended") {
       product.isActive = false;
       product.isArchived = true;
       product.deletedAt = new Date();
@@ -851,28 +974,27 @@ export const removeProduct = async (req, res, next) => {
 
       await product.save();
 
-      action = 'archived';
-      message = 'Product has been archived';
-    }
-    else {
+      action = "archived";
+      message = "Product has been archived";
+    } else {
       return res.status(400).json({
         success: false,
-        message: 'Cannot remove product in current auction status'
+        message: "Cannot remove product in current auction status",
       });
     }
 
     // Create audit log
     await AuditLog.create({
-      entityType: 'Product',
+      entityType: "Product",
       entityId: productId,
-      action: 'REMOVE_PRODUCT',
+      action: "REMOVE_PRODUCT",
       performedBy: adminId,
       changes: {
         action,
         auctionStatus: auction.status,
         bidCount: auction.bidCount,
-        reason: req.body.reason || 'Admin removal'
-      }
+        reason: req.body.reason || "Admin removal",
+      },
     });
 
     res.json({
@@ -882,8 +1004,8 @@ export const removeProduct = async (req, res, next) => {
         productId,
         action,
         auctionStatus: auction.status,
-        bidCount: auction.bidCount
-      }
+        bidCount: auction.bidCount,
+      },
     });
   } catch (error) {
     next(error);
@@ -902,7 +1024,7 @@ export const removeProduct = async (req, res, next) => {
  */
 export const getAllUpgradeRequests = async (req, res, next) => {
   try {
-    console.log('Admin fetching upgrade requests with query:', req.query);
+    console.log("Admin fetching upgrade requests with query:", req.query);
     const { page, limit, status } = req.query;
 
     const filter = {};
@@ -911,8 +1033,8 @@ export const getAllUpgradeRequests = async (req, res, next) => {
     // If no pagination params, return all requests
     if (!page && !limit) {
       const requests = await UpgradeRequest.find(filter)
-        .populate('user', 'fullName email username roles sellerExpiresAt')
-        .populate('reviewedBy', 'fullName email')
+        .populate("user", "fullName email username roles sellerExpiresAt")
+        .populate("reviewedBy", "fullName email")
         .sort({ createdAt: -1 });
 
       const total = requests.length;
@@ -925,9 +1047,9 @@ export const getAllUpgradeRequests = async (req, res, next) => {
             page: 1,
             limit: total,
             total,
-            pages: 1
-          }
-        }
+            pages: 1,
+          },
+        },
       });
     } else {
       // Use pagination
@@ -936,8 +1058,11 @@ export const getAllUpgradeRequests = async (req, res, next) => {
       const skip = (pageNum - 1) * limitNum;
 
       const requests = await UpgradeRequest.find(filter)
-        .populate('user', 'fullName email username roles sellerExpiresAt')
-        .populate('reviewedBy', 'fullName email')
+        .populate(
+          "user",
+          "fullName email username roles sellerExpiresAt ratingSummary profileImageUrl"
+        )
+        .populate("reviewedBy", "fullName email")
         .skip(skip)
         .limit(limitNum)
         .sort({ createdAt: -1 });
@@ -952,9 +1077,9 @@ export const getAllUpgradeRequests = async (req, res, next) => {
             page: pageNum,
             limit: limitNum,
             total,
-            pages: Math.ceil(total / limitNum)
-          }
-        }
+            pages: Math.ceil(total / limitNum),
+          },
+        },
       });
     }
   } catch (error) {
@@ -971,19 +1096,22 @@ export const getUpgradeRequestById = async (req, res, next) => {
     const { id } = req.params;
 
     const request = await UpgradeRequest.findById(id)
-      .populate('user', 'fullName email username roles sellerExpiresAt createdAt')
-      .populate('reviewedBy', 'fullName email');
+      .populate(
+        "user",
+        "fullName email username roles sellerExpiresAt createdAt"
+      )
+      .populate("reviewedBy", "fullName email");
 
     if (!request) {
       return res.status(404).json({
         success: false,
-        message: 'Upgrade request not found'
+        message: "Upgrade request not found",
       });
     }
 
     res.json({
       success: true,
-      data: { request }
+      data: { request },
     });
   } catch (error) {
     next(error);
@@ -997,21 +1125,21 @@ export const getUpgradeRequestById = async (req, res, next) => {
 export const approveUpgradeRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const reviewNote = String(req.body?.reviewNote || '');
+    const reviewNote = String(req.body?.reviewNote || "");
     const adminId = req.user?._id;
 
-    const request = await UpgradeRequest.findById(id).populate('user');
+    const request = await UpgradeRequest.findById(id).populate("user");
     if (!request) {
       return res.status(404).json({
         success: false,
-        message: 'Upgrade request not found'
+        message: "Upgrade request not found",
       });
     }
 
-    if (request.status !== 'pending') {
+    if (request.status !== "pending") {
       return res.status(400).json({
         success: false,
-        message: `Request has already been ${request.status}`
+        message: `Request has already been ${request.status}`,
       });
     }
 
@@ -1019,7 +1147,7 @@ export const approveUpgradeRequest = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
@@ -1027,14 +1155,14 @@ export const approveUpgradeRequest = async (req, res, next) => {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    if (!user.roles.includes('seller')) {
-      user.roles.push('seller');
+    if (!user.roles.includes("seller")) {
+      user.roles.push("seller");
     }
     user.sellerExpiresAt = expiresAt;
     await user.save();
 
     // Update request
-    request.status = 'approved';
+    request.status = "approved";
     request.reviewedBy = adminId;
     request.reviewedAt = new Date();
     request.reviewNote = reviewNote;
@@ -1042,30 +1170,30 @@ export const approveUpgradeRequest = async (req, res, next) => {
 
     // Populate request to return full data
     await request.populate([
-      { path: 'user', select: 'fullName email username roles sellerExpiresAt' },
-      { path: 'reviewedBy', select: 'fullName email' }
+      { path: "user", select: "fullName email username roles sellerExpiresAt" },
+      { path: "reviewedBy", select: "fullName email" },
     ]);
 
     // Create audit log
     await AuditLog.create({
-      entityType: 'UpgradeRequest',
+      entityType: "UpgradeRequest",
       entityId: id,
-      action: 'APPROVE_UPGRADE_REQUEST',
+      action: "APPROVE_UPGRADE_REQUEST",
       performedBy: adminId,
       changes: {
-        status: 'approved',
+        status: "approved",
         userId: user._id,
         sellerExpiresAt: expiresAt,
-        reviewNote
-      }
+        reviewNote,
+      },
     });
 
     res.json({
       success: true,
-      message: 'Upgrade request approved successfully',
+      message: "Upgrade request approved successfully",
       data: {
-        request: request
-      }
+        request: request,
+      },
     });
   } catch (error) {
     next(error);
@@ -1079,33 +1207,33 @@ export const approveUpgradeRequest = async (req, res, next) => {
 export const rejectUpgradeRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const reviewNote = String(req.body?.reviewNote || req.body?.reason || '');
+    const reviewNote = String(req.body?.reviewNote || req.body?.reason || "");
     const adminId = req.user?._id;
 
     if (!reviewNote || reviewNote.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Review note is required for rejection'
+        message: "Review note is required for rejection",
       });
     }
 
-    const request = await UpgradeRequest.findById(id).populate('user');
+    const request = await UpgradeRequest.findById(id).populate("user");
     if (!request) {
       return res.status(404).json({
         success: false,
-        message: 'Upgrade request not found'
+        message: "Upgrade request not found",
       });
     }
 
-    if (request.status !== 'pending') {
+    if (request.status !== "pending") {
       return res.status(400).json({
         success: false,
-        message: `Request has already been ${request.status}`
+        message: `Request has already been ${request.status}`,
       });
     }
 
     // Update request
-    request.status = 'rejected';
+    request.status = "rejected";
     request.reviewedBy = adminId;
     request.reviewedAt = new Date();
     request.reviewNote = reviewNote.trim();
@@ -1113,29 +1241,29 @@ export const rejectUpgradeRequest = async (req, res, next) => {
 
     // Populate request to return full data
     await request.populate([
-      { path: 'user', select: 'fullName email username roles sellerExpiresAt' },
-      { path: 'reviewedBy', select: 'fullName email' }
+      { path: "user", select: "fullName email username roles sellerExpiresAt" },
+      { path: "reviewedBy", select: "fullName email" },
     ]);
 
     // Create audit log
     await AuditLog.create({
-      entityType: 'UpgradeRequest',
+      entityType: "UpgradeRequest",
       entityId: id,
-      action: 'REJECT_UPGRADE_REQUEST',
+      action: "REJECT_UPGRADE_REQUEST",
       performedBy: adminId,
       changes: {
-        status: 'rejected',
+        status: "rejected",
         userId: request.user._id,
-        reviewNote
-      }
+        reviewNote,
+      },
     });
 
     res.json({
       success: true,
-      message: 'Upgrade request rejected',
+      message: "Upgrade request rejected",
       data: {
-        request: request
-      }
+        request: request,
+      },
     });
   } catch (error) {
     next(error);

@@ -93,6 +93,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 5;
 
   useEffect(() => {
@@ -104,11 +105,11 @@ function UserManagement({ searchQuery, setSearchQuery }) {
       setLoading(true);
       setError('');
 
-      const token = localStorage.getItem('token');
-      const response = await adminService.getAllUsers();
+      const response = await adminService.getAllUsers(currentPage, itemsPerPage, searchQuery);
 
       if (response.status === 200) {
         setUsers(response.data?.data?.users || []);
+        setTotalItems(response.data?.data?.pagination?.total || 0);
       } else {
         setError(response.data?.message || 'Failed to load users');
       }
@@ -156,20 +157,9 @@ function UserManagement({ searchQuery, setSearchQuery }) {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [currentPage, searchQuery]);
 
-  // Filter users based on search query
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.fullName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
-
+  // Data is now filtered server-side
   const calculateRating = (ratingSummary) => {
     if (!ratingSummary || ratingSummary.totalCount === 0) {
       return 0;
@@ -257,7 +247,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredUsers.length === 0 ? (
+            {users.length === 0 ? (
               <tr>
                 <td
                   colSpan="5"
@@ -269,7 +259,7 @@ function UserManagement({ searchQuery, setSearchQuery }) {
                 </td>
               </tr>
             ) : (
-              currentUsers.map((user) => (
+              users.map((user) => (
                 <tr
                   key={user._id}
                   className="bg-white/5 border-b border-gray-800 hover:bg-white/10 cursor-pointer transition-colors"
@@ -361,10 +351,10 @@ function UserManagement({ searchQuery, setSearchQuery }) {
         </table>
       </div>
 
-      {filteredUsers.length > 0 && (
+      {totalItems > itemsPerPage && (
         <Pagination
           currentPage={currentPage}
-          totalItems={filteredUsers.length}
+          totalItems={totalItems}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
         />
@@ -570,7 +560,6 @@ function UserManagement({ searchQuery, setSearchQuery }) {
 // Upgrade Requests Sub-component
 function UpgradeRequests() {
   const [requests, setRequests] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(null);
@@ -583,6 +572,9 @@ function UpgradeRequests() {
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 5;
   const [openDropdown, setOpenDropdown] = useState(null);
 
   const fetchUpgradeRequests = async () => {
@@ -590,30 +582,11 @@ function UpgradeRequests() {
       setLoading(true);
       setError("");
 
-      // Fetch both requests and users
-      const [requestsResponse, usersResponse] = await Promise.all([
-        adminService.getUpgradeRequests(),
-        adminService.getAllUsers()
-      ]);
+      const response = await adminService.getUpgradeRequests(currentPage, itemsPerPage);
 
-      if (requestsResponse.status === 200) {
-        const requestsData = requestsResponse.data?.data?.requests || [];
-        const usersData = usersResponse.data?.data?.users || [];
-
-        // Create a map of users by ID for quick lookup
-        const usersMap = {};
-        usersData.forEach(user => {
-          usersMap[user._id] = user;
-        });
-
-        // Merge request data with full user data
-        const enrichedRequests = requestsData.map(request => ({
-          ...request,
-          user: usersMap[request.user?._id] || request.user
-        }));
-
-        setRequests(enrichedRequests);
-        setUsers(usersData);
+      if (response.status === 200) {
+        setRequests(response.data?.data?.requests || []);
+        setTotalItems(response.data?.data?.pagination?.total || 0);
       }
     } catch (err) {
       console.error("Error fetching upgrade requests:", err);
@@ -625,7 +598,7 @@ function UpgradeRequests() {
 
   useEffect(() => {
     fetchUpgradeRequests();
-  }, []);
+  }, [currentPage]);
 
   const handleApprove = (requestId) => {
     setSelectedRequestId(requestId);
@@ -891,9 +864,18 @@ function UpgradeRequests() {
         </table>
       </div>
 
-      <div className="text-sm text-muted-foreground">
-        {requests.filter((r) => r.status === "pending").length} yêu cầu đang chờ
-        xử lý
+      <div className="flex justify-between items-center mt-4">
+        <div className="text-sm text-muted-foreground">
+          {requests.filter((r) => r.status === "pending").length} yêu cầu đang chờ xử lý trên trang này
+        </div>
+        {totalItems > itemsPerPage && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {/* Detail Modal */}

@@ -107,6 +107,7 @@ export default function DashboardPage() {
     watchlistCount: 0,
     wonCount: 0,
     sellingCount: 0,
+    soldCount: 0,
   });
 
   // Rating Modal State
@@ -468,7 +469,7 @@ export default function DashboardPage() {
           className={`grid grid-cols-1 sm:grid-cols-2 ${
             currentUser?.roles?.includes("seller") ||
             currentUser?.roles?.includes("admin")
-              ? "lg:grid-cols-4"
+              ? "lg:grid-cols-5"
               : "lg:grid-cols-3"
           } gap-6 mb-12 animate-slide-up`}
         >
@@ -510,9 +511,19 @@ export default function DashboardPage() {
               gradient: "from-orange-50 to-white",
               key: "selling",
             },
+            {
+              title: "Đã bán",
+              value: stats.soldCount,
+              icon: PackageCheck,
+              color: "text-indigo-600",
+              bg: "bg-indigo-100",
+              border: "border-indigo-200",
+              gradient: "from-indigo-50 to-white",
+              key: "sold",
+            },
           ]
             .filter((item) => {
-              if (item.key === "selling") {
+              if (item.key === "selling" || item.key === "sold") {
                 return (
                   currentUser?.roles?.includes("seller") ||
                   currentUser?.roles?.includes("admin")
@@ -1205,8 +1216,7 @@ export default function DashboardPage() {
             >
               <XCircle className="w-6 h-6" />
             </button>
-            <div className="p-6">
-              {/* Title replaced by component's internal header */}
+            <div className="max-h-[90vh] overflow-y-auto">
               <RatingComponent
                 targetUser={{
                   id: selectedTransactionForRating.targetUser?._id,

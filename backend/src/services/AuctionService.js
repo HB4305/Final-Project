@@ -167,15 +167,17 @@ export class AuctionService {
    * @returns {Array} Danh sách cuộc đấu giá
    */
   async getEndingSoonAuctions(limit = 5) {
-    const auctions = await Auction.find({
-      status: AUCTION_STATUS.ACTIVE
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    return await Auction.find({
+      status: AUCTION_STATUS.ACTIVE,
+      endAt: { $gt: now, $lte: sevenDaysFromNow }
     })
       .populate('productId', 'title primaryImageUrl')
       .populate('currentHighestBidderId', 'username')
-      .sort({ endAt: 1 })
+      .sort({ endAt: -1 })
       .limit(limit);
-
-    return auctions;
   }
 
   /**

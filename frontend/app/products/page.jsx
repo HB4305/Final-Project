@@ -378,8 +378,7 @@ export default function ProductsPage() {
 
   const handleCreateProduct = () => {
     if (!currentUser) {
-      setRestrictionType('guest');
-      setShowRestrictionModal(true);
+      navigate('/auth/login');
       return;
     }
 
@@ -442,12 +441,10 @@ export default function ProductsPage() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
             <h3 className="text-xl font-bold text-white mb-2">
-              {restrictionType === 'guest' ? 'Yêu cầu đăng nhập' : 'Yêu cầu quyền người bán'}
+              Yêu cầu quyền người bán
             </h3>
             <p className="text-gray-300 mb-6">
-              {restrictionType === 'guest'
-                ? 'Bạn cần đăng nhập để thực hiện chức năng này.'
-                : 'Chỉ người bán mới có quyền đăng bán sản phẩm.'}
+              Chỉ người bán mới có quyền đăng bán sản phẩm.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -458,15 +455,11 @@ export default function ProductsPage() {
               </button>
               <button
                 onClick={() => {
-                  if (restrictionType === 'guest') {
-                    navigate('/auth/login');
-                  } else {
-                    navigate('/profile?tab=upgrade');
-                  }
+                  navigate('/profile?tab=upgrade');
                 }}
                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium"
               >
-                {restrictionType === 'guest' ? 'Đăng nhập ngay' : 'Về hồ sơ'}
+                Về hồ sơ
               </button>
             </div>
           </div>

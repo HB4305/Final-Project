@@ -15,6 +15,7 @@ import {
   List,
   Trophy,
   ShieldCheck,
+  Gavel,
 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import Navigation from "../../../components/navigation";
@@ -509,11 +510,7 @@ export default function ProductDetailPage() {
                     productId={id}
                     isSeller={user && product.sellerId?._id === user._id}
                     onReject={async () => {
-                      await refetch();
-                      setToast({
-                        type: "success",
-                        message: "Đã từ chối bidder thành công!",
-                      });
+                      await refetch(true); // Silent update - avoids jitter
                     }}
                   />
                 )}

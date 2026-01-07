@@ -7,7 +7,7 @@ import watchlistService from "../app/services/watchlistService";
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=300&fit=crop";
 const FETCH_CONFIG = { limit: 12, sortBy: "newest", status: "active", page: 1 };
-const ENDING_SOON_HOURS = 24;
+const ENDING_SOON_HOURS = 168;
 const HOT_BID_THRESHOLD = 10;
 const NEW_PRODUCT_THRESHOLD_MINUTES = 60; // 60 phút = 1 giờ
 

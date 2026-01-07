@@ -58,6 +58,18 @@ systemSettingSchema.statics.getSetting = async function (key, defaultValue) {
 };
 
 /**
+ * Static method: Lấy tất cả settings để tối ưu hiệu năng
+ * @returns {Object} Key-value pair của các settings
+ */
+systemSettingSchema.statics.getAllSettings = async function () {
+  const settings = await this.find({});
+  return settings.reduce((acc, s) => {
+    acc[s.key] = s.value;
+    return acc;
+  }, {});
+};
+
+/**
  * Static method: Cập nhật setting
  * @param {string} key - Setting key
  * @param {*} value - Giá trị mới

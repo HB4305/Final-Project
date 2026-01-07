@@ -19,16 +19,22 @@ export default function AdminProductsPage() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
+  const [totalItems, setTotalItems] = useState(0);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      // Lấy tất cả sản phẩm với mọi trạng thái (không filter theo status)
-      const response = await productService.getAllProducts({});
+      // Lấy tất cả sản phẩm với mọi trạng thái (status: 'all') có phân trang
+      const response = await productService.getAllProducts({
+        status: 'all',
+        page: currentPage,
+        limit: itemsPerPage
+      });
       console.log(response.data);
       if (response.success) {
         setProducts(response.data);
+        setTotalItems(response.pagination?.totalProducts || 0);
       }
       setLoading(false);
     } catch (error) {
@@ -39,7 +45,7 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [currentPage]);
 
   const handleDelete = (product) => {
     setProductToDelete(product);
@@ -126,12 +132,7 @@ export default function AdminProductsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {(() => {
-                    const indexOfLastItem = currentPage * itemsPerPage;
-                    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-                    const paginatedProducts = products.slice(indexOfFirstItem, indexOfLastItem);
-
-                    return paginatedProducts.map((product) => (
+                  {products.map((product) => (
                       <tr
                         key={product._id}
                         className="bg-white/5 border-b border-gray-800 hover:bg-white/10 cursor-pointer transition-colors"
@@ -220,7 +221,7 @@ export default function AdminProductsPage() {
                         </td>
                       </tr>
                     ))
-                  })()}
+                  }
                 </tbody>
               </table>
 
@@ -231,10 +232,10 @@ export default function AdminProductsPage() {
               )}
 
               {/* Pagination */}
-              {products.length > 0 && (
+              {totalItems > itemsPerPage && (
                 <Pagination
                   currentPage={currentPage}
-                  totalItems={products.length}
+                  totalItems={totalItems}
                   itemsPerPage={itemsPerPage}
                   onPageChange={setCurrentPage}
                 />

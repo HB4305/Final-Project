@@ -45,7 +45,7 @@ export default function RelatedProductCard({ product }) {
             <span className="px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded">
               Đã kết thúc
             </span>
-          ) : time.days === 0 && time.hours < 24 && (
+          ) : time.days >= 0 && (time.days * 24 + time.hours) < 168 && (
             <span className="px-2 py-1 bg-orange-600 text-white text-xs font-semibold rounded animate-pulse">
               🔥 Sắp kết thúc
             </span>
