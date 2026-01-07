@@ -33,8 +33,8 @@ const FilterSidebar = ({
         <div className="mb-8">
           <h3 className="font-bold text-sm mb-4 text-gray-700 dark:text-gray-200">Danh mục</h3>
           <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {categories.map((cat) => (
-              <div key={cat._id || cat.name}>
+            {categories.map((cat, index) => (
+              <div key={cat._id || cat.name || index}>
                 <button
                   onClick={() => onCategoryChange(cat.name)}
                   className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm font-medium flex items-center justify-between group ${
@@ -53,9 +53,9 @@ const FilterSidebar = ({
                 {(selectedCategory === cat.name || (cat.children && cat.children.some(c => c.name === selectedSubcategory))) && 
                  cat.children && cat.children.length > 0 && (
                   <div className="ml-4 mt-1 border-l-2 border-gray-100 dark:border-white/10 pl-2 space-y-1">
-                    {cat.children.map((child) => (
+                    {cat.children.map((child, idx) => (
                       <button
-                        key={child._id}
+                        key={child._id || child.name || idx}
                         onClick={(e) => {
                           e.stopPropagation();
                           onSubCategoryChange && onSubCategoryChange(child.name);

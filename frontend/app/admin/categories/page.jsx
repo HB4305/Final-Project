@@ -79,20 +79,21 @@ export default function AdminCategoriesPage() {
       let response;
       if (editingCategory) {
         // Edit mode - update category name
-        response = await categoryService.updateCategory(
+        response = await adminService.updateCategory(
           editingCategory._id,
           formData
         );
-        if (response.success) {
+        if (response.data.success) {
           // If editing a parent category (level 1), create new subcategories
           if (editingCategory.level === 1) {
             setSubmitting(true);
             const validSubcategories = subcategories.filter(name => name.trim() !== "");
             for (const subName of validSubcategories) {
-              await categoryService.createCategory({
+              await adminService.createCategory({
                 name: subName,
                 parentId: editingCategory._id,
-                level: 2
+                level: 2,
+                slug: subName.toLowerCase().replace(/ /g, '-')
               });
             }
             const successMsg = validSubcategories.length > 0
@@ -101,40 +102,47 @@ export default function AdminCategoriesPage() {
             setModalMessage(successMsg);
             setSubmitting(false);
           } else {
-            setModalMessage(response.message);
+            setModalMessage(response.data.message);
           }
           setShowSuccessModal(true);
           setShowModal(false);
           setFormData({ name: "" });
           setSubcategories([""]);
           setEditingCategory(null);
-          fetchCategories();
+          // Wait a bit to ensure changes are propagated
+          setTimeout(fetchCategories, 500);
         } else {
-          setError(response.message);
+          setError(response.data.message);
         }
       } else {
         // Create mode - create parent + children
         setSubmitting(true);
 
-        // Create parent category
-        const parentResponse = await categoryService.createCategory({
+        // Create parent category (auto-generate slug)
+        const parentSlug = formData.name.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+        
+        const parentResponse = await adminService.createCategory({
           name: formData.name,
+          slug: parentSlug,
           level: 1
         });
 
-        if (!parentResponse.success) {
-          throw new Error(parentResponse.message);
+        if (!parentResponse.data.success) {
+          throw new Error(parentResponse.data.message);
         }
 
-        const parentId = parentResponse.data._id;
+        const parentId = parentResponse.data.data.category._id;
 
         // Create subcategories if any
         const validSubcategories = subcategories.filter(name => name.trim() !== "");
         for (const subName of validSubcategories) {
-          await categoryService.createCategory({
+          const subSlug = subName.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+          
+          await adminService.createCategory({
             name: subName,
             parentId: parentId,
-            level: 2
+            level: 2,
+            slug: subSlug
           });
         }
 
@@ -145,11 +153,13 @@ export default function AdminCategoriesPage() {
         setFormData({ name: "" });
         setSubcategories([""]);
         setEditingCategory(null);
-        fetchCategories();
+        // Wait a bit to ensure changes are propagated
+        setTimeout(fetchCategories, 500);
         setSubmitting(false);
       }
     } catch (error) {
-      setError(error.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
+      console.error(error);
+      setError(error.message || error.response?.data?.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
       setSubmitting(false);
     }
   };
@@ -163,23 +173,23 @@ export default function AdminCategoriesPage() {
     if (!categoryToDelete) return;
 
     try {
-      const response = await categoryService.deleteCategory(
+      const response = await adminService.deleteCategory(
         categoryToDelete._id
       );
 
-      if (response.success) {
-        setModalMessage(response.message);
+      if (response.data.success) {
+        setModalMessage(response.data.message);
         setShowSuccessModal(true);
         setShowDeleteModal(false);
         setCategoryToDelete(null);
         fetchCategories();
       } else {
-        setModalMessage("Lỗi: " + response.message);
+        setModalMessage("Lỗi: " + response.data.message);
         setShowErrorModal(true);
         setShowDeleteModal(false);
       }
     } catch (error) {
-      setModalMessage("Đã xảy ra lỗi. Vui lòng thử lại.");
+      setModalMessage(error.response?.data?.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
       setShowErrorModal(true);
       setShowDeleteModal(false);
     }

@@ -638,9 +638,6 @@ export const getAllCategories = async (req, res, next) => {
       const parents = allCategories.filter((c) => c.level === 1 || !c.parentId);
       
       // Children: Level != 1 AND Has ParentId
-      // Note: We might want to handle orphans (Level 2 but parent not found), 
-      // but for now let's stick to valid tree logic or they disappear. 
-      // Ideally, orphans should be promoted to root or flagged, but let's assume consistenty.
       const children = allCategories.filter((c) => c.level !== 1 && c.parentId);
 
       const treeData = parents.map((p) => {
@@ -722,7 +719,7 @@ export const getCategoryById = async (req, res, next) => {
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: "Category not found",
+        message: "Không tìm thấy danh mục",
       });
     }
 
@@ -756,7 +753,7 @@ export const createCategory = async (req, res, next) => {
     if (!name || !slug || !level) {
       return res.status(400).json({
         success: false,
-        message: "Name, slug, and level are required",
+        message: "Tên, slug và cấp độ là bắt buộc",
       });
     }
 
@@ -765,7 +762,7 @@ export const createCategory = async (req, res, next) => {
     if (existingCategory) {
       return res.status(400).json({
         success: false,
-        message: "Slug already exists",
+        message: "Slug đã tồn tại",
       });
     }
 
@@ -773,7 +770,7 @@ export const createCategory = async (req, res, next) => {
     if (![1, 2].includes(level)) {
       return res.status(400).json({
         success: false,
-        message: "Level must be 1 or 2",
+        message: "Cấp độ phải là 1 hoặc 2",
       });
     }
 
@@ -781,7 +778,7 @@ export const createCategory = async (req, res, next) => {
     if (level === 2 && !parentId) {
       return res.status(400).json({
         success: false,
-        message: "Parent category is required for level 2 categories",
+        message: "Danh mục cha là bắt buộc đối với danh mục cấp 2",
       });
     }
 
@@ -791,13 +788,13 @@ export const createCategory = async (req, res, next) => {
       if (!parent) {
         return res.status(404).json({
           success: false,
-          message: "Parent category not found",
+          message: "Không tìm thấy danh mục cha",
         });
       }
       if (parent.level !== 1) {
         return res.status(400).json({
           success: false,
-          message: "Parent must be a level 1 category",
+          message: "Danh mục cha phải là cấp 1",
         });
       }
     }
@@ -814,7 +811,7 @@ export const createCategory = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: "Category created successfully",
+      message: "Tạo danh mục thành công",
       data: { category: newCategory },
     });
   } catch (error) {
@@ -835,7 +832,7 @@ export const updateCategory = async (req, res, next) => {
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: "Category not found",
+        message: "Không tìm thấy danh mục",
       });
     }
 
@@ -848,7 +845,7 @@ export const updateCategory = async (req, res, next) => {
       if (existingCategory) {
         return res.status(400).json({
           success: false,
-          message: "Slug already exists",
+          message: "Slug đã tồn tại",
         });
       }
       category.slug = slug;
@@ -862,7 +859,7 @@ export const updateCategory = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: "Category updated successfully",
+      message: "Cập nhật danh mục thành công",
       data: { category },
     });
   } catch (error) {
@@ -883,7 +880,7 @@ export const deleteCategory = async (req, res, next) => {
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: "Category not found",
+        message: "Không tìm thấy danh mục",
       });
     }
 
@@ -892,7 +889,7 @@ export const deleteCategory = async (req, res, next) => {
     if (productCount > 0) {
       return res.status(400).json({
         success: false,
-        message: `Cannot delete category. There are ${productCount} product(s) using this category.`,
+        message: `Không thể xóa danh mục. Có ${productCount} sản phẩm đang sử dụng danh mục này.`,
         data: { productCount },
       });
     }
@@ -903,7 +900,7 @@ export const deleteCategory = async (req, res, next) => {
       if (subcategoryCount > 0) {
         return res.status(400).json({
           success: false,
-          message: `Cannot delete category. There are ${subcategoryCount} subcategory(ies) under this category.`,
+          message: `Không thể xóa danh mục. Có ${subcategoryCount} danh mục con thuộc danh mục này.`,
           data: { subcategoryCount },
         });
       }
@@ -913,7 +910,7 @@ export const deleteCategory = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: "Category deleted successfully",
+      message: "Xóa danh mục thành công",
     });
   } catch (error) {
     next(error);

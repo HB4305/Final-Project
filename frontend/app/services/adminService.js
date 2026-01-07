@@ -43,6 +43,18 @@ const updateAutoExtendSettings = (settings) => {
   return api.put("/admin/settings/auto-extend", settings);
 };
 
+const createCategory = (data) => {
+  return api.post("/admin/categories", data);
+};
+
+const updateCategory = (id, data) => {
+  return api.put(`/admin/categories/${id}`, data);
+};
+
+const deleteCategory = (id) => {
+  return api.delete(`/admin/categories/${id}`);
+};
+
 export default {
   getAllUsers,
   getUpgradeRequests,
@@ -54,4 +66,7 @@ export default {
   deleteUser,
   getAutoExtendSettings,
   updateAutoExtendSettings,
+  createCategory,
+  updateCategory,
+  deleteCategory,
 };
