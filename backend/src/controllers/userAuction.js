@@ -1,11 +1,69 @@
 // CONTROLLER: User Auction Activity
 
+import mongoose from 'mongoose';
 import Bid from "../models/Bid.js";
 import Auction from "../models/Auction.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import Rating from "../models/Rating.js";
+import Watchlist from "../models/Watchlist.js";
 import { AppError } from "../utils/errors.js";
+
+/**
+ * GET /api/user/auctions/stats
+ * Lấy thống kê số lượng cho dashboard
+ */
+export const getDashboardStats = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    const [activeBidsCount, wonCount, sellingCount, soldCount, watchlistCount] =
+      await Promise.all([
+        // participating: auctions user bid on that are active/pending
+        (async () => {
+          const userBids = await Bid.find({ bidderId: userId }).distinct(
+            "auctionId"
+          );
+          if (!userBids.length) return 0;
+          return Auction.countDocuments({
+            _id: { $in: userBids },
+            status: { $in: ["active", "pending"] },
+          });
+        })(),
+        // won: auctions user won
+        Auction.countDocuments({
+          currentHighestBidderId: userId,
+          status: "ended",
+        }),
+        // selling: auctions user is selling (active/pending)
+        Auction.countDocuments({
+          sellerId: userId,
+          status: { $in: ["active", "pending"] },
+        }),
+        // sold: auctions user sold
+        Auction.countDocuments({
+          sellerId: userId,
+          status: "ended",
+          currentHighestBidderId: { $exists: true, $ne: null },
+        }),
+        // watchlist: items in watchlist
+        Watchlist.countDocuments({ userId: userId }),
+      ]);
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        activeBids: activeBidsCount,
+        wonCount,
+        sellingCount,
+        soldCount,
+        watchlistCount,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * GET /api/user/auctions/participating
@@ -43,26 +101,46 @@ export const getParticipatingAuctions = async (req, res, next) => {
       }),
     ]);
 
-    // Lấy bid cao nhất của user cho mỗi auction
-    const auctionsWithUserBid = await Promise.all(
-      auctions.map(async (auction) => {
-        const userHighestBid = await Bid.findOne({
-          auctionId: auction._id,
-          bidderId: req.user._id,
-        })
-          .sort({ amount: -1 })
-          .select("amount createdAt")
-          .lean();
+    // Optimized: Fetch highest bids for all auctions in one query using Aggregation
+    const auctionIds = auctions.map((a) => a._id);
 
-        return {
-          ...auction,
-          userHighestBid,
-          isWinning:
-            (auction.currentHighestBidderId?._id || auction.currentHighestBidderId)?.toString() ===
-            req.user._id.toString(),
-        };
-      })
-    );
+    const highestBids = await Bid.aggregate([
+      {
+        $match: {
+          auctionId: { $in: auctionIds },
+          bidderId: req.user._id,
+        },
+      },
+      { $sort: { amount: -1 } },
+      {
+        $group: {
+          _id: "$auctionId",
+          amount: { $first: "$amount" },
+          createdAt: { $first: "$createdAt" },
+        },
+      },
+    ]);
+
+    // Create a map for O(1) lookup
+    const bidMap = {};
+    highestBids.forEach((bid) => {
+      bidMap[bid._id.toString()] = {
+        amount: bid.amount,
+        createdAt: bid.createdAt,
+      };
+    });
+
+    const auctionsWithUserBid = auctions.map((auction) => {
+      return {
+        ...auction,
+        userHighestBid: bidMap[auction._id.toString()] || null,
+        isWinning:
+          (
+            auction.currentHighestBidderId?._id ||
+            auction.currentHighestBidderId
+          )?.toString() === req.user._id.toString(),
+      };
+    });
 
     res.status(200).json({
       status: "success",
@@ -84,79 +162,121 @@ export const getParticipatingAuctions = async (req, res, next) => {
 /**
  * GET /api/user/auctions/won
  * Lấy danh sách sản phẩm mà user đã thắng đấu giá
+ * Optimized: Uses Aggregation to fetch Auction + Order + Rating status in one go
  */
 export const getWonAuctions = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 6 } = req.query;
     const skip = (page - 1) * limit;
+    const limitNum = parseInt(limit);
+    const userId = new mongoose.Types.ObjectId(req.user._id);
 
-    // Fix: Query based on Auction schema (currentHighestBidderId and status='ended')
-    const query = {
-      currentHighestBidderId: req.user._id,
-      status: "ended",
-    };
+    const pipeline = [
+      // 1. Match Won Auctions
+      {
+        $match: {
+          currentHighestBidderId: userId,
+          status: "ended",
+        },
+      },
+      // 2. Sort by End Date
+      { $sort: { endAt: -1 } },
+      // 3. Facet for Pagination & Data
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [
+            { $skip: skip },
+            { $limit: limitNum },
+            // Lookup Product
+            {
+              $lookup: {
+                from: "products",
+                localField: "productId",
+                foreignField: "_id",
+                as: "product",
+                pipeline: [
+                   { $project: { title: 1, slug: 1, primaryImageUrl: 1, categoryId: 1 } }
+                ]
+              },
+            },
+            { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
+            // Lookup Seller
+            {
+              $lookup: {
+                from: "users",
+                localField: "sellerId",
+                foreignField: "_id",
+                as: "seller",
+                pipeline: [{ $project: { username: 1, fullName: 1, ratingSummary: 1 } }]
+              },
+            },
+            { $unwind: { path: "$seller", preserveNullAndEmptyArrays: true } },
+             // Lookup Order (to check transaction status)
+            {
+              $lookup: {
+                from: "orders",
+                localField: "_id",
+                foreignField: "auctionId",
+                as: "order"
+              }
+            },
+            { $unwind: { path: "$order", preserveNullAndEmptyArrays: true } },
+            // Lookup Rating (did I rate this order?)
+            {
+              $lookup: {
+                from: "ratings",
+                let: { orderId: "$order._id" },
+                pipeline: [
+                  { 
+                    $match: { 
+                      $expr: { 
+                        $and: [
+                           { $eq: ["$orderId", "$$orderId"] },
+                           { $eq: ["$raterId", userId] },
+                           { $eq: ["$context", "nguoi_mua_danh_gia"] }
+                        ]
+                      } 
+                    } 
+                  },
+                  { $limit: 1 }
+                ],
+                as: "userRating"
+              }
+            },
+            // Project final shape
+            {
+              $project: {
+                _id: 1,
+                currentPrice: 1,
+                endAt: 1,
+                status: 1,
+                productId: "$product",
+                sellerId: "$seller",
+                orderId: "$order._id",
+                transactionStatus: { $ifNull: ["$order.status", "pending"] },
+                isRated: { $gt: [{ $size: "$userRating" }, 0] }
+              }
+            }
+          ],
+        },
+      },
+    ];
 
-    // Note: transactionStatus is not in Auction schema currently.
-    // If filtering by transaction status is needed, we might need to lookup Orders.
-    // For now, we return all won auctions.
-
-    const [auctions, total] = await Promise.all([
-      Auction.find(query)
-        .sort({ endAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .populate({
-          path: "productId",
-          select: "title slug primaryImageUrl categoryId",
-          populate: { path: "categoryId", select: "name slug" },
-        })
-        .populate(
-          "sellerId",
-          "username fullName contactPhone email ratingSummary"
-        )
-        .lean(),
-      Auction.countDocuments(query),
-    ]);
-
-    // Fetch related orders for these auctions
-    const auctionIds = auctions.map(a => a._id);
-    const orders = await Order.find({ auctionId: { $in: auctionIds } }).select("auctionId status").lean();
-
-    // Fetch existing ratings by this user for these auctions/orders
-    const ratings = await Rating.find({
-      raterId: req.user._id,
-      orderId: { $in: orders.map(o => o._id) },
-      context: 'nguoi_mua_danh_gia' // Only check for user-to-user rating
-    }).select("orderId").lean();
-
-    const ratedOrderIds = new Set(ratings.map(r => r.orderId.toString()));
-
-    // Map orders to auctions
-    const orderMap = {};
-    orders.forEach(order => {
-      orderMap[order.auctionId.toString()] = order;
-    });
-
-    // Determine transaction status and isRated
-    const auctionsWithStatus = auctions.map(a => {
-      const order = orderMap[a._id.toString()];
-      return {
-        ...a,
-        orderId: order ? order._id : null,
-        transactionStatus: order ? order.status : 'pending',
-        isRated: order ? ratedOrderIds.has(order._id.toString()) : false
-      };
-    });
+    const [result] = await Auction.aggregate(pipeline);
+    
+    const auctions = result.data || [];
+    const total = result.metadata[0]?.total || 0;
 
     res.status(200).json({
       status: "success",
       data: {
-        auctions: auctionsWithStatus,
+        auctions,
         pagination: {
           page: parseInt(page),
-          limit: parseInt(limit),
+          limit: limitNum,
           total,
-          totalPages: Math.ceil(total / limit),
+          totalPages: Math.ceil(total / limitNum),
         },
       },
     });
@@ -184,7 +304,8 @@ export const getSellingAuctions = async (req, res, next) => {
         .limit(parseInt(limit))
         .populate({
           path: "productId",
-          select: "title slug primaryImageUrl categoryId descriptionHistory metadata requireBidderApproval approvedBidders",
+          select:
+            "title slug primaryImageUrl categoryId descriptionHistory metadata requireBidderApproval approvedBidders",
         })
         .populate("currentHighestBidderId", "username fullName ratingSummary")
         .lean(),
@@ -214,81 +335,122 @@ export const getSellingAuctions = async (req, res, next) => {
 /**
  * GET /api/user/auctions/sold
  * Lấy danh sách sản phẩm đã bán (có người thắng đấu giá)
+ * Optimized: Uses Aggregation
  */
 export const getSoldAuctions = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 6 } = req.query;
     const skip = (page - 1) * limit;
+    const limitNum = parseInt(limit);
+    const userId = new mongoose.Types.ObjectId(req.user._id);
 
-    const query = {
-      sellerId: req.user._id,
-      status: "ended",
-      currentHighestBidderId: { $exists: true, $ne: null },
-    };
+    const pipeline = [
+      // Match Sold Auctions (Ended + Has Bidder (+ Seller is me))
+      {
+        $match: {
+          sellerId: userId,
+          status: "ended",
+          currentHighestBidderId: { $exists: true, $ne: null }
+        }
+      },
+      // Sort by endAt descending
+      { $sort: { endAt: -1 } },
+      // Facet
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [
+            { $skip: skip },
+            { $limit: limitNum },
+            // Lookup Product
+            {
+               $lookup: {
+                  from: "products",
+                  localField: "productId",
+                  foreignField: "_id",
+                  as: "product",
+                  pipeline: [{ $project: { title: 1, slug: 1, primaryImageUrl: 1, categoryId: 1 } }]
+               }
+            },
+            { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
+            // Lookup Winner (Bidder)
+            {
+               $lookup: {
+                  from: "users",
+                  localField: "currentHighestBidderId",
+                  foreignField: "_id",
+                  as: "winner",
+                  pipeline: [{ $project: { username: 1, fullName: 1, ratingSummary: 1 } }]
+               }
+            },
+            { $unwind: { path: "$winner", preserveNullAndEmptyArrays: true } },
+            // Lookup Order
+            {
+              $lookup: {
+                from: "orders",
+                localField: "_id",
+                foreignField: "auctionId",
+                as: "order"
+              }
+            },
+            { $unwind: { path: "$order", preserveNullAndEmptyArrays: true } },
+            // Lookup Rating (did I rate the WINNER?) context: nguoi_ban_danh_gia
+            {
+              $lookup: {
+                from: "ratings",
+                let: { orderId: "$order._id" },
+                pipeline: [
+                  { 
+                    $match: { 
+                      $expr: { 
+                        $and: [
+                           { $eq: ["$orderId", "$$orderId"] },
+                           { $eq: ["$raterId", userId] },
+                           { $eq: ["$context", "nguoi_ban_danh_gia"] }
+                        ]
+                      } 
+                    } 
+                  },
+                  { $limit: 1 }
+                ],
+                as: "userRating"
+              }
+            },
+            // Project
+            {
+               $project: {
+                  _id: 1,
+                  currentPrice: 1,
+                  endAt: 1,
+                  status: 1,
+                  bidCount: 1,
+                  productId: "$product",
+                  winnerId: "$winner", // mapped to currentHighestBidderId in frontend usually, but here we explicitly send winner object
+                  currentHighestBidderId: "$winner", // maintain compat
+                  orderId: "$order._id",
+                  transactionStatus: { $ifNull: ["$order.status", "pending"] },
+                  isRated: { $gt: [{ $size: "$userRating" }, 0] }
+               }
+            }
+          ]
+        }
+      }
+    ];
 
-    const [auctions, total] = await Promise.all([
-      Auction.find(query)
-        .sort({ endAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .populate({
-          path: "productId",
-          select: "title slug primaryImageUrl categoryId",
-        })
-        .populate(
-          "currentHighestBidderId",
-          "username fullName contactPhone email ratingSummary"
-        )
-        .lean(),
-      Auction.countDocuments(query),
-    ]);
+    const [result] = await Auction.aggregate(pipeline);
 
-    // Fetch related orders for these auctions
-    const auctionIds = auctions.map((a) => a._id);
-    const orders = await Order.find({ auctionId: { $in: auctionIds } })
-      .select("auctionId status")
-      .lean();
-
-    // Fetch existing ratings by this user (seller) for these auctions/orders
-    // Note: Ratings are linked to orderId usually.
-    // If order exists, check rating by orderId.
-    const orderIds = orders.map((o) => o._id);
-    const ratings = await Rating.find({
-      raterId: req.user._id,
-      orderId: { $in: orderIds },
-      context: 'nguoi_ban_danh_gia' // Only check for user-to-user rating
-    })
-      .select("orderId")
-      .lean();
-
-    const ratedOrderIds = new Set(ratings.map((r) => r.orderId.toString()));
-
-    // Map orders to auctions
-    const orderMap = {};
-    orders.forEach((order) => {
-      orderMap[order.auctionId.toString()] = order;
-    });
-
-    const auctionsFormatted = auctions.map((a) => {
-      const order = orderMap[a._id.toString()];
-      return {
-        ...a,
-        winnerId: a.currentHighestBidderId,
-        orderId: order ? order._id : null,
-        transactionStatus: order ? order.status : "pending", // Default to pending if no order yet (e.g. just ended)
-        isRated: order ? ratedOrderIds.has(order._id.toString()) : false,
-      };
-    });
+    const auctions = result.data || [];
+    const total = result.metadata[0]?.total || 0;
 
     res.status(200).json({
       status: "success",
       data: {
-        auctions: auctionsFormatted,
+        auctions,
         pagination: {
           page: parseInt(page),
-          limit: parseInt(limit),
+          limit: limitNum,
           total,
-          totalPages: Math.ceil(total / limit),
+          totalPages: Math.ceil(total / limitNum),
         },
       },
     });

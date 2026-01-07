@@ -23,6 +23,15 @@ export const getParticipatingAuctions = async (params = {}) => {
 };
 
 /**
+ * Lấy thống kê dashboard
+ * @returns {Promise}
+ */
+export const getDashboardStats = async () => {
+  const response = await api.get("/user/auctions/stats");
+  return response.data;
+};
+
+/**
  * Lấy danh sách sản phẩm đã thắng đấu giá
  * @param {Object} params - { page, limit, status }
  * @returns {Promise}
@@ -75,6 +84,7 @@ export const getMostViewedAuctions = async (params = {}) => {
 const auctionService = {
   getAuctions,
   getParticipatingAuctions,
+  getDashboardStats,
   getWonAuctions,
   getSellingAuctions,
   getSoldAuctions,

@@ -6,10 +6,17 @@ import {
   getWonAuctions,
   getSellingAuctions,
   getSoldAuctions,
+  getDashboardStats,
 } from "../controllers/userAuction.js";
 import { authenticate } from "../middlewares/auth.js";
 
 const router = express.Router();
+
+/**
+ * GET /api/user/auctions/stats
+ * Thống kê dashboard
+ */
+router.get("/stats", authenticate, getDashboardStats);
 
 /**
  * GET /api/user/auctions/participating

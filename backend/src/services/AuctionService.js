@@ -216,11 +216,31 @@ export class AuctionService {
         }
       },
       
-      // 3. Unwind mảng product (vì lookup trả về mảng)
+      // 3. Unwind mảng product
       { $unwind: '$product' },
       
-      // 4. Chỉ lấy auction của product active (nếu cần thiết)
+      // 4. Chỉ lấy auction của product active
       { $match: { 'product.isActive': true } },
+
+      // NEW: Project fields needed for sorting and display ONLY
+      // This prevents carrying heavy fields like descriptionHistory through the pipeline
+      {
+        $project: {
+             _id: 1,
+             currentPrice: 1,
+             bidCount: 1,
+             endAt: 1,
+             startPrice: 1, // Sometimes used for display
+             currentHighestBidderId: 1,
+             status: 1,
+             // Product fields needed:
+             "product._id": 1,
+             "product.title": 1,
+             "product.primaryImageUrl": 1,
+             "product.slug": 1,
+             "product.views": 1
+        }
+      },
       
       // 5. Sort theo product.views giảm dần
       { $sort: { 'product.views': -1 } },
@@ -228,7 +248,7 @@ export class AuctionService {
       // 6. Limit số lượng
       { $limit: limit },
       
-      // 7. Lookup thông tin bidder (để match format cũ)
+      // 7. Lookup thông tin bidder
       {
         $lookup: {
           from: 'users',
@@ -238,7 +258,7 @@ export class AuctionService {
         }
       },
       
-      // 8. Unwind bidder (preserveNullAndEmptyArrays để giữ auction nếu chưa có bidder)
+      // 8. Unwind bidder
       {
         $unwind: {
           path: '$currentHighestBidder',
@@ -246,19 +266,26 @@ export class AuctionService {
         }
       },
 
-      // 9. Project lại structure để khớp với mongoose populate (tránh frontend bị lỗi access path)
-      // Tuy nhiên, aggregate trả về plain object.
-      // Frontend access: auction.productId.title -> auction.product.title
-      // Backend cũ populate 'productId' -> biến thành object trong field productId.
-      // Nên ta cần map 'product' field vào 'productId' field để frontend không phải sửa.
+      // 9. Final Projection / Add Fields to match legacy structure
       {
         $addFields: {
-          productId: '$product',
-          currentHighestBidderId: '$currentHighestBidder'
+          productId: {
+               // Reconstruct productId object as if it was populated
+               _id: "$product._id",
+               title: "$product.title",
+               primaryImageUrl: "$product.primaryImageUrl",
+               slug: "$product.slug",
+               views: "$product.views"
+          },
+          // Map bidder fields
+          currentHighestBidderId: {
+               _id: "$currentHighestBidder._id",
+               username: "$currentHighestBidder.username"
+          }
         }
       },
       
-      // Xóa các field tạm
+      // Remove temporary fields
       { $project: { product: 0, currentHighestBidder: 0 } }
     ]);
 

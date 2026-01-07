@@ -15,7 +15,7 @@ import {
   Trash2,
   ShieldCheck,
   ShieldOff,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Navigation from "../../components/navigation";
@@ -23,7 +23,10 @@ import watchlistService from "../services/watchlistService";
 import auctionService from "../services/auctionService";
 import transactionService from "../services/transactionService";
 import ratingService from "../services/ratingService";
-import { deleteProduct, toggleBidderApproval } from "../services/productService";
+import {
+  deleteProduct,
+  toggleBidderApproval,
+} from "../services/productService";
 import RatingComponent from "../../components/rating-component";
 import UpdateProductDescription from "../../components/update-product-description";
 import RejectBidder from "../../components/reject-bidder";
@@ -31,17 +34,52 @@ import { useAuth } from "../context/AuthContext";
 import Toast from "../../components/Toast";
 
 const dashboardTabs = [
-  { key: "participating", label: "Đang đấu giá", icon: Gavel, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { key: "watchlist", label: "Đang theo dõi", icon: Heart, color: "text-pink-500", bg: "bg-pink-500/10" },
-  { key: "won", label: "Đã thắng", icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10" },
-  { key: "selling", label: "Đang bán", icon: ShoppingBag, color: "text-orange-500", bg: "bg-orange-500/10" },
-  { key: "sold", label: "Đã bán", icon: PackageCheck, color: "text-indigo-500", bg: "bg-indigo-500/10" },
+  {
+    key: "participating",
+    label: "Đang đấu giá",
+    icon: Gavel,
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+  },
+  {
+    key: "watchlist",
+    label: "Đang theo dõi",
+    icon: Heart,
+    color: "text-pink-500",
+    bg: "bg-pink-500/10",
+  },
+  {
+    key: "won",
+    label: "Đã thắng",
+    icon: CheckCircle,
+    color: "text-green-500",
+    bg: "bg-green-500/10",
+  },
+  {
+    key: "selling",
+    label: "Đang bán",
+    icon: ShoppingBag,
+    color: "text-orange-500",
+    bg: "bg-orange-500/10",
+  },
+  {
+    key: "sold",
+    label: "Đã bán",
+    icon: PackageCheck,
+    color: "text-indigo-500",
+    bg: "bg-indigo-500/10",
+  },
 ];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isLoggedIn, currentUser, loginWithToken, loading: authLoading } = useAuth();
+  const {
+    isLoggedIn,
+    currentUser,
+    loginWithToken,
+    loading: authLoading,
+  } = useAuth();
   /* 
     derived state from URL 
     activeTab is now controlled by the URL 'tab' query param.
@@ -60,7 +98,7 @@ export default function DashboardPage() {
   const [soldAuctions, setSoldAuctions] = useState(null);
 
   // Loading and error states
-  // Removed global loading state to prevent blocking UI
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Stats
@@ -105,59 +143,84 @@ export default function DashboardPage() {
     }
   }, [searchParams, isLoggedIn, authLoading, navigate]);
 
-  // Load all data on mount
+  // Load stats on mount
   useEffect(() => {
-    fetchAllData();
+    fetchStats();
   }, []);
 
-  const fetchAllData = async () => {
+  // Load tab data when tab changes
+  useEffect(() => {
+    fetchActiveTabData();
+  }, [activeTab]);
+
+  const fetchStats = async () => {
+    try {
+      const response = await auctionService.getDashboardStats();
+      if (response && response.data) {
+        setStats(response.data);
+      }
+    } catch (err) {
+      console.error("Error loading stats:", err);
+    }
+  };
+
+  const fetchActiveTabData = async () => {
+    setLoading(true);
     setError(null);
 
-    // Fetch Participating
-    auctionService.getParticipatingAuctions({ page: 1, limit: 10 })
-      .then(res => {
-        setParticipatingAuctions(res.data.auctions);
-        setStats(prev => ({ ...prev, activeBids: res.data.pagination.total }));
-      })
-      .catch(err => console.error("Error fetching participating:", err));
-
-    // Fetch Watchlist
-    watchlistService.getWatchlist({ page: 1, limit: 10 })
-      .then(res => {
-        setWatchlist(res.data.watchlist);
-        setStats(prev => ({ ...prev, watchlistCount: res.data.pagination.total }));
-      })
-      .catch(err => console.error("Error fetching watchlist:", err));
-
-    // Fetch Won Auctions
-    auctionService.getWonAuctions({ page: 1, limit: 10 })
-      .then(res => {
-        setWonAuctions(res.data.auctions);
-        setStats(prev => ({ ...prev, wonCount: res.data.pagination.total }));
-      })
-      .catch(err => console.error("Error fetching won auctions:", err));
-
-    // Fetch Selling Auctions
-    auctionService.getSellingAuctions({ page: 1, limit: 10 })
-      .then(res => {
-        setSellingAuctions(res.data.auctions);
-        setStats(prev => ({ ...prev, sellingCount: res.data.pagination.total }));
-      })
-      .catch(err => console.error("Error fetching selling auctions:", err));
-
-    // Fetch Sold Auctions
-    auctionService.getSoldAuctions({ page: 1, limit: 10 })
-      .then(res => {
-        setSoldAuctions(res.data.auctions);
-      })
-      .catch(err => console.error("Error fetching sold auctions:", err));
+    try {
+      switch (activeTab) {
+        case "participating":
+          const pData = await auctionService.getParticipatingAuctions({
+            page: 1,
+            limit: 10,
+          });
+          setParticipatingAuctions(pData.data.auctions);
+          break;
+        case "watchlist":
+          const wData = await watchlistService.getWatchlist({
+            page: 1,
+            limit: 10,
+          });
+          setWatchlist(wData.data.watchlist);
+          break;
+        case "won":
+          const wonData = await auctionService.getWonAuctions({
+            page: 1,
+            limit: 10,
+          });
+          setWonAuctions(wonData.data.auctions);
+          break;
+        case "selling":
+          const sData = await auctionService.getSellingAuctions({
+            page: 1,
+            limit: 10,
+          });
+          setSellingAuctions(sData.data.auctions);
+          break;
+        case "sold":
+          const soldData = await auctionService.getSoldAuctions({
+            page: 1,
+            limit: 10,
+          });
+          setSoldAuctions(soldData.data.auctions);
+          break;
+      }
+    } catch (err) {
+      console.error("Error loading dashboard data:", err);
+      setError("Không thể tải dữ liệu.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const fetchAllData = fetchActiveTabData; // Alias for legacy calls or error boundary retry logic
 
   const handleRemoveFromWatchlist = async (productId) => {
     try {
       await watchlistService.removeFromWatchlist(productId);
-      fetchAllData();
-
+      fetchActiveTabData();
+      fetchStats();
     } catch (err) {
       setToast({
         message: "Không thể xoá khỏi danh sách theo dõi",
@@ -183,22 +246,26 @@ export default function DashboardPage() {
 
       // Auto rate -1
       // Find the auction to get bidder ID
-      const auction = soldAuctions.find(a => a._id === auctionId);
+      const auction = soldAuctions.find((a) => a._id === auctionId);
       if (auction && auction.currentHighestBidderId) {
         try {
           await ratingService.createRating(auction.currentHighestBidderId._id, {
             score: -1,
             comment: "Người thắng không thanh toán",
             orderId: auctionId, // Using auctionId as orderId for now
-            context: "nguoi_ban_danh_gia"
+            context: "nguoi_ban_danh_gia",
           });
         } catch (ratingErr) {
           console.error("Auto rating failed:", ratingErr);
         }
       }
 
-      setToast({ message: "Đã hủy giao dịch & đánh giá tiêu cực người mua", type: "success" });
-      fetchAllData();
+      setToast({
+        message: "Đã hủy giao dịch & đánh giá tiêu cực người mua",
+        type: "success",
+      });
+      fetchActiveTabData();
+      fetchStats();
     } catch (err) {
       setToast({
         message: err.response?.data?.message || "Không thể hủy giao dịch",
@@ -220,9 +287,10 @@ export default function DashboardPage() {
       if (result.success) {
         setToast({
           message: result.message || "Xóa sản phẩm thành công",
-          type: "success"
+          type: "success",
         });
-        fetchAllData(); // Refresh the data
+        fetchActiveTabData(); // Refresh the data
+        fetchStats();
         setShowDeleteModal(false);
         setProductToDelete(null);
       } else {
@@ -250,63 +318,69 @@ export default function DashboardPage() {
 
     // Optimistic update - update UI immediately
     const newStatus = !currentStatus;
-    setSellingAuctions(prev => prev.map(auction => {
-      if (auction.productId?._id === productId) {
-        return {
-          ...auction,
-          productId: {
-            ...auction.productId,
-            requireBidderApproval: newStatus
-          }
-        };
-      }
-      return auction;
-    }));
+    setSellingAuctions((prev) =>
+      prev.map((auction) => {
+        if (auction.productId?._id === productId) {
+          return {
+            ...auction,
+            productId: {
+              ...auction.productId,
+              requireBidderApproval: newStatus,
+            },
+          };
+        }
+        return auction;
+      })
+    );
 
     try {
       const result = await toggleBidderApproval(productId);
       if (result.success) {
         setToast({
           message: result.message || "Đã cập nhật cấu hình thành công",
-          type: "success"
+          type: "success",
         });
         // No need to refresh all data, optimistic update already done
       } else {
         // Rollback on error
-        setSellingAuctions(prev => prev.map(auction => {
+        setSellingAuctions((prev) =>
+          prev.map((auction) => {
+            if (auction.productId?._id === productId) {
+              return {
+                ...auction,
+                productId: {
+                  ...auction.productId,
+                  requireBidderApproval: currentStatus,
+                },
+              };
+            }
+            return auction;
+          })
+        );
+        setToast({
+          message: result.message || "Không thể cập nhật cấu hình",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      // Rollback on error
+      setSellingAuctions((prev) =>
+        prev.map((auction) => {
           if (auction.productId?._id === productId) {
             return {
               ...auction,
               productId: {
                 ...auction.productId,
-                requireBidderApproval: currentStatus
-              }
+                requireBidderApproval: currentStatus,
+              },
             };
           }
           return auction;
-        }));
-        setToast({
-          message: result.message || "Không thể cập nhật cấu hình",
-          type: "error"
-        });
-      }
-    } catch (err) {
-      // Rollback on error
-      setSellingAuctions(prev => prev.map(auction => {
-        if (auction.productId?._id === productId) {
-          return {
-            ...auction,
-            productId: {
-              ...auction.productId,
-              requireBidderApproval: currentStatus
-            }
-          };
-        }
-        return auction;
-      }));
+        })
+      );
       setToast({
         message: err.response?.data?.message || "Lỗi khi cập nhật cấu hình",
-        type: "error"
+        type: "error",
       });
     } finally {
       setTogglingProductId(null);
@@ -317,7 +391,7 @@ export default function DashboardPage() {
     setSelectedTransactionForRating({
       auction,
       type: "rating_seller",
-      targetUser: auction.sellerId
+      targetUser: auction.sellerId,
     });
     setShowRatingModal(true);
   };
@@ -326,22 +400,20 @@ export default function DashboardPage() {
     setSelectedTransactionForRating({
       auction,
       type: "rating_buyer",
-      targetUser: auction.currentHighestBidderId
+      targetUser: auction.currentHighestBidderId,
     });
     setShowRatingModal(true);
   };
 
   // Removed handleSubmitRating as logic is moved to customSubmitAction inline or generic handler
-  // But RatingComponent calls onSubmitRating as a callback. 
+  // But RatingComponent calls onSubmitRating as a callback.
   // We can keep a simplified version or just empty for refresh.
   const handleRatingSuccess = () => {
     setToast({ message: "Đánh giá thành công!", type: "success" });
     setShowRatingModal(false);
     setSelectedTransactionForRating(null);
-    fetchAllData();
+    fetchActiveTabData();
   };
-
-
 
   const formatTimeLeft = (endAt) => {
     const now = new Date();
@@ -392,27 +464,85 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${currentUser?.roles?.includes('seller') || currentUser?.roles?.includes('admin') ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6 mb-12 animate-slide-up`}>
+        <div
+          className={`grid grid-cols-1 sm:grid-cols-2 ${
+            currentUser?.roles?.includes("seller") ||
+            currentUser?.roles?.includes("admin")
+              ? "lg:grid-cols-4"
+              : "lg:grid-cols-3"
+          } gap-6 mb-12 animate-slide-up`}
+        >
           {[
-            { title: "Đang đấu giá", value: stats.activeBids, icon: Gavel, color: "text-blue-600", bg: "bg-blue-100", border: "border-blue-200", gradient: "from-blue-50 to-white" },
-            { title: "Đang theo dõi", value: stats.watchlistCount, icon: Heart, color: "text-pink-600", bg: "bg-pink-100", border: "border-pink-200", gradient: "from-pink-50 to-white" },
-            { title: "Đã thắng", value: stats.wonCount, icon: CheckCircle, color: "text-green-600", bg: "bg-green-100", border: "border-green-200", gradient: "from-green-50 to-white" },
-            { title: "Đang bán", value: stats.sellingCount, icon: ShoppingBag, color: "text-orange-600", bg: "bg-orange-100", border: "border-orange-200", gradient: "from-orange-50 to-white", key: "selling" },
+            {
+              title: "Đang đấu giá",
+              value: stats.activeBids,
+              icon: Gavel,
+              color: "text-blue-600",
+              bg: "bg-blue-100",
+              border: "border-blue-200",
+              gradient: "from-blue-50 to-white",
+            },
+            {
+              title: "Đang theo dõi",
+              value: stats.watchlistCount,
+              icon: Heart,
+              color: "text-pink-600",
+              bg: "bg-pink-100",
+              border: "border-pink-200",
+              gradient: "from-pink-50 to-white",
+            },
+            {
+              title: "Đã thắng",
+              value: stats.wonCount,
+              icon: CheckCircle,
+              color: "text-green-600",
+              bg: "bg-green-100",
+              border: "border-green-200",
+              gradient: "from-green-50 to-white",
+            },
+            {
+              title: "Đang bán",
+              value: stats.sellingCount,
+              icon: ShoppingBag,
+              color: "text-orange-600",
+              bg: "bg-orange-100",
+              border: "border-orange-200",
+              gradient: "from-orange-50 to-white",
+              key: "selling",
+            },
           ]
-            .filter(item => {
+            .filter((item) => {
               if (item.key === "selling") {
-                return currentUser?.roles?.includes('seller') || currentUser?.roles?.includes('admin');
+                return (
+                  currentUser?.roles?.includes("seller") ||
+                  currentUser?.roles?.includes("admin")
+                );
               }
               return true;
             })
             .map((item, index) => (
-              <div key={index} className={`glass-card p-6 rounded-2xl border border-white/10 ${item.bg.replace('100', '500/10')} hover:scale-[1.02] transition-transform duration-300`}>
+              <div
+                key={index}
+                className={`glass-card p-6 rounded-2xl border border-white/10 ${item.bg.replace(
+                  "100",
+                  "500/10"
+                )} hover:scale-[1.02] transition-transform duration-300`}
+              >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium mb-1 text-gray-400">{item.title}</p>
-                    <p className={`text-4xl font-bold ${item.color}`}>{item.value}</p>
+                    <p className="text-sm font-medium mb-1 text-gray-400">
+                      {item.title}
+                    </p>
+                    <p className={`text-4xl font-bold ${item.color}`}>
+                      {item.value}
+                    </p>
                   </div>
-                  <div className={`p-4 rounded-xl ${item.bg.replace('100', '500/20')} ${item.color}`}>
+                  <div
+                    className={`p-4 rounded-xl ${item.bg.replace(
+                      "100",
+                      "500/20"
+                    )} ${item.color}`}
+                  >
                     <item.icon className="w-6 h-6" />
                   </div>
                 </div>
@@ -421,8 +551,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Dashboard Content */}
-        <div className="flex flex-col lg:flex-row gap-8 animate-slide-up" style={{ animationDelay: "100ms" }}>
-
+        <div
+          className="flex flex-col lg:flex-row gap-8 animate-slide-up"
+          style={{ animationDelay: "100ms" }}
+        >
           <div className="lg:w-64 flex-shrink-0">
             <div className="glass-card border border-white/10 bg-[#1e293b]/60 rounded-2xl p-4 sticky top-28 space-y-2">
               {dashboardTabs
@@ -446,14 +578,16 @@ export default function DashboardPage() {
                         newParams.set("tab", tab.key);
                         setSearchParams(newParams);
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-300 ${isActive
-                        ? `bg-primary/20 text-primary shadow-sm border border-primary/20`
-                        : "text-gray-400 hover:bg-white/5 hover:text-white"
-                        }`}
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-300 ${
+                        isActive
+                          ? `bg-primary/20 text-primary shadow-sm border border-primary/20`
+                          : "text-gray-400 hover:bg-white/5 hover:text-white"
+                      }`}
                     >
                       <Icon
-                        className={`w-5 h-5 ${isActive ? "text-primary" : "text-gray-400"
-                          }`}
+                        className={`w-5 h-5 ${
+                          isActive ? "text-primary" : "text-gray-400"
+                        }`}
                       />
                       {tab.label}
                       {isActive && (
@@ -468,11 +602,23 @@ export default function DashboardPage() {
           {/* Main Content Area */}
           <div className="flex-1">
             <div className="glass-card border border-white/10 bg-[#1e293b]/60 rounded-2xl p-6 min-h-[500px]">
-              {error ? (
+              {loading ? (
+                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                  <Loader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+                  <p className="font-medium animate-pulse">
+                    Đang tải dữ liệu...
+                  </p>
+                </div>
+              ) : error ? (
                 <div className="flex flex-col items-center justify-center h-64 text-red-500">
                   <AlertCircle className="w-10 h-10 mb-4" />
                   <p>{error}</p>
-                  <button onClick={fetchAllData} className="mt-4 text-primary hover:underline">Thử lại</button>
+                  <button
+                    onClick={fetchActiveTabData}
+                    className="mt-4 text-primary hover:underline"
+                  >
+                    Thử lại
+                  </button>
                 </div>
               ) : (
                 <>
@@ -484,28 +630,45 @@ export default function DashboardPage() {
                         Đang tham gia đấu giá
                       </h2>
                       {!participatingAuctions ? (
-                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-blue-500" /></div>
+                        <div className="flex justify-center py-12">
+                          <Loader className="w-8 h-8 animate-spin text-blue-500" />
+                        </div>
                       ) : participatingAuctions.length === 0 ? (
                         <EmptyState message="Bạn chưa tham gia đấu giá nào." />
                       ) : (
                         participatingAuctions.map((auction) => {
                           // Determine card style based on status
-                          let cardStyle = "bg-[#1e293b]/40 border-white/10 hover:bg-white/5";
+                          let cardStyle =
+                            "bg-[#1e293b]/40 border-white/10 hover:bg-white/5";
                           if (auction.isWinning) {
-                            cardStyle = "bg-green-500/5 border-green-500/50 hover:bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.1)]";
-                          } else if (auction.userHighestBid?.amount < auction.currentPrice) {
-                            cardStyle = "bg-red-500/5 border-red-500/30 hover:bg-red-500/10";
+                            cardStyle =
+                              "bg-green-500/5 border-green-500/50 hover:bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.1)]";
+                          } else if (
+                            auction.userHighestBid?.amount <
+                            auction.currentPrice
+                          ) {
+                            cardStyle =
+                              "bg-red-500/5 border-red-500/30 hover:bg-red-500/10";
                           }
 
                           return (
-                            <div key={auction._id} className={`group relative glass-card border rounded-xl p-4 transition-all duration-300 ${cardStyle}`}>
+                            <div
+                              key={auction._id}
+                              className={`group relative glass-card border rounded-xl p-4 transition-all duration-300 ${cardStyle}`}
+                            >
                               <div className="flex flex-col sm:flex-row gap-4">
                                 <div className="w-full sm:w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden">
                                   <img
-                                    src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
+                                    src={
+                                      auction.productId?.primaryImageUrl ||
+                                      "/placeholder.svg"
+                                    }
                                     className="w-full h-full object-contain p-2 bg-white rounded-lg group-hover:scale-105 transition-transform duration-500"
                                     alt={auction.productId?.title}
-                                    onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = "/placeholder.svg";
+                                    }}
                                   />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -515,40 +678,62 @@ export default function DashboardPage() {
                                         {auction.productId?.title}
                                       </h3>
                                       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                                        {auction.productId?.description || "Không có mô tả"}
+                                        {auction.productId?.description ||
+                                          "Không có mô tả"}
                                       </p>
                                     </div>
                                     <div className="text-right flex-shrink-0 ml-4">
-                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${auction.isWinning
-                                        ? "bg-green-100 text-green-800"
-                                        : (auction.userHighestBid?.amount >= auction.currentPrice)
-                                          ? "bg-orange-100 text-orange-800" // Tied/Lost to auto-bid
-                                          : "bg-red-100 text-red-800" // Outbid
-                                        }`}>
+                                      <span
+                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                          auction.isWinning
+                                            ? "bg-green-100 text-green-800"
+                                            : auction.userHighestBid?.amount >=
+                                              auction.currentPrice
+                                            ? "bg-orange-100 text-orange-800" // Tied/Lost to auto-bid
+                                            : "bg-red-100 text-red-800" // Outbid
+                                        }`}
+                                      >
                                         {auction.isWinning
                                           ? "Đang dẫn đầu"
-                                          : (auction.userHighestBid?.amount >= auction.currentPrice)
-                                            ? "Có người đặt trước"
-                                            : "Bị vượt giá"}
+                                          : auction.userHighestBid?.amount >=
+                                            auction.currentPrice
+                                          ? "Có người đặt trước"
+                                          : "Bị vượt giá"}
                                       </span>
                                     </div>
                                   </div>
 
                                   <div className="flex flex-wrap items-end justify-between gap-4 mt-2">
                                     <div className="space-y-1">
-                                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Giá của bạn</p>
+                                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                        Giá của bạn
+                                      </p>
                                       <p className="text-lg font-bold text-primary">
-                                        {auction.userHighestBid?.amount?.toLocaleString('vi-VN')} VNĐ
+                                        {auction.userHighestBid?.amount?.toLocaleString(
+                                          "vi-VN"
+                                        )}{" "}
+                                        VNĐ
                                       </p>
                                     </div>
                                     <div className="space-y-1">
-                                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Giá hiện tại</p>
+                                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                        Giá hiện tại
+                                      </p>
                                       <p className="text-lg font-bold text-foreground">
-                                        {auction.currentPrice?.toLocaleString('vi-VN')} VNĐ
+                                        {auction.currentPrice?.toLocaleString(
+                                          "vi-VN"
+                                        )}{" "}
+                                        VNĐ
                                       </p>
                                     </div>
                                     <div className="ml-auto">
-                                      <Link to={`/product/${auction.productId?._id || auction.productId}`} className="btn-primary py-2 px-4 shadow-md text-sm">
+                                      <Link
+                                        to={`/product/${
+                                          auction.productId?._id ||
+                                          auction.productId
+                                        }`}
+                                        className="btn-primary py-2 px-4 shadow-md text-sm"
+                                      >
                                         Đặt thêm giá
                                       </Link>
                                     </div>
@@ -570,7 +755,9 @@ export default function DashboardPage() {
                         Sản phẩm đang theo dõi
                       </h2>
                       {!watchlist ? (
-                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-pink-500" /></div>
+                        <div className="flex justify-center py-12">
+                          <Loader className="w-8 h-8 animate-spin text-pink-500" />
+                        </div>
                       ) : watchlist.length === 0 ? (
                         <EmptyState message="Danh sách theo dõi trống." />
                       ) : (
@@ -578,18 +765,27 @@ export default function DashboardPage() {
                           {watchlist.map((item) => {
                             if (!item.productId) {
                               return (
-                                <div key={item._id} className="glass-card bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-center gap-4">
+                                <div
+                                  key={item._id}
+                                  className="glass-card bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-center gap-4"
+                                >
                                   <div className="w-16 h-16 bg-red-500/10 rounded-lg flex items-center justify-center text-red-500">
                                     <AlertCircle className="w-6 h-6" />
                                   </div>
                                   <div className="flex-1">
-                                    <h3 className="font-bold text-gray-400">Sản phẩm không tồn tại</h3>
-                                    <p className="text-sm text-muted-foreground">Sản phẩm này đã bị xóa khỏi hệ thống.</p>
+                                    <h3 className="font-bold text-gray-400">
+                                      Sản phẩm không tồn tại
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                      Sản phẩm này đã bị xóa khỏi hệ thống.
+                                    </p>
                                   </div>
                                   <button
                                     onClick={(e) => {
                                       e.preventDefault();
-                                      handleRemoveFromWatchlist(item.productId?._id || item._id); // Handle removal even if product is gone
+                                      handleRemoveFromWatchlist(
+                                        item.productId?._id || item._id
+                                      ); // Handle removal even if product is gone
                                     }}
                                     className="p-2 text-red-500 hover:bg-red-500/10 rounded-full transition"
                                     title="Bỏ theo dõi"
@@ -597,21 +793,32 @@ export default function DashboardPage() {
                                     <XCircle className="w-5 h-5" />
                                   </button>
                                 </div>
-                              )
+                              );
                             }
                             return (
-                              <div key={item._id} className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl overflow-hidden hover:bg-white/5 transition-all duration-300 group">
+                              <div
+                                key={item._id}
+                                className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl overflow-hidden hover:bg-white/5 transition-all duration-300 group"
+                              >
                                 <div className="relative h-48 overflow-hidden">
                                   <img
-                                    src={item.productId?.primaryImageUrl || "/placeholder.svg"}
+                                    src={
+                                      item.productId?.primaryImageUrl ||
+                                      "/placeholder.svg"
+                                    }
                                     alt={item.productId?.title}
                                     className="w-full h-full object-contain p-2 bg-white rounded-lg group-hover:scale-105 transition-transform duration-500"
-                                    onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = "/placeholder.svg";
+                                    }}
                                   />
                                   <button
                                     onClick={(e) => {
                                       e.preventDefault();
-                                      handleRemoveFromWatchlist(item.productId?._id);
+                                      handleRemoveFromWatchlist(
+                                        item.productId?._id
+                                      );
                                     }}
                                     className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-red-500 hover:bg-red-50 transition-colors"
                                     title="Bỏ theo dõi"
@@ -619,20 +826,29 @@ export default function DashboardPage() {
                                     <Heart className="w-5 h-5 fill-current" />
                                   </button>
                                   <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent p-4">
-                                    <h3 className="text-white font-bold truncate">{item.productId?.title}</h3>
+                                    <h3 className="text-white font-bold truncate">
+                                      {item.productId?.title}
+                                    </h3>
                                   </div>
                                 </div>
                                 <div className="p-4">
                                   <div className="flex justify-between items-center mb-4">
-                                    <span className="text-sm text-muted-foreground">Ngày thêm: {new Date(item.watchedAt).toLocaleDateString('vi-VN')}</span>
-
+                                    <span className="text-sm text-muted-foreground">
+                                      Ngày thêm:{" "}
+                                      {new Date(
+                                        item.watchedAt
+                                      ).toLocaleDateString("vi-VN")}
+                                    </span>
                                   </div>
-                                  <Link to={`/product/${item.productId?._id}`} className="block w-full text-center py-2 bg-white/5 hover:bg-primary hover:text-white rounded-lg transition-colors font-medium border border-white/10 hover:border-primary text-gray-300">
+                                  <Link
+                                    to={`/product/${item.productId?._id}`}
+                                    className="block w-full text-center py-2 bg-white/5 hover:bg-primary hover:text-white rounded-lg transition-colors font-medium border border-white/10 hover:border-primary text-gray-300"
+                                  >
                                     Xem chi tiết
                                   </Link>
                                 </div>
                               </div>
-                            )
+                            );
                           })}
                         </div>
                       )}
@@ -647,25 +863,50 @@ export default function DashboardPage() {
                         Đấu giá đã thắng
                       </h2>
                       {!wonAuctions ? (
-                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-green-500" /></div>
+                        <div className="flex justify-center py-12">
+                          <Loader className="w-8 h-8 animate-spin text-green-500" />
+                        </div>
                       ) : wonAuctions.length === 0 ? (
                         <EmptyState message="Bạn chưa thắng phiên đấu giá nào." />
                       ) : (
                         wonAuctions.map((auction) => (
-                          <div key={auction._id} className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl p-4 hover:bg-white/5 transition-all duration-300 relative overflow-hidden">
+                          <div
+                            key={auction._id}
+                            className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl p-4 hover:bg-white/5 transition-all duration-300 relative overflow-hidden"
+                          >
                             <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-bl-full -mr-4 -mt-4 z-0"></div>
                             <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-center">
                               <img
-                                src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
+                                src={
+                                  auction.productId?.primaryImageUrl ||
+                                  "/placeholder.svg"
+                                }
                                 alt={auction.productId?.title}
                                 className="w-20 h-20 rounded-lg object-contain p-1 bg-white ring-2 ring-green-500/20"
-                                onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = "/placeholder.svg";
+                                }}
                               />
                               <div className="flex-1 text-center sm:text-left">
-                                <h3 className="font-bold text-lg mb-1 text-gray-200">{auction.productId?.title}</h3>
-                                <p className="text-green-400 font-bold mb-1">Giá thắng: {auction.currentPrice?.toLocaleString('vi-VN')} VNĐ</p>
+                                <h3 className="font-bold text-lg mb-1 text-gray-200">
+                                  {auction.productId?.title}
+                                </h3>
+                                <p className="text-green-400 font-bold mb-1">
+                                  Giá thắng:{" "}
+                                  {auction.currentPrice?.toLocaleString(
+                                    "vi-VN"
+                                  )}{" "}
+                                  VNĐ
+                                </p>
                                 <p className="text-xs text-gray-400">
-                                  Người bán: <Link to={`/profile/ratings/${auction.sellerId?._id}`} className="text-primary hover:underline">{auction.sellerId?.username}</Link>
+                                  Người bán:{" "}
+                                  <Link
+                                    to={`/profile/ratings/${auction.sellerId?._id}`}
+                                    className="text-primary hover:underline"
+                                  >
+                                    {auction.sellerId?.username}
+                                  </Link>
                                 </p>
                               </div>
                               <div className="flex flex-col gap-2 min-w-[140px]">
@@ -678,7 +919,9 @@ export default function DashboardPage() {
                                   </button>
                                 )}
                                 <Link
-                                  to={`/product/${auction.productId?._id || auction.productId}`}
+                                  to={`/product/${
+                                    auction.productId?._id || auction.productId
+                                  }`}
                                   className="px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-lg text-sm font-medium hover:bg-white/10 transition text-center"
                                 >
                                   Xem chi tiết
@@ -699,48 +942,86 @@ export default function DashboardPage() {
                           <ShoppingBag className="w-5 h-5 text-orange-500" />
                           Sản phẩm đang bán
                         </h2>
-                        <Link to="/products/create" className="btn-primary py-2 px-4 shadow-lg shadow-primary/20 flex items-center gap-2 text-sm">
-                          <span className="text-lg leading-none">+</span> Đăng bán mới
+                        <Link
+                          to="/products/create"
+                          className="btn-primary py-2 px-4 shadow-lg shadow-primary/20 flex items-center gap-2 text-sm"
+                        >
+                          <span className="text-lg leading-none">+</span> Đăng
+                          bán mới
                         </Link>
                       </div>
 
                       {!sellingAuctions ? (
-                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-orange-500" /></div>
+                        <div className="flex justify-center py-12">
+                          <Loader className="w-8 h-8 animate-spin text-orange-500" />
+                        </div>
                       ) : sellingAuctions.length === 0 ? (
                         <EmptyState message="Bạn chưa đăng bán sản phẩm nào." />
                       ) : (
                         sellingAuctions.map((auction) => (
-                          <div key={auction._id} className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl p-4 hover:bg-white/5 transition-all duration-300">
+                          <div
+                            key={auction._id}
+                            className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl p-4 hover:bg-white/5 transition-all duration-300"
+                          >
                             <div className="flex flex-col sm:flex-row gap-4 items-center">
                               <img
-                                src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
+                                src={
+                                  auction.productId?.primaryImageUrl ||
+                                  "/placeholder.svg"
+                                }
                                 alt={auction.productId?.title}
                                 className="w-20 h-20 rounded-lg object-contain p-1 bg-white"
-                                onError={(e) => { e.target.onerror = null; e.target.src = "/placeholder.svg"; }}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = "/placeholder.svg";
+                                }}
                               />
                               <div className="flex-1 text-center sm:text-left">
-                                <h3 className="font-bold text-lg mb-1 text-gray-200">{auction.productId?.title}</h3>
+                                <h3 className="font-bold text-lg mb-1 text-gray-200">
+                                  {auction.productId?.title}
+                                </h3>
                                 <div className="flex justify-center sm:justify-start gap-4 text-sm text-gray-400 mb-2">
-                                  <span className="flex items-center gap-1"><Gavel className="w-3 h-3" /> {auction.bidCount} lượt đặt</span>
-                                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTimeLeft(auction.endAt)}</span>
+                                  <span className="flex items-center gap-1">
+                                    <Gavel className="w-3 h-3" />{" "}
+                                    {auction.bidCount} lượt đặt
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />{" "}
+                                    {formatTimeLeft(auction.endAt)}
+                                  </span>
                                 </div>
                                 {/* Bidder Approval Toggle */}
                                 <div className="flex items-center gap-2 mt-2">
                                   <button
-                                    onClick={() => handleToggleBidderApproval(auction.productId?._id, auction.productId?.requireBidderApproval)}
-                                    disabled={togglingProductId === auction.productId?._id}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${!auction.productId?.requireBidderApproval
-                                      ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
-                                      : 'bg-gray-500/20 text-gray-400 border border-gray-500/30 hover:bg-gray-500/30'
-                                      }`}
-                                    title={!auction.productId?.requireBidderApproval ? "Tắt chế độ cho phép người mới" : "Bật chế độ cho phép người mới"}
+                                    onClick={() =>
+                                      handleToggleBidderApproval(
+                                        auction.productId?._id,
+                                        auction.productId?.requireBidderApproval
+                                      )
+                                    }
+                                    disabled={
+                                      togglingProductId ===
+                                      auction.productId?._id
+                                    }
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                                      !auction.productId?.requireBidderApproval
+                                        ? "bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+                                        : "bg-gray-500/20 text-gray-400 border border-gray-500/30 hover:bg-gray-500/30"
+                                    }`}
+                                    title={
+                                      !auction.productId?.requireBidderApproval
+                                        ? "Tắt chế độ cho phép người mới"
+                                        : "Bật chế độ cho phép người mới"
+                                    }
                                   >
-                                    {togglingProductId === auction.productId?._id ? (
+                                    {togglingProductId ===
+                                    auction.productId?._id ? (
                                       <>
                                         <Loader className="w-3.5 h-3.5 animate-spin" />
                                         <span>Đang cập nhật...</span>
                                       </>
-                                    ) : !auction.productId?.requireBidderApproval ? (
+                                    ) : !auction.productId
+                                        ?.requireBidderApproval ? (
                                       <>
                                         <CheckCircle className="w-3.5 h-3.5" />
                                         <span>Người mới: Đã cho phép</span>
@@ -755,17 +1036,25 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                               <div className="flex flex-col gap-2 items-end">
-                                <p className="text-lg font-bold text-primary mb-1">{auction.currentPrice?.toLocaleString('vi-VN')} VNĐ</p>
+                                <p className="text-lg font-bold text-primary mb-1">
+                                  {auction.currentPrice?.toLocaleString(
+                                    "vi-VN"
+                                  )}{" "}
+                                  VNĐ
+                                </p>
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => {
                                       setSelectedProductForEdit({
                                         id: auction.productId?._id,
                                         description:
-                                          auction.productId?.descriptionHistory?.[
-                                            auction.productId.descriptionHistory.length - 1
+                                          auction.productId
+                                            ?.descriptionHistory?.[
+                                            auction.productId.descriptionHistory
+                                              .length - 1
                                           ]?.text || "",
-                                        metadata: auction.productId?.metadata || {},
+                                        metadata:
+                                          auction.productId?.metadata || {},
                                       });
                                       setShowEditDescModal(true);
                                     }}
@@ -775,19 +1064,27 @@ export default function DashboardPage() {
                                     <Edit className="w-5 h-5" />
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteProduct(auction.productId?._id, auction.productId?.title)}
+                                    onClick={() =>
+                                      handleDeleteProduct(
+                                        auction.productId?._id,
+                                        auction.productId?.title
+                                      )
+                                    }
                                     className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition border border-red-500/30"
                                     title="Xóa sản phẩm"
                                   >
                                     <Trash2 className="w-5 h-5" />
                                   </button>
-                                  <Link to={`/product/${auction.productId?._id}`} className="p-2 text-gray-400 hover:bg-white/10 rounded-lg transition border border-white/10" title="Xem chi tiết">
+                                  <Link
+                                    to={`/product/${auction.productId?._id}`}
+                                    className="p-2 text-gray-400 hover:bg-white/10 rounded-lg transition border border-white/10"
+                                    title="Xem chi tiết"
+                                  >
                                     <ArrowRight className="w-5 h-5" />
                                   </Link>
                                 </div>
                               </div>
                             </div>
-
                           </div>
                         ))
                       )}
@@ -802,31 +1099,54 @@ export default function DashboardPage() {
                         Đã bán thành công
                       </h2>
                       {!soldAuctions ? (
-                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-indigo-500" /></div>
+                        <div className="flex justify-center py-12">
+                          <Loader className="w-8 h-8 animate-spin text-indigo-500" />
+                        </div>
                       ) : soldAuctions.length === 0 ? (
                         <EmptyState message="Chưa có sản phẩm nào được bán." />
                       ) : (
                         soldAuctions.map((auction) => (
-                          <div key={auction._id} className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl p-4 hover:bg-white/5 transition-all duration-300">
+                          <div
+                            key={auction._id}
+                            className="glass-card bg-[#1e293b]/40 border border-white/10 rounded-xl p-4 hover:bg-white/5 transition-all duration-300"
+                          >
                             <div className="flex flex-col sm:flex-row gap-4 items-center">
                               <img
-                                src={auction.productId?.primaryImageUrl || "/placeholder.svg"}
+                                src={
+                                  auction.productId?.primaryImageUrl ||
+                                  "/placeholder.svg"
+                                }
                                 alt={auction.productId?.title}
                                 className="w-20 h-20 rounded-lg object-contain p-1 bg-white grayscale"
                               />
                               <div className="flex-1 text-center sm:text-left">
-                                <h3 className="font-bold text-lg mb-1 text-gray-200">{auction.productId?.title}</h3>
-                                <p className="text-indigo-400 font-bold">Giá bán: {auction.currentPrice?.toLocaleString('vi-VN')} VNĐ</p>
+                                <h3 className="font-bold text-lg mb-1 text-gray-200">
+                                  {auction.productId?.title}
+                                </h3>
+                                <p className="text-indigo-400 font-bold">
+                                  Giá bán:{" "}
+                                  {auction.currentPrice?.toLocaleString(
+                                    "vi-VN"
+                                  )}{" "}
+                                  VNĐ
+                                </p>
                                 <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
-                                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Hoàn tất</span>
-                                  <span className="text-xs text-muted-foreground">Người mua: {auction.currentHighestBidderId?.username}</span>
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+                                    Hoàn tất
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    Người mua:{" "}
+                                    {auction.currentHighestBidderId?.username}
+                                  </span>
                                 </div>
                               </div>
                               <div>
                                 {auction.transactionStatus === "pending" && (
                                   <>
                                     <button
-                                      onClick={() => handleCancelTransaction(auction._id)}
+                                      onClick={() =>
+                                        handleCancelTransaction(auction._id)
+                                      }
                                       className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition mr-2"
                                       title="Hủy và đánh giá -1"
                                     >
@@ -834,7 +1154,9 @@ export default function DashboardPage() {
                                     </button>
                                     {!auction.isRated && (
                                       <button
-                                        onClick={() => handleRateWinner(auction)}
+                                        onClick={() =>
+                                          handleRateWinner(auction)
+                                        }
                                         className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition shadow-sm"
                                       >
                                         Đánh giá
@@ -842,16 +1164,19 @@ export default function DashboardPage() {
                                     )}
                                   </>
                                 )}
-                                {auction.transactionStatus !== "pending" && !auction.isRated && (
-                                  <button
-                                    onClick={() => handleRateWinner(auction)}
-                                    className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition shadow-sm mr-2"
-                                  >
-                                    Đánh giá
-                                  </button>
-                                )}
+                                {auction.transactionStatus !== "pending" &&
+                                  !auction.isRated && (
+                                    <button
+                                      onClick={() => handleRateWinner(auction)}
+                                      className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition shadow-sm mr-2"
+                                    >
+                                      Đánh giá
+                                    </button>
+                                  )}
                                 <Link
-                                  to={`/product/${auction.productId?._id || auction.productId}`}
+                                  to={`/product/${
+                                    auction.productId?._id || auction.productId
+                                  }`}
                                   className="ml-2 px-3 py-2 bg-white/5 text-gray-300 hover:bg-white/10 rounded-lg text-sm font-medium transition"
                                 >
                                   Chi tiết
@@ -863,7 +1188,6 @@ export default function DashboardPage() {
                       )}
                     </div>
                   )}
-
                 </>
               )}
             </div>
@@ -888,7 +1212,8 @@ export default function DashboardPage() {
                   id: selectedTransactionForRating.targetUser?._id,
                   name:
                     selectedTransactionForRating.targetUser?.username ||
-                    selectedTransactionForRating.targetUser?.fullName || "User",
+                    selectedTransactionForRating.targetUser?.fullName ||
+                    "User",
                   rating:
                     selectedTransactionForRating.targetUser?.ratingSummary
                       ?.score || 0,
@@ -896,17 +1221,30 @@ export default function DashboardPage() {
                     selectedTransactionForRating.targetUser?.ratingSummary
                       ?.totalCount || 0,
                 }}
-                transactionId={selectedTransactionForRating.auction?.orderId || selectedTransactionForRating.auction?._id}
-                userType={selectedTransactionForRating.type === "rating_seller" ? "buyer" : "seller"}
+                transactionId={
+                  selectedTransactionForRating.auction?.orderId ||
+                  selectedTransactionForRating.auction?._id
+                }
+                userType={
+                  selectedTransactionForRating.type === "rating_seller"
+                    ? "buyer"
+                    : "seller"
+                }
                 onSubmitRating={handleRatingSuccess}
                 customSubmitAction={async ({ score, comment }) => {
-                  const context = selectedTransactionForRating.type === "rating_seller" ? "nguoi_mua_danh_gia" : "nguoi_ban_danh_gia";
-                  await ratingService.createRating(selectedTransactionForRating.targetUser._id, {
-                    score,
-                    comment,
-                    orderId: selectedTransactionForRating.auction?.orderId,
-                    context
-                  });
+                  const context =
+                    selectedTransactionForRating.type === "rating_seller"
+                      ? "nguoi_mua_danh_gia"
+                      : "nguoi_ban_danh_gia";
+                  await ratingService.createRating(
+                    selectedTransactionForRating.targetUser._id,
+                    {
+                      score,
+                      comment,
+                      orderId: selectedTransactionForRating.auction?.orderId,
+                      context,
+                    }
+                  );
                 }}
               />
             </div>
@@ -919,7 +1257,9 @@ export default function DashboardPage() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
           <div className="bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative shadow-2xl animate-slide-up border border-white/10">
             <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm z-10 border-b border-white/10 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-white">Cập nhật nội dung sản phẩm</h3>
+              <h3 className="text-xl font-bold text-white">
+                Cập nhật nội dung sản phẩm
+              </h3>
               <button
                 onClick={() => {
                   setShowEditDescModal(false);
@@ -941,7 +1281,7 @@ export default function DashboardPage() {
                   setSelectedProductForEdit(null);
                 }}
                 onUpdate={async (updatedProduct) => {
-                  await fetchAllData();
+                  await fetchActiveTabData();
                   setShowEditDescModal(false);
                   setSelectedProductForEdit(null);
                   setToast({
@@ -979,7 +1319,10 @@ export default function DashboardPage() {
               <div className="mb-6">
                 <p className="text-gray-300 mb-4">
                   Bạn có chắc chắn muốn xóa sản phẩm{" "}
-                  <strong className="text-white">"{productToDelete.title}"</strong>?
+                  <strong className="text-white">
+                    "{productToDelete.title}"
+                  </strong>
+                  ?
                 </p>
 
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
@@ -1029,5 +1372,5 @@ function EmptyState({ message }) {
       </div>
       <p className="text-lg text-muted-foreground font-medium">{message}</p>
     </div>
-  )
+  );
 }

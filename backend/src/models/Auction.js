@@ -127,6 +127,16 @@ auctionSchema.index({ status: 1, currentPrice: 1 });
 auctionSchema.index({ status: 1, currentPrice: -1 });
 auctionSchema.index({ status: 1, bidCount: -1 });
 auctionSchema.index({ status: 1, createdAt: -1 });
+// Dashboard specific indexes
+auctionSchema.index({ sellerId: 1, status: 1, createdAt: -1 }); // For getSellingAuctions
+// Optimized for getSoldAuctions (Sort by endAt, then filter by bidder)
+auctionSchema.index({
+  sellerId: 1,
+  status: 1,
+  endAt: -1,
+  currentHighestBidderId: 1,
+});
+auctionSchema.index({ currentHighestBidderId: 1, status: 1, endAt: -1 }); // For getWonAuctions
 
 // Update updatedAt on save
 auctionSchema.pre("save", function () {

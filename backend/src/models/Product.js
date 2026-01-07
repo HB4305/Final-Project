@@ -140,6 +140,8 @@ productSchema.index({ categoryId: 1, createdAt: -1 });
 productSchema.index({ sellerId: 1 });
 // Lọc theo trạng thái active
 productSchema.index({ isActive: 1 });
+// API 1.2: Sort theo views (Trending)
+productSchema.index({ views: -1 });
 
 // Update updatedAt on save
 productSchema.pre('save', function () {
